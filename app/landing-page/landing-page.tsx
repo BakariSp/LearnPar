@@ -1,0 +1,190 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { AiDialog } from '../../components/AiChat/AiDialog';
+import { CourseCard } from '../../components/Course/CourseCard';
+import { KeywordCard } from '../../components/Course/KeywordCard';
+import { LearningPathCard } from '../../components/Course/LearningPathCard';
+import styles from './landing-page.module.css';
+
+// Define interfaces for the API response data
+interface Resource {
+  url: string;
+  title: string;
+}
+
+interface Card {
+  id: number;
+  keyword: string;
+  explanation: string;
+  resources: Resource[];
+  level: string;
+  tags: string[];
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+interface Course {
+  id: number;
+  title: string;
+  description: string;
+  sections: any[];
+  created_at: string;
+  updated_at: string;
+}
+
+interface LearningPath {
+  id: number;
+  title: string;
+  description: string;
+  category: string;
+  difficulty_level: string;
+  estimated_days: number;
+  courses: any[];
+  created_at: string;
+  updated_at: string;
+}
+
+interface RecommendationsResponse {
+  learning_paths: LearningPath[];
+  courses: Course[];
+  cards: Card[];
+}
+
+export default function ZeroLandingPage() {
+  const [query, setQuery] = useState('');
+  const [recommendations, setRecommendations] = useState<RecommendationsResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch recommendations when component mounts
+  useEffect(() => {
+    const fetchRecommendations = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch('http://localhost:8000/api/recommendations');
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch recommendations: ${response.status}`);
+        }
+        
+        const data: RecommendationsResponse = await response.json();
+        setRecommendations(data);
+      } catch (err) {
+        console.error('Error fetching recommendations:', err);
+        setError('Failed to load recommendations. Please try again later.');
+        
+        // Fallback to empty arrays if API fails
+        setRecommendations({
+          learning_paths: [],
+          courses: [],
+          cards: []
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchRecommendations();
+  }, []);
+
+  // Map API cards to KeywordCard format
+  const keywordCards = recommendations?.cards.map(card => ({
+    id: card.id,
+    title: card.keyword,
+    description: card.explanation,
+    keywords: card.tags,
+    icon: getIconForTag(card.tags[0]) // Choose an icon based on the first tag
+  })) || [];
+
+  // Map API courses to CourseCard format
+  const courseCards = recommendations?.courses.map(course => ({
+    id: course.id,
+    title: course.title,
+    subtitle: course.description,
+    progress: 0 // New courses start at 0% progress
+  })) || [];
+
+  // Map API learning paths to LearningPathCard format
+  const learningPathCards = recommendations?.learning_paths.map(path => ({
+    id: path.id,
+    title: path.title,
+    description: path.description,
+    category: path.category,
+    difficulty: path.difficulty_level,
+    days: path.estimated_days
+  })) || [];
+
+  // Helper function to assign icons based on tags
+  function getIconForTag(tag: string): string {
+    const iconMap: {[key: string]: string} = {
+      'memory': '🧠',
+      'essential': '⭐',
+      'theoretical': '📚',
+      'cognitive science': '🔬',
+      'Balanced Diet': '🥗',
+      'Regular Exercise': '🏃‍♂️',
+      'Mental Wellness': '🧘‍♀️'
+    };
+    
+    return iconMap[tag] || '📝'; // Default icon if no match
+  }
+
+  return (
+    <main className={styles.container}>
+      <div className={styles.content}>
+        <section className={styles.aiSection}>
+          <h1 className={styles.heading}>What would you like to learn today?</h1>
+          <AiDialog query={query} setQuery={setQuery} />
+        </section>
+        
+        {isLoading ? (
+          <div className={styles.loadingContainer}>
+            <div className={styles.loadingSpinner}></div>
+            <p>Loading recommendations...</p>
+          </div>
+        ) : error ? (
+          <div className={styles.errorContainer}>
+            <p>{error}</p>
+          </div>
+        ) : (
+          <>
+            {learningPathCards.length > 0 && (
+              <section className={styles.learningPathsSection}>
+                <h2 className={styles.sectionTitle}>Recommended Learning Paths</h2>
+                <div className={styles.learningPathGrid}>
+                  {learningPathCards.map(path => (
+                    <LearningPathCard key={path.id} path={path} />
+                  ))}
+                </div>
+              </section>
+            )}
+            
+            {courseCards.length > 0 && (
+              <section className={styles.coursesSection}>
+                <h2 className={styles.sectionTitle}>Recommended Courses</h2>
+                <div className={styles.courseGrid}>
+                  {courseCards.map(course => (
+                    <CourseCard key={course.id} course={course} />
+                  ))}
+                </div>
+              </section>
+            )}
+            
+            {keywordCards.length > 0 && (
+              <section className={styles.keywordsSection}>
+                <h2 className={styles.sectionTitle}>Light Learn</h2>
+                <div className={styles.keywordGrid}>
+                  {keywordCards.map(card => (
+                    <KeywordCard key={card.id} card={card} />
+                  ))}
+                </div>
+              </section>
+            )}
+          </>
+        )}
+      </div>
+    </main>
+  );
+}
