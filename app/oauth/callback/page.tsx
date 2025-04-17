@@ -2,11 +2,12 @@
 
 import { useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { handleOAuthCallback } from '../../../services/auth';
+import { useAuth } from '../../../context/AuthContext';
 
 export default function OAuthCallbackPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { handleOAuthCallback } = useAuth();
   
   useEffect(() => {
     const token = searchParams.get('token');
@@ -20,7 +21,7 @@ export default function OAuthCallbackPage() {
       console.error('No token received from OAuth provider');
       router.push('/login?error=oauth_failed');
     }
-  }, [router, searchParams]);
+  }, [router, searchParams, handleOAuthCallback]);
 
   return (
     <div style={{ 

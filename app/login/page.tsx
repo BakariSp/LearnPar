@@ -1,10 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { login } from '../../services/auth';
 import styles from './login.module.css';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useAuth } from '../../context/AuthContext';
 
 export default function LoginPage() {
   const [credentials, setCredentials] = useState({
@@ -13,7 +13,7 @@ export default function LoginPage() {
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
+  const { login } = useAuth();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -30,9 +30,8 @@ export default function LoginPage() {
 
     try {
       await login(credentials);
-      router.push('/'); // Redirect to home page after successful login
-    } catch (err) {
-      setError('Invalid username or password. Please try again.');
+    } catch (err: any) {
+      setError(err.message || 'Invalid username or password. Please try again.');
       console.error('Login error:', err);
     } finally {
       setIsLoading(false);
@@ -40,12 +39,10 @@ export default function LoginPage() {
   };
 
   const handleGoogleLogin = () => {
-    // Redirect to your backend's Google OAuth endpoint
     window.location.href = 'http://localhost:8000/oauth/google';
   };
 
   const handleMicrosoftLogin = () => {
-    // Redirect to your backend's Microsoft OAuth endpoint
     window.location.href = 'http://localhost:8000/oauth/microsoft';
   };
 

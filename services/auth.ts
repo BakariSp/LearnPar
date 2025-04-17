@@ -1,3 +1,5 @@
+import { LoginCredentials } from './auth'; // Assuming LoginCredentials is defined elsewhere or above
+
 const AUTH_TOKEN_KEY = 'auth_token';
 const API_BASE_URL = 'http://localhost:8000'; // Your backend URL
 
@@ -7,20 +9,36 @@ export interface LoginCredentials {
 }
 
 export const login = async (credentials: LoginCredentials) => {
-  const response = await fetch(`${API_BASE_URL}/api/login`, {
+  // Use URLSearchParams to create x-www-form-urlencoded data
+  const body = new URLSearchParams();
+  body.append('username', credentials.username); // Use 'username' as per doc
+  body.append('password', credentials.password);
+
+  const response = await fetch(`${API_BASE_URL}/api/token`, { // Use /api/token endpoint
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(credentials)
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded', // Correct Content-Type
+    },
+    body: body.toString() // Send the URL-encoded string
   });
-  
+
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || 'Login failed');
+    let errorMessage = 'Login failed';
+    try {
+      const errorData = await response.json();
+      // Use 'detail' field from the backend error response as per doc
+      errorMessage = errorData.detail || 'Invalid username or password';
+    } catch (e) {
+      // Keep default message if parsing fails
+      console.error('Failed to parse login error response:', e);
+    }
+    throw new Error(errorMessage);
   }
-  
+
   const data = await response.json();
+  // Store the token received in the 'access_token' field
   localStorage.setItem(AUTH_TOKEN_KEY, data.access_token);
-  return data;
+  return data; // Contains access_token and token_type
 };
 
 export const getToken = () => {
@@ -88,6 +106,8 @@ export interface UserProfile {
   is_active: boolean;
   oauth_provider?: string;
   created_at?: string;
+  interests?: string[];
+  is_superuser?: boolean;
 }
 
 export const getCurrentUser = async (): Promise<UserProfile | null> => {

@@ -1,0 +1,393 @@
+.container {
+  max-width: 900px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background-color: var(--card-background, #fff);
+  border-radius: 10px;
+  box-shadow: var(--shadow-md, 0 4px 12px rgba(0, 0, 0, 0.1));
+}
+
+.loading,
+.error,
+.notFound {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  height: 100%;
+  text-align: center;
+  padding: 2rem;
+  font-size: 1.2rem;
+  color: var(--text-secondary, #6c757d);
+}
+
+.error {
+  color: #d32f2f;
+  background-color: #ffebee;
+  border: 1px solid #d32f2f;
+  border-radius: 8px;
+  padding: 2rem;
+  margin: 0;
+  width: auto;
+  max-width: 800px;
+}
+
+.pathTitle {
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--text-color, #212529);
+  margin-bottom: 0.5rem;
+}
+
+.pathDescription {
+  font-size: 1rem;
+  color: var(--text-secondary, #6c757d);
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+}
+
+.pathMeta {
+  display: flex;
+  gap: 1.5rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary, #6c757d);
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border-color, #e9ecef);
+}
+
+.pathMeta span {
+  background-color: #f1f3f5;
+  padding: 0.3rem 0.8rem;
+  border-radius: 15px;
+}
+
+.coursesTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-color, #212529);
+  margin-bottom: 1.5rem;
+}
+
+.courseList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.courseItem {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid var(--border-color, #e9ecef);
+}
+
+.courseOrder {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--primary-color, #4dabf7);
+  min-width: 25px;
+  text-align: right;
+}
+
+.courseDetails {
+  flex: 1;
+}
+
+.courseTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-color, #212529);
+  margin-bottom: 0.3rem;
+}
+
+.courseDescription {
+  font-size: 0.9rem;
+  color: var(--text-secondary, #6c757d);
+  line-height: 1.5;
+}
+
+/* --- New Layout Styles --- */
+.pageLayout {
+  display: flex;
+  height: 100%;
+  width: 100%;
+}
+
+.navigationMenu {
+  width: 300px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  border-right: 1px solid var(--border-color, #e9ecef);
+  background-color: var(--card-background, #fff);
+  padding: 1.5rem 1rem;
+}
+
+.contentArea {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  background-color: var(--background, #f8f9fa);
+}
+
+/* --- Navigation Menu Specific Styles --- */
+.pathTitleNav {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--text-color, #212529);
+  margin-bottom: 0.5rem;
+}
+
+.pathDescriptionNav {
+  font-size: 0.85rem;
+  color: var(--text-secondary, #6c757d);
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
+.pathMetaNav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--text-secondary, #6c757d);
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color, #e9ecef);
+}
+
+.pathMetaNav span {
+  background-color: #f1f3f5;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+}
+
+.courseListNav,
+.sectionListNav,
+.cardListNav {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sectionListNav {
+  padding-left: 1rem;
+  margin-top: 0.5rem;
+}
+
+.cardListNav {
+  padding-left: 1.5rem;
+  margin-top: 0.5rem;
+}
+
+.courseItemNav,
+.sectionItemNav {
+  margin-bottom: 0.5rem;
+}
+
+.toggleButton {
+  background: none;
+  border: none;
+  padding: 0.3rem 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  border-radius: 4px;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.toggleButton:hover {
+  background-color: #f1f3f5;
+}
+
+.toggleIcon {
+  margin-right: 0.5rem;
+  font-size: 0.7rem;
+  width: 12px;
+  display: inline-block;
+  text-align: center;
+  color: var(--text-secondary, #6c757d);
+}
+
+.courseTitleNav {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.sectionTitleNav {
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.cardItemNav {
+  margin-bottom: 0.2rem;
+}
+
+.cardLinkNav {
+  background: none;
+  border: none;
+  padding: 0.25rem 0.5rem 0.25rem 0;
+  margin: 0;
+  font: inherit;
+  color: var(--text-secondary, #555);
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  display: block;
+  font-size: 0.85rem;
+  border-radius: 4px;
+  transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cardLinkNav:hover {
+  background-color: #e9ecef;
+  color: var(--text-color, #212529);
+}
+
+.selectedCard {
+  background-color: var(--primary-color-light, #e3f2fd);
+  color: var(--primary-color, #4dabf7);
+  font-weight: 500;
+}
+
+/* --- Content Area Specific Styles --- */
+.contentPlaceholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  color: var(--text-secondary, #6c757d);
+}
+
+.contentPlaceholder h2 {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  color: var(--text-color, #212529);
+}
+
+.cardDetailView {
+  /* Add styling for the card details */
+}
+
+.cardDetailTitle {
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--text-color, #212529);
+  margin-bottom: 0.75rem;
+}
+
+.cardDetailMeta {
+  display: flex;
+  gap: 1.5rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary, #6c757d);
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color, #e9ecef);
+}
+
+.cardDetailMeta span {
+  background-color: #f1f3f5;
+  padding: 0.3rem 0.8rem;
+  border-radius: 15px;
+}
+
+.cardDetailExplanation,
+.cardDetailResources {
+  margin-bottom: 2rem;
+}
+
+.cardDetailExplanation h3,
+.cardDetailResources h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: var(--text-color, #212529);
+}
+
+.cardDetailExplanation p,
+.cardDetailResources ul,
+.cardDetailResources p {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--text-color-light, #495057);
+}
+
+.cardDetailResources ul {
+  list-style: disc;
+  padding-left: 20px;
+}
+
+.cardDetailResources li {
+  margin-bottom: 0.5rem;
+}
+
+.cardDetailResources a {
+  color: var(--primary-color, #4dabf7);
+  text-decoration: none;
+}
+
+.cardDetailResources a:hover {
+  text-decoration: underline;
+}
+
+.cardDetailTimestamps {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color, #e9ecef);
+  font-size: 0.8rem;
+  color: var(--text-secondary, #6c757d);
+  display: flex;
+  justify-content: space-between;
+}
+
+/* --- Responsive Adjustments (Example) --- */
+@media (max-width: 992px) {
+  .navigationMenu {
+    width: 250px;
+  }
+  .contentArea {
+    padding: 1.5rem 2rem;
+  }
+  .cardDetailTitle {
+    font-size: 1.8rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .pageLayout {
+    flex-direction: column;
+    height: auto;
+  }
+  .navigationMenu {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color, #e9ecef);
+    max-height: 50vh;
+    overflow-y: auto;
+  }
+  .contentArea {
+    min-height: 50vh;
+    overflow-y: visible;
+    padding: 1.5rem;
+  }
+  .cardDetailTitle {
+    font-size: 1.6rem;
+  }
+} 
