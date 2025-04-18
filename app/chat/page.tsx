@@ -1,30 +1,19 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
-import {
-  apiGenerateLearningPathFromChat,
-  apiGetTaskStatus,
-  TaskCreationResponse, // We get this first
-  TaskStatusResponse,   // We poll for this
-  // apiGetFullLearningPath // We'll use this at the end, but don't need the type here
-} from '@/services/api'; // Adjust path if needed
+import { useState, useRef, useEffect } from 'react';
+import axios from 'axios';
 import styles from './chat.module.css';
-
-const POLLING_INTERVAL = 5000; // Poll every 5 seconds
 
 export default function ChatPage() {
   const [prompt, setPrompt] = useState('');
-  const [isLoading, setIsLoading] = useState(false); // True during initial request and polling
+  const [isLoading, setIsLoading] = useState(false);
+  const [isAppending, setIsAppending] = useState(false); 
   const [error, setError] = useState<string | null>(null);
-  const [taskId, setTaskId] = useState<string | null>(null);
-  const [taskStatus, setTaskStatus] = useState<TaskStatusResponse | null>(null);
-  const [initialMessage, setInitialMessage] = useState<string | null>(null); // Message from TaskCreationResponse
-
-  const router = useRouter();
+  const [learningCourses, setLearningCourses] = useState<string[]>([]);
+  const [courseData, setCourseData] = useState<any>(null);
+  const [isFetchingNext, setIsFetchingNext] = useState(false);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Clear interval on component unmount
   useEffect(() => {
     return () => {
       if (pollingIntervalRef.current) {
@@ -32,164 +21,186 @@ export default function ChatPage() {
       }
     };
   }, []);
-
-  // Function to poll status
-  const pollStatus = async (currentTaskId: string) => {
+  const generateCourses = async (append: boolean = false) => {
     try {
-      const statusResponse = await apiGetTaskStatus(currentTaskId);
-      setTaskStatus(statusResponse);
-
-      // Check status and stop polling if completed, failed, or timed out
-      if (statusResponse.status === 'completed') {
-        if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
-        pollingIntervalRef.current = null;
-        setIsLoading(false); // Generation finished
-        if (statusResponse.learning_path_id) {
-          // Redirect to the newly created path page
-          router.push(`/learning-paths/${statusResponse.learning_path_id}`);
-        } else {
-          // Should not happen if status is completed, but handle defensively
-          setError('Generation completed, but Learning Path ID was missing.');
-        }
-      } else if (statusResponse.status === 'failed' || statusResponse.status === 'timeout') {
-        if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
-        pollingIntervalRef.current = null;
-        setError(statusResponse.errors?.join(', ') || `Generation ${statusResponse.status}.`);
-        setIsLoading(false);
+      const payload = {
+        interests: [prompt],
+        difficulty_level: 'beginner',
+        estimated_days: 30,
+        existing_items: [],
+      };
+  
+      // 1️⃣ 第一阶段：立即获取 title
+      const res1 = await axios.post('/api/generate-course-titles', payload);
+      const titles = res1.data.titles || [];
+  
+      if (append) {
+        setLearningCourses(prev => [...prev, ...titles]);
+      } else {
+        setLearningCourses(titles);
+        setCourseData(null); // 清空 section
       }
-      // If status is still pending/running, the interval will call pollStatus again
-    } catch (err: any) {
-      // Handle polling errors (e.g., network issue, 404 Task not found)
-      console.error("Polling failed:", err);
-      if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
-      pollingIntervalRef.current = null;
-      setError(`Error checking generation status: ${err.message}`);
+  
       setIsLoading(false);
+      setIsAppending(false);
+  
+      // 2️⃣ 第二阶段：不等，异步调用生成 section
+      axios.post('/api/generate-sections', {
+        titles,
+        difficulty_level: 'beginner',
+        estimated_days: 30,
+      }).then(res2 => {
+        const newCourses = res2.data.courses || [];
+  
+        if (append) {
+          setCourseData((prev: any) => {
+            const prevCourses = prev?.courses || [];
+            return { courses: [...prevCourses, ...newCourses] };
+          });
+        } else {
+          setCourseData({ courses: newCourses });
+        }
+      });
+    } catch (err: any) {
+      console.error('Course generation failed:', err);
+      setError(err.message || 'An error occurred while generating courses.');
+      setIsLoading(false);
+      setIsAppending(false);
     }
   };
-
-  // Function to start polling
-  const startPolling = (currentTaskId: string) => {
-    // Clear any existing interval
-    if (pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current);
-    }
-    // Poll immediately first time
-    pollStatus(currentTaskId);
-    // Then set interval
-    pollingIntervalRef.current = setInterval(() => {
-      pollStatus(currentTaskId);
-    }, POLLING_INTERVAL);
-  };
+  
+  
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!prompt.trim()) {
-      setError('Please enter what you want to learn.');
-      return;
-    }
+  e.preventDefault();
+  if (!prompt.trim()) {
+    setError('Please enter what you want to learn.');
+    return;
+  }
 
-    // Reset state for new request
-    setIsLoading(true);
-    setError(null);
-    setTaskId(null);
-    setTaskStatus(null);
-    setInitialMessage(null);
-    if (pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current);
-      pollingIntervalRef.current = null;
-    }
+  setIsLoading(true);
+  setError(null);
+  setLearningCourses([]);
+  setCourseData(null);
 
+  generateCourses(false);
+  };
+
+  const handleGenerateMore = async () => {
+    if (!prompt.trim()) return;
+    setIsAppending(true);
+    await generateCourses(true);
+  };
+
+  const handleRemoveItem = (indexToRemove: number) => {
+    setLearningCourses(prev => prev.filter((_, i) => i !== indexToRemove));
+  };
+
+  const handleNextStep = async () => {
+    if (!learningCourses.length) return;
+    setIsFetchingNext(true);
     try {
-      // 1. Initiate Generation
-      const response: TaskCreationResponse = await apiGenerateLearningPathFromChat(prompt);
-      setTaskId(response.task_id);
-      setInitialMessage(response.message); // Show the initial feedback message
-
-      // 2. Start Polling
-      startPolling(response.task_id);
-      // isLoading remains true while polling
-
-      // Optionally clear input after successful initiation
-      // setPrompt('');
-
+      const payload = {
+        titles: learningCourses,
+        difficulty_level: 'beginner',
+        estimated_days: 30,
+        
+      };
+      const res = await axios.post('/api/generate-details-from-outline', payload);
+      setCourseData(res.data);
     } catch (err: any) {
-      console.error('Chat generation initiation failed:', err);
-      setError(err.message || 'An error occurred while starting the learning path generation.');
-      setIsLoading(false); // Stop loading if initiation fails
+      console.error('Detail generation failed:', err);
+      setError(err.message || 'An error occurred while generating course details.');
+    } finally {
+      setIsFetchingNext(false);
     }
   };
-
-  // Helper to display progress message
-  const getProgressMessage = (): string => {
-    if (!isLoading || !taskStatus) return initialMessage || 'Starting generation...';
-
-    const stage = taskStatus.stage ? ` (${taskStatus.stage.replace(/_/g, ' ')})` : '';
-    let progressText = '';
-
-    if (taskStatus.stage === 'generating_cards' && taskStatus.cards_completed !== null && taskStatus.total_cards !== null && taskStatus.total_cards > 0) {
-      progressText = ` - ${taskStatus.cards_completed} / ${taskStatus.total_cards} cards generated`;
-    } else if (taskStatus.progress !== null) {
-      progressText = ` - ${taskStatus.progress}% complete`;
-    }
-
-    return `Generating your path${stage}${progressText}...`;
-  };
-
 
   return (
     <main className={styles.chatContainer}>
-      <h1 className={styles.title}>Create Your Learning Path</h1>
-      <p className={styles.subtitle}>Tell us what you want to learn, and we'll generate a personalized path for you.</p>
+      <h1 className={styles.title}>Create Your Courses</h1>
+      <p className={styles.subtitle}>Tell us what you want to learn, and we'll generate a high-level set of learning courses to get you started.</p>
 
       <form onSubmit={handleSubmit} className={styles.chatForm}>
         <input
           type="text"
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
-          placeholder="e.g., 'I want to learn about web development in 60 days'"
+          placeholder="e.g., 'I want to learn about web development'"
           className={styles.input}
-          disabled={isLoading} // Disable input while loading/polling
+          disabled={isLoading || isAppending}
           aria-label="Learning prompt"
         />
         <button
           type="submit"
           className={styles.submitButton}
-          disabled={isLoading} // Disable button while loading/polling
+          disabled={isLoading || isAppending} // ✅ 不受 isFetchingNext 影响
         >
-          {isLoading ? 'Generating...' : 'Generate Path'}
+          {isLoading ? 'Generating...' : 'Generate Courses'}
         </button>
+
       </form>
 
-      {/* Loading / Progress Indicator */}
       {isLoading && (
         <div className={styles.loadingIndicator}>
           <div className={styles.spinner}></div>
-          <p>{getProgressMessage()}</p>
-          {/* Optional: Add progress bar based on taskStatus.progress */}
+          <p>Generating Courses...</p>
         </div>
       )}
 
-      {/* Error Display */}
-      {error && !isLoading && ( // Show error only if not loading
+      {error && !isLoading && (
         <div className={styles.errorBox}>
           <p>Error: {error}</p>
         </div>
       )}
 
-      {/* Success/Result Area - Removed as we now redirect on completion */}
-      {/*
-        The old logic displayed the path info here. Now, upon successful completion,
-        the pollStatus function redirects the user to the learning path page.
-        You could potentially show a "Generation Complete! Redirecting..." message
-        briefly before the redirect happens if desired.
-      */}
-       {!isLoading && taskId && taskStatus?.status === 'completed' && (
-         <div className={styles.successBox}> {/* Optional: Add styles for this */}
-           <p>Learning path generated successfully! Redirecting...</p>
-         </div>
-       )}
+      {learningCourses.length > 0 && (
+        <div className={styles.resultContainer}>
+          <h3 className={styles.resultTitle}>Generated Courses:</h3>
+          <ul className={styles.resultList}>
+            {learningCourses.map((item, index) => (
+              <li key={index} className={styles.resultItemBox}>
+                <div className={styles.courseRow}>
+                  <span className={styles.resultIndex}>{index + 1}.</span>
+                  <span className={styles.resultItemText}>{item}</span>
+                  <button
+                    className={styles.removeButton}
+                    onClick={() => handleRemoveItem(index)}
+                  >
+                    ✕
+                  </button>
+                </div>
+                {courseData?.courses?.[index]?.sections?.length > 0 ? (
+                  <ul className={styles.sectionList}>
+                    {courseData.courses[index].sections.map((s: any, j: number) => (
+                      <li key={j} className={styles.sectionItem}>{s.title}</li>
+                    ))}
+                  </ul>
+                ) : isFetchingNext && (
+                  <p style={{ paddingLeft: '2rem', color: '#999' }}>Loading sections...</p>
+                )}
 
+              </li>
+            ))}
+          </ul>
+
+          <div className={styles.bottomButtons}>
+            <button
+              className={styles.secondaryButton}
+              onClick={handleGenerateMore}
+              disabled={isAppending || isLoading} // ✅ 不受 isFetchingNext 影响
+            >
+              {isAppending ? <span className={styles.smallSpinner}></span> : 'Generate More Courses'}
+            </button>
+
+            <button className={styles.primaryButton} onClick={handleNextStep} disabled={isFetchingNext}>
+              {isFetchingNext ? <span className={styles.smallSpinner}></span> : 'Next Step'}
+            </button>
+
+
+          </div>
+        </div>
+      )}
     </main>
   );
-} 
+}

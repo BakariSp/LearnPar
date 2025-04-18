@@ -194,3 +194,132 @@
 .nextSteps li {
   margin-bottom: 0.3rem;
 } 
+.resultContainer {
+  margin-top: 2rem;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.resultTitle {
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #343a40;
+}
+
+.resultList {
+  width: 100%;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 2rem 0;
+}
+
+.resultItemBox {
+  background-color: #f1f3f5;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+  display: block; /* ✅ 改成 block */
+  position: relative;
+}
+
+
+.resultIndex {
+  font-weight: bold;
+  margin-right: 0.75rem;
+  color: #495057;
+}
+
+.resultItemText {
+  flex: 1;
+  color: #212529;
+  font-size: 1rem;
+}
+
+.removeButton {
+  background: none;
+  border: none;
+  color: #e03131;
+  font-size: 1.2rem;
+  font-weight: bold;
+  cursor: pointer;
+  margin-left: 1rem;
+}
+
+.removeButton:hover {
+  color: #c92a2a;
+}
+
+.bottomButtons {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+  gap: 1rem;
+}
+
+.secondaryButton,
+.primaryButton {
+  padding: 0.7rem 1.5rem;
+  font-size: 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+  border: none;
+}
+
+.secondaryButton {
+  background-color: #ced4da;
+  color: #212529;
+}
+
+.secondaryButton:hover {
+  background-color: #adb5bd;
+}
+
+.primaryButton {
+  background-color: #4dabf7;
+  color: white;
+}
+
+.primaryButton:hover {
+  background-color: #339af0;
+}
+
+.smallSpinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(0, 0, 0, 0.1);
+  border-top-color: #4dabf7;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+}
+.fullResultContainer {
+  margin-top: 2rem;
+  padding: 1rem;
+  border-top: 1px solid #ccc;
+}
+
+.courseRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.sectionList {
+  margin-top: 0.5rem;
+  padding-left: 2rem;  /* 控制缩进 */
+  color: #555;
+  list-style-type: disc;
+}
+
+.sectionItem {
+  margin-bottom: 0.25rem;
+  margin-left: 2.5rem;
+  font-size: 0.95rem;
+}
