@@ -47,57 +47,36 @@ interface LearningPath {
   updated_at: string;
 }
 
-interface RecommendationsResponse {
+// Export the response type for the server component
+export interface RecommendationsResponse {
   learning_paths: LearningPath[];
   courses: Course[];
   cards: Card[];
 }
 
-export default function ZeroLandingPage() {
+// Define props for the component
+interface ZeroLandingPageProps {
+  initialRecommendations: RecommendationsResponse | null;
+}
+
+export default function ZeroLandingPage({ initialRecommendations }: ZeroLandingPageProps) {
   const [query, setQuery] = useState('');
-  const [recommendations, setRecommendations] = useState<RecommendationsResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Use the initial data passed via props
+  // Determine initial loading/error state based on the prop
+  const [recommendations] = useState<RecommendationsResponse | null>(initialRecommendations);
+  const [isLoading] = useState<boolean>(!initialRecommendations); // Loading if prop is null initially
+  const [error] = useState<string | null>(
+    initialRecommendations === null ? 'Failed to load recommendations. Please try again later.' : null
+  );
   const router = useRouter();
 
-  // Fetch recommendations when component mounts
-  useEffect(() => {
-    const fetchRecommendations = async () => {
-      try {
-        setIsLoading(true);
-        const response = await fetch('http://localhost:8000/api/recommendations');
-        
-        if (!response.ok) {
-          throw new Error(`Failed to fetch recommendations: ${response.status}`);
-        }
-        
-        const data: RecommendationsResponse = await response.json();
-        setRecommendations(data);
-      } catch (err) {
-        console.error('Error fetching recommendations:', err);
-        setError('Failed to load recommendations. Please try again later.');
-        
-        // Fallback to empty arrays if API fails
-        setRecommendations({
-          learning_paths: [],
-          courses: [],
-          cards: []
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchRecommendations();
-  }, []);
-
-  // Map API cards to KeywordCard format
+  // Map API cards to KeywordCard format (Add the safety check from fix #1)
   const keywordCards = recommendations?.cards.map(card => ({
     id: card.id,
     title: card.keyword,
     description: card.explanation,
-    keywords: card.tags,
-    icon: getIconForTag(card.tags[0]) // Choose an icon based on the first tag
+    keywords: card.tags || [], // Ensure keywords is always an array
+    icon: getIconForTag(card.tags && card.tags.length > 0 ? card.tags[0] : '') // Safe access
   })) || [];
 
   // Map API courses to CourseCard format

@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import {
   apiGetFullLearningPath,
   apiGetLatestTaskForLearningPath,
+  apiGetSectionWithCards,
   FullLearningPathResponse,
   TaskStatusResponse,
   CourseResponse,
@@ -27,6 +28,9 @@ export default function LearningPathDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isFetchingStatus, setIsFetchingStatus] = useState(false); // Separate loading state for status
+  const [currentSectionId, setCurrentSectionId] = useState<number | null>(null); // Add this state
+  const [isFetchingSection, setIsFetchingSection] = useState(false); // Add this state
+  const [currentSectionCards, setCurrentSectionCards] = useState<CardResponse[]>([]); // Initialize as empty array
 
   useEffect(() => {
     if (!id) return;
@@ -39,6 +43,8 @@ export default function LearningPathDetailPage() {
       setTaskStatus(null); // Reset task status
       setSelectedCard(null);
       setExpandedItems({});
+      setCurrentSectionId(null);
+      setCurrentSectionCards([]);
 
       try {
         const pathId = parseInt(id, 10);
@@ -77,12 +83,43 @@ export default function LearningPathDetailPage() {
     fetchData();
   }, [id]); // Re-run effect if id changes
 
+  // Add a new effect to fetch section cards when a section is expanded
+  useEffect(() => {
+    if (!currentSectionId) return;
+
+    const fetchSectionCards = async () => {
+      setIsFetchingSection(true);
+      try {
+        const sectionData = await apiGetSectionWithCards(currentSectionId);
+        // Ensure we always set an array, even if cards is undefined
+        setCurrentSectionCards(sectionData.cards || []);
+      } catch (err: any) {
+        console.error(`Failed to fetch cards for section ${currentSectionId}:`, err);
+        // Set empty array on error to prevent null reference
+        setCurrentSectionCards([]);
+      } finally {
+        setIsFetchingSection(false);
+      }
+    };
+
+    fetchSectionCards();
+  }, [currentSectionId]);
+
   // Function to toggle expand/collapse state
-  const toggleExpand = (itemId: string) => {
-    setExpandedItems(prev => ({
-      ...prev,
-      [itemId]: !prev[itemId]
-    }));
+  const toggleExpand = (itemId: string, sectionId?: number) => {
+    setExpandedItems(prev => {
+      const newState = {
+        ...prev,
+        [itemId]: !prev[itemId]
+      };
+      
+      // If this is a section being expanded, set the current section ID to fetch cards
+      if (itemId.startsWith('section-') && sectionId && newState[itemId]) {
+        setCurrentSectionId(sectionId);
+      }
+      
+      return newState;
+    });
   };
 
   // Function to handle card selection
@@ -181,6 +218,40 @@ export default function LearningPathDetailPage() {
     return <span className={statusStyle}>{statusText}</span>;
   };
 
+  // Function to get the current card index in the section
+  const getCurrentCardIndex = () => {
+    if (!selectedCard || !currentSectionCards.length) return -1;
+    return currentSectionCards.findIndex(card => card.id === selectedCard.id);
+  };
+
+  // Function to check if there's a previous card
+  const hasPreviousCard = () => {
+    const currentIndex = getCurrentCardIndex();
+    return currentIndex > 0;
+  };
+
+  // Function to check if there's a next card
+  const hasNextCard = () => {
+    const currentIndex = getCurrentCardIndex();
+    return currentIndex < currentSectionCards.length - 1 && currentIndex !== -1;
+  };
+
+  // Function to navigate to the previous card
+  const navigateToPreviousCard = () => {
+    const currentIndex = getCurrentCardIndex();
+    if (currentIndex > 0) {
+      setSelectedCard(currentSectionCards[currentIndex - 1]);
+    }
+  };
+
+  // Function to navigate to the next card
+  const navigateToNextCard = () => {
+    const currentIndex = getCurrentCardIndex();
+    if (currentIndex < currentSectionCards.length - 1) {
+      setSelectedCard(currentSectionCards[currentIndex + 1]);
+    }
+  };
+
   // --- Render Logic ---
 
   if (isLoading) {
@@ -235,7 +306,7 @@ export default function LearningPathDetailPage() {
                   {course.sections.map((section) => (
                     <li key={section.id} className={styles.sectionItemNav}>
                       <button
-                        onClick={() => toggleExpand(`section-${section.id}`)}
+                        onClick={() => toggleExpand(`section-${section.id}`, section.id)}
                         className={styles.toggleButton}
                         aria-expanded={!!expandedItems[`section-${section.id}`]}
                       >
@@ -248,16 +319,24 @@ export default function LearningPathDetailPage() {
                       </button>
                       {expandedItems[`section-${section.id}`] && (
                         <ul className={styles.cardListNav}>
-                          {section.cards.map((card) => (
-                            <li key={card.id} className={styles.cardItemNav}>
-                              <button
-                                onClick={() => handleCardSelect(card)}
-                                className={`${styles.cardLinkNav} ${selectedCard?.id === card.id ? styles.selectedCard : ''}`}
-                              >
-                                {card.keyword}
-                              </button>
-                            </li>
-                          ))}
+                          {currentSectionId === section.id && isFetchingSection ? (
+                            <li className={styles.loadingCards}>Loading cards...</li>
+                          ) : (
+                            currentSectionId === section.id && currentSectionCards && currentSectionCards.length > 0 ? (
+                              currentSectionCards.map((card) => (
+                                <li key={card.id} className={styles.cardItemNav}>
+                                  <button
+                                    onClick={() => handleCardSelect(card)}
+                                    className={`${styles.cardLinkNav} ${selectedCard?.id === card.id ? styles.selectedCard : ''}`}
+                                  >
+                                    {card.keyword}
+                                  </button>
+                                </li>
+                              ))
+                            ) : (
+                              <li className={styles.noCards}>No cards available</li>
+                            )
+                          )}
                         </ul>
                       )}
                     </li>
@@ -276,32 +355,74 @@ export default function LearningPathDetailPage() {
 
         {selectedCard ? (
           <div className={styles.cardDetailView}>
-            <h1 className={styles.cardDetailTitle}>{selectedCard.keyword}</h1>
-            <div className={styles.cardDetailMeta}>
-              <span>Level: {selectedCard.level}</span>
-              {selectedCard.tags.length > 0 && (
-                <span>Tags: {selectedCard.tags.join(', ')}</span>
-              )}
-            </div>
-            <div className={styles.cardDetailExplanation}>
-              <h3>Explanation</h3>
-              {/* Render explanation - potentially needs markdown parsing if it contains markdown */}
-              <p>{selectedCard.explanation}</p>
-            </div>
-            <div className={styles.cardDetailResources}>
-              <h3>Resources</h3>
-              {renderResources(selectedCard.resources)}
-            </div>
-             <div className={styles.cardDetailTimestamps}>
-                <small>Created: {new Date(selectedCard.created_at).toLocaleString()}</small>
-                <small>Updated: {new Date(selectedCard.updated_at).toLocaleString()}</small>
+            <div className={styles.cardContainer}>
+              <div className={styles.cardHeader}>
+                <div className={styles.cardType}>
+                  <span className={styles.cardIcon}>⚡</span>
+                  <span>Basic Concept</span>
+                </div>
+                <div className={styles.cardTags}>
+                  {selectedCard.tags && selectedCard.tags.length > 0 && (
+                    <span>{selectedCard.tags.join(', ')}</span>
+                  )}
+                </div>
+              </div>
+              
+              <h2 className={styles.cardTitle}>{selectedCard.keyword}</h2>
+              
+              <div className={styles.cardContent}>
+                {selectedCard.question && (
+                  <div className={styles.cardQuestion}>
+                    <h3>Question</h3>
+                    <p>{selectedCard.question}</p>
+                  </div>
+                )}
+                
+                {selectedCard.answer && (
+                  <div className={styles.cardAnswer}>
+                    <h3>Answer</h3>
+                    <p>{selectedCard.answer}</p>
+                  </div>
+                )}
+                
+                {selectedCard.explanation && (
+                  <div className={styles.cardExplanation}>
+                    <h3>Explanation</h3>
+                    <p>{selectedCard.explanation}</p>
+                  </div>
+                )}
+                
+                <div className={styles.cardResources}>
+                  <h3>Resources</h3>
+                  {renderResources(selectedCard.resources || {})}
+                </div>
+              </div>
+              
+              <div className={styles.cardNavigation}>
+                <button 
+                  className={styles.navButton} 
+                  onClick={navigateToPreviousCard}
+                  disabled={!hasPreviousCard()}
+                >
+                  ← Previous
+                </button>
+                <div className={styles.cardCounter}>
+                  {getCurrentCardIndex() + 1} / {currentSectionCards.length}
+                </div>
+                <button 
+                  className={styles.navButton} 
+                  onClick={navigateToNextCard}
+                  disabled={!hasNextCard()}
+                >
+                  Next →
+                </button>
+              </div>
             </div>
           </div>
         ) : (
           <div className={styles.contentPlaceholder}>
-            <h2>Welcome to {learningPathData.title}</h2>
+            <h2>Welcome to {learningPathData?.title}</h2>
             <p>Select a card from the learning path menu on the left to view its details.</p>
-            {/* Optionally show status summary here too */}
             {taskStatus && taskStatus.status !== 'completed' && (
               <p className={styles.statusWarning}>
                 Note: The generation process reported status '{taskStatus.status}'{taskStatus.stage ? ` (stage: ${taskStatus.stage})` : ''}. The content might be incomplete or reflect an error state.

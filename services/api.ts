@@ -52,8 +52,10 @@ export interface CardResource {
 export interface CardResponse {
   id: number;
   keyword: string;
+  question: string;  // Add this field
+  answer: string;    // Add this field
   explanation: string;
-  resources: Record<string, CardResource> | CardResource[] | {}; // Flexible based on actual structure
+  resources: Record<string, CardResource> | CardResource[] | {};
   level: string;
   tags: string[];
   created_at: string;
@@ -336,6 +338,24 @@ export const apiDeleteUserLearningPath = async (learningPathId: number): Promise
   } catch (error) {
     console.error("Error in apiDeleteUserLearningPath:", error);
     throw error; // Re-throw for the component to handle
+  }
+};
+
+// Fetch a section with its cards
+export const apiGetSectionWithCards = async (sectionId: number): Promise<SectionResponse> => {
+  try {
+    const response = await apiClient(`/api/sections/${sectionId}`);
+    if (response && response.ok) {
+      return response.json();
+    }
+    console.error(`Failed to fetch section ${sectionId} with cards`);
+    if (response && response.status === 404) {
+      throw new Error(`Section with ID ${sectionId} not found.`);
+    }
+    throw new Error(`Failed to fetch section details (status: ${response?.status}).`);
+  } catch (error) {
+    console.error("Error in apiGetSectionWithCards:", error);
+    throw error;
   }
 };
 
