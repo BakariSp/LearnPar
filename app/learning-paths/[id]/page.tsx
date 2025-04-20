@@ -4,33 +4,41 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import {
   apiGetFullLearningPath,
+  apiGetLatestTaskForLearningPath,
   FullLearningPathResponse,
+  TaskStatusResponse,
   CourseResponse,
   SectionResponse,
   CardResponse,
-  CardResource // Make sure CardResource is exported from api.ts
+  CardResource
 } from '@/services/api'; // Adjust path as needed
 import styles from './learning-path-detail.module.css';
+// Optional: Import an icon library if you want icons for status
+// import { CheckCircleIcon, ExclamationTriangleIcon, ArrowPathIcon } from '@heroicons/react/20/solid';
 
 export default function LearningPathDetailPage() {
   const params = useParams();
   const id = params.id as string;
 
   const [learningPathData, setLearningPathData] = useState<FullLearningPathResponse | null>(null);
+  const [taskStatus, setTaskStatus] = useState<TaskStatusResponse | null>(null); // State for task status
   const [selectedCard, setSelectedCard] = useState<CardResponse | null>(null);
-  const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({}); // Store expanded state for courses/sections
+  const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isFetchingStatus, setIsFetchingStatus] = useState(false); // Separate loading state for status
 
   useEffect(() => {
     if (!id) return;
 
     const fetchData = async () => {
       setIsLoading(true);
+      setIsFetchingStatus(false); // Reset status fetching state
       setError(null);
       setLearningPathData(null);
-      setSelectedCard(null); // Reset selected card on new path load
-      setExpandedItems({}); // Reset expanded items
+      setTaskStatus(null); // Reset task status
+      setSelectedCard(null);
+      setExpandedItems({});
 
       try {
         const pathId = parseInt(id, 10);
@@ -38,12 +46,28 @@ export default function LearningPathDetailPage() {
           throw new Error("Invalid Learning Path ID.");
         }
 
-        // Fetch the FULL learning path structure
+        // 1. Fetch the FULL learning path structure
         const pathData = await apiGetFullLearningPath(pathId);
         setLearningPathData(pathData);
 
+        // 2. If path data loaded successfully, fetch the latest task status
+        if (pathData) {
+          setIsFetchingStatus(true);
+          try {
+            const latestTask = await apiGetLatestTaskForLearningPath(pathId);
+            setTaskStatus(latestTask); // Store the latest task status (can be null if none found)
+          } catch (taskError: any) {
+            // Log status fetch error but don't block the page view
+            console.error("Failed to fetch latest task status:", taskError);
+            // Optionally set an error message specific to status fetching
+            // setError(prev => prev ? `${prev}\nCould not load generation status.` : 'Could not load generation status.');
+          } finally {
+            setIsFetchingStatus(false);
+          }
+        }
+
       } catch (err: any) {
-        console.error("Failed to load full learning path details:", err);
+        console.error("Failed to load learning path details:", err);
         setError(err.message || 'Failed to load learning path details. Please try again.');
       } finally {
         setIsLoading(false);
@@ -109,6 +133,53 @@ export default function LearningPathDetailPage() {
     return <p>Could not display resources (unknown format).</p>;
   };
 
+  // Helper function to render status indicator
+  const renderStatusIndicator = () => {
+    if (isFetchingStatus) {
+      return <span className={styles.statusLoading}>Checking status...</span>;
+    }
+    if (!taskStatus) {
+      // No task found or failed to fetch - maybe show nothing or a default
+      return <span className={styles.statusUnknown}>Status: Unknown</span>;
+    }
+
+    let statusText = `Status: ${taskStatus.status}`;
+    if (taskStatus.stage) {
+      statusText += ` (${taskStatus.stage})`;
+    }
+    let statusStyle = styles.statusInfo; // Default style
+
+    switch (taskStatus.status) {
+      case 'completed':
+        statusStyle = styles.statusCompleted;
+        // Optional: Add icon
+        // statusText = <><CheckCircleIcon className={styles.statusIcon} /> {statusText}</>;
+        break;
+      case 'running':
+      case 'starting':
+      case 'pending':
+      case 'queued':
+        statusStyle = styles.statusRunning;
+        // Optional: Add icon
+        // statusText = <><ArrowPathIcon className={styles.statusIcon} /> {statusText}</>;
+        break;
+      case 'failed':
+      case 'timeout':
+        statusStyle = styles.statusFailed;
+        // Optional: Add icon
+        // statusText = <><ExclamationTriangleIcon className={styles.statusIcon} /> {statusText}</>;
+        if (taskStatus.result_message) {
+            statusText += ` - ${taskStatus.result_message}`;
+        } else if (taskStatus.error_details) {
+             statusText += ` - Check logs for details.`; // Avoid showing raw tracebacks
+        }
+        break;
+      default:
+        statusStyle = styles.statusUnknown;
+    }
+
+    return <span className={statusStyle}>{statusText}</span>;
+  };
 
   // --- Render Logic ---
 
@@ -116,14 +187,17 @@ export default function LearningPathDetailPage() {
     return <div className={styles.loading}>Loading Learning Path...</div>;
   }
 
-  if (error) {
+  if (error && !learningPathData) { // Only show full page error if path data failed to load
     return <div className={styles.error}>Error: {error}</div>;
   }
 
   if (!learningPathData) {
-    return <div className={styles.notFound}>Learning Path not found.</div>;
+    // This case might be hit if loading finished but data is still null (e.g., initial state or unexpected issue)
+    // Or if the API returned null for a valid ID (though apiGetFullLearningPath throws 404)
+    return <div className={styles.notFound}>Learning Path not found or failed to load.</div>;
   }
 
+  // --- Main Render ---
   return (
     <div className={styles.pageLayout}>
       {/* Left Navigation Menu */}
@@ -134,6 +208,11 @@ export default function LearningPathDetailPage() {
           <span>{learningPathData.category}</span>
           <span>{learningPathData.difficulty_level}</span>
           <span>{learningPathData.estimated_days} days</span>
+        </div>
+
+        {/* Display Task Status */}
+        <div className={styles.statusContainer}>
+          {renderStatusIndicator()}
         </div>
 
         <ul className={styles.courseListNav}>
@@ -192,6 +271,9 @@ export default function LearningPathDetailPage() {
 
       {/* Right Content Area */}
       <main className={styles.contentArea}>
+        {/* Display general error if path loaded but status fetch failed (optional) */}
+        {error && learningPathData && <div className={styles.inlineError}>Note: {error}</div>}
+
         {selectedCard ? (
           <div className={styles.cardDetailView}>
             <h1 className={styles.cardDetailTitle}>{selectedCard.keyword}</h1>
@@ -219,6 +301,12 @@ export default function LearningPathDetailPage() {
           <div className={styles.contentPlaceholder}>
             <h2>Welcome to {learningPathData.title}</h2>
             <p>Select a card from the learning path menu on the left to view its details.</p>
+            {/* Optionally show status summary here too */}
+            {taskStatus && taskStatus.status !== 'completed' && (
+              <p className={styles.statusWarning}>
+                Note: The generation process reported status '{taskStatus.status}'{taskStatus.stage ? ` (stage: ${taskStatus.stage})` : ''}. The content might be incomplete or reflect an error state.
+              </p>
+            )}
           </div>
         )}
       </main>

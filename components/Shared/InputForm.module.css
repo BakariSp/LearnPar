@@ -1,0 +1,90 @@
+/* Shared styles for input forms (input + submit button) */
+
+.inputForm {
+  display: flex;
+  width: 100%;
+  align-items: center; /* Vertically center items */
+  position: relative; /* Needed for absolute positioning of button if required */
+  background-color: #fff; /* White background for the form area */
+  border-radius: 30px; /* High border-radius for pill shape */
+  padding: 5px 10px; /* Padding inside the form container */
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+  border: 1px solid #e0e0e0; /* Light border */
+}
+
+.input {
+  flex-grow: 1;
+  padding: 10px 15px; /* Adjust padding */
+  border: none; /* Remove default border */
+  background-color: transparent; /* Blend with form background */
+  font-size: 1rem;
+  outline: none;
+  /* Remove transition as border is gone */
+}
+
+/* Remove focus style as border is gone */
+/* .input:focus { ... } */
+
+.input::placeholder {
+  color: #adb5bd;
+}
+
+.input:disabled {
+  background-color: transparent; /* Keep transparent when disabled */
+  cursor: not-allowed;
+}
+
+.submitButton {
+  padding: 0; /* Remove padding */
+  background-color: #343a40; /* Dark background like image */
+  color: white;
+  border: none;
+  border-radius: 50%; /* Make it circular */
+  font-size: 1.2rem; /* Adjust icon size */
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px; /* Explicit width */
+  height: 40px; /* Explicit height */
+  min-width: 40px; /* Override previous min-width */
+  margin-left: 8px; /* Space between input and button */
+}
+
+.submitButton:hover:not(:disabled) {
+  background-color: #495057; /* Slightly lighter on hover */
+}
+
+.submitButton:disabled {
+  background-color: #adb5bd;
+  cursor: not-allowed;
+  opacity: 0.7; /* Add opacity for disabled state */
+}
+
+/* Style for icons/content inside the button */
+.submitButton > span {
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+}
+
+/* Optional: Add styles for other potential buttons if needed later */
+.iconButton {
+  background: none;
+  border: 1px solid #e0e0e0;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #6c757d;
+  margin: 0 4px; /* Spacing between internal buttons */
+  transition: background-color 0.2s;
+}
+.iconButton:hover {
+  background-color: #f1f3f5;
+} 

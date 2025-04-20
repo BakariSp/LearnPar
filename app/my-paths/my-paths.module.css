@@ -1,31 +1,43 @@
 .container {
-  padding: 2rem;
   max-width: 900px;
-  margin: 0 auto;
+  margin: 2rem auto;
+  padding: 1rem 2rem;
 }
 
 .title {
-  font-size: 2rem;
-  margin-bottom: 1.5rem;
-  color: #333;
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin-bottom: 2rem;
+  text-align: center;
+  color: var(--text-color);
 }
 
+/* Loading, Error, Empty States */
 .loadingContainer,
-.errorBox {
+.errorBox,
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
   text-align: center;
   padding: 2rem;
-  color: #555;
+  background-color: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  margin-top: 2rem;
+  box-shadow: var(--shadow-sm);
 }
 
 .spinner {
-  /* Add your spinner styles */
   border: 4px solid rgba(0, 0, 0, 0.1);
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  border-left-color: #09f;
+  border-left-color: var(--primary-color);
   animation: spin 1s ease infinite;
-  margin: 0 auto 1rem;
+  margin-bottom: 1rem;
 }
 
 @keyframes spin {
@@ -34,99 +46,233 @@
 }
 
 .errorBox {
-  color: #d9534f;
-  background-color: #f2dede;
-  border: 1px solid #ebccd1;
-  border-radius: 4px;
-  padding: 1rem;
+  color: var(--danger-color);
+  background-color: var(--danger-color-light);
+  border-color: var(--danger-color);
 }
 
+.retryButton {
+  margin-top: 1rem;
+  padding: 0.6rem 1.2rem;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-weight: 500;
+}
+
+.retryButton:hover {
+  background-color: var(--primary-color-dark);
+}
+
+.emptyState p {
+  margin-bottom: 0.5rem;
+  color: var(--text-secondary);
+}
+
+.emptyState .actionLink {
+  margin-top: 1rem;
+  display: inline-block;
+  margin-right: 1rem;
+  color: var(--primary-color);
+  text-decoration: none;
+  font-weight: 500;
+}
+.emptyState .actionLink:hover {
+  text-decoration: underline;
+}
+
+
+/* Path List */
 .pathList {
   list-style: none;
   padding: 0;
   margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
 .pathItem {
-  background-color: #fff;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  margin-bottom: 1rem;
+  background-color: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
   padding: 1.5rem;
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  align-items: flex-start; /* Align items to top */
+  gap: 1rem;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s ease-in-out;
+}
+
+.pathItem:hover {
+   box-shadow: var(--shadow-md);
 }
 
 .pathInfo {
   flex-grow: 1;
-  margin-right: 1rem;
 }
 
 .pathTitle {
-  font-size: 1.25rem;
+  font-size: 1.2rem;
+  font-weight: 500;
   margin: 0 0 0.5rem 0;
-  color: #333;
+  color: var(--text-color);
 }
 
 .pathDescription {
   font-size: 0.9rem;
-  color: #666;
-  margin-bottom: 0.75rem;
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+  line-height: 1.5;
 }
 
 .statusBadge {
   display: inline-block;
-  padding: 0.3em 0.6em;
-  font-size: 0.8rem;
-  font-weight: bold;
-  border-radius: 4px;
-  color: #fff;
-}
-
-.statusPending {
-  background-color: #f0ad4e; /* Orange */
-}
-
-.statusRunning {
-  background-color: #5bc0de; /* Light Blue */
+  padding: 0.2rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 12px;
+  margin-right: 0.5rem; /* Space before date */
+  line-height: 1.2;
+  vertical-align: middle;
 }
 
 .statusCompleted {
-  background-color: #5cb85c; /* Green */
+  background-color: #dcfce7; /* Lighter green */
+  color: #16a34a; /* Darker green */
 }
 
-.statusFailed {
-  background-color: #d9534f; /* Red */
+.statusInProgress {
+  background-color: #dbeafe; /* Lighter blue */
+  color: #2563eb; /* Darker blue */
 }
+
+.statusReady {
+  background-color: #f3f4f6; /* Light grey */
+  color: #4b5563; /* Darker grey */
+}
+
+.statusProcessing { /* Style for potential future use */
+  background-color: #feefc3; /* Light yellow */
+  color: #f9ab00; /* Yellow/Orange */
+}
+
+.dateInfo {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    display: inline-block; /* Keep on same line as badge if space allows */
+    vertical-align: middle;
+}
+
 
 .pathActions {
   flex-shrink: 0;
+  padding-top: 0.2rem; /* Align buttons roughly with title */
+  display: flex; /* Align buttons horizontally */
+  gap: 0.75rem; /* Space between buttons */
+  align-items: center; /* Vertically align buttons */
 }
 
 .viewButton,
 .viewButtonDisabled {
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  text-decoration: none;
+  padding: 0.6rem 1.2rem;
   font-size: 0.9rem;
-  transition: background-color 0.2s ease;
+  font-weight: 500;
+  border-radius: var(--border-radius);
+  text-decoration: none;
+  text-align: center;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s, opacity 0.2s;
 }
 
 .viewButton {
-  background-color: #007bff;
+  background-color: var(--primary-color);
   color: white;
 }
 
 .viewButton:hover {
-  background-color: #0056b3;
+  background-color: var(--primary-color-dark);
 }
 
 .viewButtonDisabled {
-  background-color: #ccc;
-  color: #666;
+  background-color: #d1d5db;
+  color: #6b7280;
   cursor: not-allowed;
+  opacity: 0.8;
+}
+
+/* Style for the delete button */
+.deleteButton {
+  padding: 0.6rem 1.2rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border-radius: var(--border-radius);
+  text-decoration: none;
+  text-align: center;
+  border: 1px solid var(--danger-color);
+  background-color: transparent;
+  color: var(--danger-color);
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s, opacity 0.2s;
+  min-width: 90px;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.deleteButton:hover:not(:disabled) {
+  background-color: var(--danger-color-light);
+  border-color: var(--danger-color);
+  color: var(--danger-color);
+}
+
+.deleteButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  border-color: #d1d5db;
+  color: #9ca3af;
+}
+
+/* Style for the button when it's actively deleting */
+.deleteButtonDeleting {
+  background-color: #e5e7eb;
+  border-color: #d1d5db;
+  color: #6b7280;
+}
+
+/* Style for the list item while deleting */
+.deleting {
+  opacity: 0.7;
+  pointer-events: none; /* Prevent interaction while deleting */
+}
+
+/* Small spinner for delete button */
+.smallSpinner {
+  border: 2px solid rgba(0, 0, 0, 0.1);
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border-left-color: #6b7280;
+  animation: spin 1s ease infinite;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .pathItem {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .pathActions {
+    padding-top: 1rem;
+    align-self: flex-end; /* Move buttons to the right */
+    justify-content: flex-end; /* Align buttons to the end */
+  }
+  .container {
+    padding: 1rem;
+  }
 } 

@@ -6,27 +6,58 @@
   padding: 20px;
   border-right: 1px solid #e0e0e0;
   height: 100vh;
+  overflow-x: hidden; /* Crucial: Hide overflowing content */
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.3s ease-in-out; /* Keep width transition */
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 10;
 }
 
 .profileSection {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 30px;
+  flex-shrink: 0;
+  overflow: hidden; /* Crucial: Clip the sliding h2 */
+  white-space: nowrap;
 }
 
 .avatar {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background-color: #333;
+  background-color: #333; /* Example background */
+  color: white; /* Example text color */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
   margin-right: 15px;
+  flex-shrink: 0;
+}
+
+.profileSection h2 {
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin: 0;
+  /* Add transition for transform and opacity */
+  transition: transform 0.3s ease-in-out, opacity 0.2s ease-in-out;
+  transform: translateX(0); /* Start position */
+  opacity: 1; /* Start opacity */
+  white-space: nowrap; /* Prevent wrapping during slide */
 }
 
 .navigation {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 10px;
+  flex-grow: 1;
+  overflow-y: auto;
+  overflow-x: hidden; /* Hide horizontal overflow */
 }
 
 .navItem {
@@ -34,9 +65,12 @@
   align-items: center;
   text-decoration: none;
   color: #333;
-  padding: 10px;
+  padding: 10px 12px;
   border-radius: 8px;
   transition: background-color 0.2s;
+  overflow: hidden; /* Crucial: Clip the sliding navText */
+  white-space: nowrap;
+  justify-content: flex-start;
 }
 
 .navItem:hover {
@@ -44,17 +78,146 @@
 }
 
 .navIcon {
-  margin-right: 10px;
+  margin-right: 12px;
   font-size: 1.2rem;
+  flex-shrink: 0;
+  width: 24px;
+  text-align: center;
+  transition: margin 0.3s ease-in-out; /* Smooth margin change */
+}
+
+.navText {
+  font-size: 0.9rem;
+  flex-shrink: 0; /* Prevent shrinking before transform */
+  margin-left: 0; /* Remove margin, rely on icon margin */
+  /* Add transition for transform and opacity */
+  transition: transform 0.3s ease-in-out, opacity 0.2s ease-in-out;
+  transform: translateX(0); /* Start position */
+  opacity: 1; /* Start opacity */
+  white-space: nowrap; /* Prevent wrapping during slide */
+}
+
+/* --- Collapsed State --- */
+.sidebar.collapsed {
+  width: 80px; /* Final collapsed width */
+  padding: 20px 0;
+  /* Remove alignment from the main sidebar container */
+  /* align-items: center; */
+}
+
+.sidebar.collapsed .profileSection {
+  /* Remove justify-content: center; */
+  /* justify-content: center; */
+  /* Maybe hide profile section entirely or just keep avatar */
+  /* Option 1: Keep avatar centered */
+   margin-bottom: 28px; /* Adjust as needed */
+  /* Option 2: Hide section (uncomment if desired) */
+  /* height: 0; */
+  padding: 0 15px; /* Add padding to match .navigation */
+  /* margin: 0; */
+  /* opacity: 0; */
+  /* transition: height 0.3s ease-in-out, padding 0.3s ease-in-out, margin 0.3s ease-in-out, opacity 0.3s ease-in-out; */
+}
+
+.sidebar.collapsed .profileSection h2 {
+  transform: translateX(-150%); /* Slide way off to the left */
+  opacity: 0;
+}
+
+.sidebar.collapsed .avatar {
+  margin-right: 0; /* Keep margin removed */
+}
+
+.sidebar.collapsed .navigation {
+  /* Remove alignment from the navigation container */
+  /* align-items: center; */
+  /* Adjust padding to center the content column */
+  padding: 0 15px; /* (80px width - 50px item width) / 2 = 15px */
+}
+
+.sidebar.collapsed .navItem {
+  /* Remove alignment from the item itself */
+  /* align-self: center; */
+  padding: 10px;
+  width: 50px; /* Keep fixed width */
+  height: 50px; /* Keep fixed height */
+  /* Items will now stack vertically, centered by the parent's padding */
+}
+
+.sidebar.collapsed .navIcon {
+  margin-right: 0; /* Icon is centered now */
+}
+
+.sidebar.collapsed .navText {
+  transform: translateX(-150%); /* Slide way off to the left */
+  opacity: 0;
+}
+
+/* --- Toggle Button --- */
+.toggleButton {
+  /* Remove bottom positioning */
+  /* margin-top: auto; */
+  /* border-top: 1px solid #e0e0e0; */
+
+  /* New styles for top position */
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #555;
+  transition: background-color 0.2s, border-color 0.2s, transform 0.3s ease-in-out; /* Add transform transition */
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-end;
+  margin-right: -8px;
+  margin-bottom: 15px;
+  margin-top: -15px;
+  z-index: 5; /* Ensure it stays above sliding content */
+}
+
+.toggleButton:hover {
+  background-color: #e0e0e0;
+  border-color: #d0d0d0;
+}
+
+.toggleButton .navIcon {
+  margin: 0;
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.sidebar.collapsed .toggleButton {
+  align-self: center; /* Center the button itself */
+  margin-right: 0; /* Reset horizontal margin */
+  margin-top: 0; /* Reset top margin */
+  margin-bottom: 20px; /* Adjust spacing */
+  /* Optional: Slightly move button left if needed */
+  /* transform: translateX(-5px); */
+}
+
+/* Ensure navText is hidden in the button */
+.toggleButton .navText {
+  display: none;
 }
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
+  /* Keep sidebar fixed or adjust as needed for mobile */
   .sidebar {
-    width: 100%;
-    border-right: none;
-    border-bottom: 1px solid #e0e0e0;
-    position: relative;
-    height: auto;
+    /* Example: Keep it fixed but maybe thinner */
+     width: 200px;
+  }
+  .sidebar.collapsed {
+     width: 60px; /* Even thinner when collapsed on mobile */
+  }
+  /* Hide sidebar completely and use a burger menu instead? */
+  /* .sidebar { display: none; } */
+
+  .toggleButton {
+    /* Optional: Adjust button position/size for mobile */
+    margin-right: 5px;
   }
 } 

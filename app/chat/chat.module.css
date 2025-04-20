@@ -2,18 +2,18 @@
   max-width: 800px;
   margin: 2rem auto;
   padding: 2rem;
-  background-color: #fff;
+  /* background-color: #fff; */
   border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  /* box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); */
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
 .title {
-  font-size: 2rem;
+  font-size: 1.8rem;
   font-weight: 600;
-  color: #212529;
+  color: #343a40;
   margin-bottom: 0.5rem;
   text-align: center;
 }
@@ -23,89 +23,44 @@
   color: #6c757d;
   margin-bottom: 2rem;
   text-align: center;
-}
-
-.chatForm {
-  display: flex;
-  width: 100%;
-  margin-bottom: 2rem;
-  gap: 0.5rem;
-}
-
-.input {
-  flex-grow: 1;
-  padding: 0.8rem 1rem;
-  border: 1px solid #ced4da;
-  border-radius: 6px;
-  font-size: 1rem;
-  outline: none;
-  transition: border-color 0.2s;
-}
-
-.input:focus {
-  border-color: #4dabf7;
-  box-shadow: 0 0 0 2px rgba(77, 171, 247, 0.2);
-}
-
-.input:disabled {
-  background-color: #e9ecef;
-  cursor: not-allowed;
-}
-
-.submitButton {
-  padding: 0.8rem 1.5rem;
-  background-color: #4dabf7;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 1rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  white-space: nowrap;
-}
-
-.submitButton:hover:not(:disabled) {
-  background-color: #339af0;
-}
-
-.submitButton:disabled {
-  background-color: #adb5bd;
-  cursor: not-allowed;
+  max-width: 600px;
 }
 
 .loadingIndicator {
+  margin-top: 2rem;
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-top: 2rem;
   color: #495057;
 }
 
 .spinner {
-  width: 30px;
-  height: 30px;
-  border: 3px solid rgba(0, 0, 0, 0.1);
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  border-top-color: #4dabf7;
-  animation: spin 1s ease-in-out infinite;
+  border-left-color: #4dabf7; /* Primary color */
+  animation: spin 1s ease infinite;
   margin-bottom: 1rem;
 }
 
 @keyframes spin {
-  to {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
     transform: rotate(360deg);
   }
 }
 
 .errorBox {
-  background-color: #ffebee;
-  color: #d32f2f;
-  padding: 1rem;
-  border: 1px solid #f44336;
-  border-radius: 8px;
-  margin-top: 2rem;
+  margin-top: 1.5rem;
   width: 100%;
+  padding: 1rem 1.5rem;
+  background-color: #ffe3e3; /* Light red */
+  border: 1px solid #fcc; /* Red border */
+  color: #c00; /* Dark red text */
+  border-radius: 6px;
   text-align: center;
 }
 
@@ -199,7 +154,7 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center; /* Center the content like buttons */
 }
 
 .resultTitle {
@@ -254,49 +209,79 @@
 }
 
 .bottomButtons {
+  margin-top: 1.5rem;
   display: flex;
-  justify-content: flex-end;
-  width: 100%;
   gap: 1rem;
+  width: 100%;
+  justify-content: center; /* Center buttons */
+  padding-top: 1.5rem;
+  border-top: 1px solid #e9ecef; /* Add separator */
 }
 
-.secondaryButton,
-.primaryButton {
+/* Base button style */
+.baseButton {
   padding: 0.7rem 1.5rem;
-  font-size: 1rem;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: background-color 0.2s;
   border: none;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s, opacity 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem; /* Space for spinner */
 }
 
-.secondaryButton {
-  background-color: #ced4da;
-  color: #212529;
+.baseButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
 }
 
-.secondaryButton:hover {
-  background-color: #adb5bd;
-}
-
+/* Primary button style (e.g., Generate Full Path) */
 .primaryButton {
-  background-color: #4dabf7;
+  composes: baseButton; /* Inherit base styles */
+  background-color: #28a745; /* Green */
   color: white;
 }
 
-.primaryButton:hover {
-  background-color: #339af0;
+.primaryButton:hover:not(:disabled) {
+  background-color: #218838; /* Darker green */
+}
+
+.primaryButton:disabled {
+   background-color: #94d3a2; /* Lighter green when disabled */
+   opacity: 0.7;
+}
+
+
+/* Secondary button style (e.g., Generate More) */
+.secondaryButton {
+  composes: baseButton; /* Inherit base styles */
+  background-color: #f1f3f5; /* Light grey */
+  color: #495057; /* Dark grey text */
+  border: 1px solid #dee2e6; /* Subtle border */
+}
+
+.secondaryButton:hover:not(:disabled) {
+  background-color: #e9ecef; /* Slightly darker grey */
+}
+
+.secondaryButton:disabled {
+   background-color: #f8f9fa; /* Very light grey when disabled */
+   color: #adb5bd; /* Lighter text */
+   opacity: 0.7;
 }
 
 .smallSpinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(0, 0, 0, 0.1);
-  border-top-color: #4dabf7;
+  border: 3px solid rgba(255, 255, 255, 0.3); /* Lighter for buttons */
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
+  border-left-color: #fff; /* White */
   animation: spin 0.8s linear infinite;
-  display: inline-block;
+  display: inline-block; /* Make it inline */
+  vertical-align: middle; /* Align with text */
 }
 .fullResultContainer {
   margin-top: 2rem;

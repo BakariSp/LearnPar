@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 // No longer need useRef or useRouter unless used for other purposes
 // import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -10,6 +10,7 @@ import {
   UserLearningPathResponseItem, // Import the new type
   // TaskStatusResponse, // No longer needed for polling here
   // apiGetTaskStatus, // No longer needed for polling here
+  apiDeleteUserLearningPath // Import the new delete function
 } from '@/services/api'; // Adjust path if needed
 import styles from './my-paths.module.css'; // Create this CSS module
 
@@ -25,6 +26,8 @@ export default function MyLearningPathsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // const router = useRouter(); // Remove if not used
+  // Add state to track which path is currently being deleted
+  const [deletingPathId, setDeletingPathId] = useState<number | null>(null);
 
   // Remove polling refs and functions
   // const pollingIntervalsRef = useRef<Record<string, NodeJS.Timeout>>({});
@@ -36,6 +39,7 @@ export default function MyLearningPathsPage() {
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
+    setDeletingPathId(null); // Reset deleting state on fetch
     try {
       // Call the updated API function
       const userPaths = await apiGetUserLearningPaths();
@@ -46,7 +50,7 @@ export default function MyLearningPathsPage() {
 
     } catch (err: any) {
       console.error('Failed to load learning paths:', err);
-      setError(err.message || 'Could not load your learning paths.');
+      setError(err.message || 'Failed to load your learning paths. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -59,25 +63,52 @@ export default function MyLearningPathsPage() {
     // return () => { ... };
   }, [fetchData]); // Only fetchData dependency
 
-  // Helper to get the display status for a path
-  // Simplified as polling status is unavailable from this endpoint
-  const getPathDisplayStatus = (pathItem: UserLearningPathResponseItem): { text: string; className: string } => {
-    // TODO: Check if pathItem or pathItem.learning_path contains a status field from the API.
-    // If not, assume 'Completed' for now as the endpoint doesn't give generation status.
-    // You might need to adjust this based on actual API behavior for in-progress paths.
+  // Helper to determine the display status based on available data
+  // This cannot show live generation progress from this endpoint.
+  const getPathDisplayStatus = (pathItem: UserLearningPathResponseItem): { text: string; className: string; isReady: boolean } => {
+    // Option 1: Use completion date if available
+    if (pathItem.completed_at) {
+      return { text: 'Completed', className: styles.statusCompleted, isReady: true };
+    }
 
-    // Example: Check for a hypothetical status field
-    // const status = pathItem.learning_path.generation_status || pathItem.status;
-    // switch (status) { ... }
+    // Option 2: Use progress if meaningful (e.g., > 0 means started)
+    // Note: Progress might be 0 even if generation is finished but user hasn't started.
+    if (pathItem.progress > 0) {
+       return { text: `In Progress (${Math.round(pathItem.progress * 100)}%)`, className: styles.statusInProgress, isReady: true };
+    }
 
-    // Defaulting to 'Completed' as per the current schema limitations
-    return { text: 'Completed', className: styles.statusCompleted };
+    // Fallback: Assume it's ready to view if not explicitly completed or in progress.
+    // We lack a definitive "generating" status from this specific API response.
+    // If the backend *could* add a generation_status field to the nested learning_path object
+    // returned by /users/me/learning-paths, we could check that here.
+    // e.g., if (pathItem.learning_path.generation_status === 'completed') return ...
+    // e.g., if (pathItem.learning_path.generation_status !== 'completed' && pathItem.learning_path.generation_status !== null) return { text: 'Processing...', className: styles.statusProcessing, isReady: false };
 
-    // --- Original logic based on polling (for reference, now removed) ---
-    // const taskId = path.generation_task_id;
-    // const taskStatus = taskId ? taskStatuses[taskId] : null;
-    // const finalStatus = taskStatus?.status || path.generation_status; // Prefer polled status
-    // switch (finalStatus) { ... }
+    // Defaulting to 'Ready' or 'Not Started' as the best guess without generation status
+     return { text: 'Ready to Start', className: styles.statusReady, isReady: true };
+  };
+
+  // Handler for deleting a path
+  const handleDeletePath = async (pathToDeleteId: number) => {
+    // Confirm with the user
+    if (!window.confirm('Are you sure you want to delete this learning path? This action cannot be undone.')) {
+      return;
+    }
+
+    setDeletingPathId(pathToDeleteId); // Set loading state for this specific path
+    setError(null); // Clear previous errors
+
+    try {
+      await apiDeleteUserLearningPath(pathToDeleteId);
+      // On successful deletion, update the state to remove the path
+      setPaths(currentPaths => currentPaths.filter(p => p.learning_path_id !== pathToDeleteId));
+    } catch (err: any) {
+      console.error(`Failed to delete path ${pathToDeleteId}:`, err);
+      setError(err.message || 'Failed to delete the learning path. Please try again.');
+      // Optionally, display a more specific error message to the user
+    } finally {
+      setDeletingPathId(null); // Reset loading state
+    }
   };
 
   return (
@@ -94,47 +125,71 @@ export default function MyLearningPathsPage() {
       {error && !isLoading && (
         <div className={styles.errorBox}>
           <p>Error: {error}</p>
+          {/* Show retry only if it's not a delete error */}
+          {!deletingPathId && <button onClick={fetchData} className={styles.retryButton}>Retry</button>}
         </div>
       )}
 
       {!isLoading && !error && paths.length === 0 && (
-        <p>You haven't generated any learning paths yet. Try creating one using the AI Chat!</p>
+        <div className={styles.emptyState}>
+          <p>You haven't started any learning paths yet.</p>
+          <p>Try generating one using the AI Chat or browse available paths!</p>
+          {/* Optional: Add links to chat or browse pages */}
+          {/* <Link href="/chat" className={styles.actionLink}>Generate with AI</Link> */}
+          {/* <Link href="/browse-paths" className={styles.actionLink}>Browse Paths</Link> */}
+        </div>
       )}
 
       {!isLoading && !error && paths.length > 0 && (
         <ul className={styles.pathList}>
           {/* Map over the new paths structure */}
           {paths.map(pathItem => {
-            // Get status based on the simplified function
             const displayStatus = getPathDisplayStatus(pathItem);
-            // Determine if the path is completed based on the display status
-            const isCompleted = displayStatus.className === styles.statusCompleted;
+            // Use the actual learning_path ID for the link
+            const pathDetailId = pathItem.learning_path_id;
+            // Use the UserLearningPath link ID as the unique key for the list item
+            const listItemKey = pathItem.id;
+            const isDeleting = deletingPathId === pathDetailId; // Check if this path is being deleted
 
             return (
-              // Use the UserLearningPath link ID (pathItem.id) as the key
-              <li key={pathItem.id} className={styles.pathItem}>
+              <li key={listItemKey} className={`${styles.pathItem} ${isDeleting ? styles.deleting : ''}`}>
                 <div className={styles.pathInfo}>
                   {/* Access data from the nested learning_path object */}
-                  <h2 className={styles.pathTitle}>{pathItem.learning_path.title}</h2>
-                  <p className={styles.pathDescription}>{pathItem.learning_path.description}</p>
+                  <h2 className={styles.pathTitle}>{pathItem.learning_path.title || 'Untitled Path'}</h2>
+                  <p className={styles.pathDescription}>{pathItem.learning_path.description || 'No description available.'}</p>
                   <span className={`${styles.statusBadge} ${displayStatus.className}`}>
                     {displayStatus.text}
                   </span>
+                   {/* Optionally display start date */}
+                   {pathItem.start_date && (
+                     <small className={styles.dateInfo}>Started: {new Date(pathItem.start_date).toLocaleDateString()}</small>
+                   )}
                 </div>
                 <div className={styles.pathActions}>
                   {/* Link uses the actual learning_path_id */}
-                  {isCompleted ? (
-                    <Link href={`/learning-paths/${pathItem.learning_path_id}`} className={styles.viewButton}>
-                      View Path
+                  {displayStatus.isReady ? (
+                    <Link href={`/learning-paths/${pathDetailId}`} className={styles.viewButton}>
+                      {pathItem.progress > 0 ? 'Continue Path' : 'View Path'}
                     </Link>
                   ) : (
-                    // This button might always be disabled now, or logic needs adjustment
-                    // if non-completed paths can be returned by the API without polling info.
+                    // This state might be unreachable with the current getPathDisplayStatus logic,
+                    // but kept for robustness if status logic changes.
                     <button className={styles.viewButtonDisabled} disabled>
-                      View Path
+                      Processing...
                     </button>
                   )}
-                  {/* Add other actions like delete if needed */}
+                  {/* Add Delete Button */}
+                  <button
+                    onClick={() => handleDeletePath(pathDetailId)}
+                    className={`${styles.deleteButton} ${isDeleting ? styles.deleteButtonDeleting : ''}`}
+                    disabled={isDeleting || isLoading} // Disable if deleting this or general loading
+                  >
+                    {isDeleting ? (
+                      <span className={styles.smallSpinner}></span> // Show spinner when deleting
+                    ) : (
+                      'Delete' // Show 'Delete' text otherwise
+                    )}
+                  </button>
                 </div>
               </li>
             );

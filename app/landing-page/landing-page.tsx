@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { AiDialog } from '../../components/AiChat/AiDialog';
 import { CourseCard } from '../../components/Course/CourseCard';
 import { KeywordCard } from '../../components/Course/KeywordCard';
@@ -57,6 +58,7 @@ export default function ZeroLandingPage() {
   const [recommendations, setRecommendations] = useState<RecommendationsResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   // Fetch recommendations when component mounts
   useEffect(() => {
@@ -131,12 +133,18 @@ export default function ZeroLandingPage() {
     return iconMap[tag] || '📝'; // Default icon if no match
   }
 
+  // Function to handle query submission from AiDialog
+  const handleQuerySubmit = (submittedQuery: string) => {
+    // Navigate to the chat page with the query as a parameter
+    router.push(`/chat?prompt=${encodeURIComponent(submittedQuery)}`);
+  };
+
   return (
     <main className={styles.container}>
       <div className={styles.content}>
         <section className={styles.aiSection}>
           <h1 className={styles.heading}>What would you like to learn today?</h1>
-          <AiDialog query={query} setQuery={setQuery} />
+          <AiDialog query={query} setQuery={setQuery} onQuerySubmit={handleQuerySubmit} />
         </section>
         
         {isLoading ? (

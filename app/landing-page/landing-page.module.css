@@ -1,13 +1,14 @@
 .container {
   display: flex;
   min-height: 100vh;
+  background-color: var(--background-color);
 }
 
 .sidebar {
-  width: 250px;
-  background-color: #f5f5f5;
-  padding: 20px;
-  border-right: 1px solid #e0e0e0;
+  width: 260px;
+  background-color: var(--card-background);
+  padding: 24px 0;
+  border-right: 1px solid var(--border-color);
   position: sticky;
   top: 0;
   height: 100vh;
@@ -17,7 +18,8 @@
 .profileSection {
   display: flex;
   align-items: center;
-  margin-bottom: 30px;
+  margin-bottom: 24px;
+  padding: 0 24px;
 }
 
 .avatar {
@@ -37,21 +39,23 @@
 .navigation {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 4px;
+  padding: 0 16px;
 }
 
 .navItem {
   display: flex;
   align-items: center;
   text-decoration: none;
-  color: #333;
-  padding: 10px;
-  border-radius: 8px;
-  transition: background-color 0.2s;
+  color: var(--text-color);
+  padding: 8px 16px;
+  border-radius: 16px;
+  transition: background-color 0.15s ease-in-out;
+  font-size: 0.9rem;
 }
 
 .navItem:hover {
-  background-color: #e0e0e0;
+  background-color: var(--primary-color-light);
 }
 
 .navIcon {
@@ -61,7 +65,7 @@
 
 .content {
   flex: 1;
-  padding: 30px;
+  padding: 40px;
   max-width: 1200px;
   margin: 0 auto;
   overflow-y: auto;
@@ -74,7 +78,7 @@
   align-items: center;
   min-height: 60vh;
   min-width: 100%;
-  margin-bottom: 40px;
+  margin-bottom: 48px;
 }
 
 .heading {
@@ -82,28 +86,24 @@
   margin-bottom: 20px;
 }
 
-.coursesSection, .keywordsSection {
-  margin-bottom: 60px;
-  padding-top: 20px;
+.coursesSection, .keywordsSection, .learningPathsSection {
+  margin-bottom: 48px;
+  padding-top: 24px;
 }
 
 .sectionTitle {
-  font-size: 1.2rem;
+  font-size: 1rem;
   font-weight: 500;
-  margin-bottom: 15px;
-  text-transform: lowercase;
+  margin-bottom: 20px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  letter-spacing: 0.5px;
 }
 
-.courseGrid {
+.courseGrid, .keywordGrid, .learningPathGrid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-}
-
-.keywordGrid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
+  gap: 24px;
 }
 
 /* Responsive adjustments */
@@ -120,10 +120,10 @@
   
   .sidebar {
     width: 100%;
-    border-right: none;
-    border-bottom: 1px solid #e0e0e0;
-    position: relative;
     height: auto;
+    position: relative;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
   }
   
   .aiSection {
@@ -132,6 +132,10 @@
   
   .courseGrid, .keywordGrid {
     grid-template-columns: 1fr;
+  }
+  
+  .content {
+    padding: 24px;
   }
 }
 

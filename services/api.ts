@@ -108,19 +108,28 @@ export interface TaskCreationResponse {
   message: string; // e.g., "Learning path generation has started..."
 }
 
-// Response from GET /api/tasks/{task_id}/status
+// Response from GET /api/tasks/{task_id}/status OR /api/tasks/learning-paths/{learning_path_id}
+// Updated to include fields from UserTaskResponse in doc/task_api.md
 export interface TaskStatusResponse {
   task_id: string;
-  status: 'pending' | 'starting' | 'running' | 'completed' | 'failed' | 'timeout' | 'unknown'; // Added 'unknown' for safety
+  status: 'pending' | 'queued' | 'starting' | 'running' | 'completed' | 'failed' | 'timeout' | 'unknown'; // Added 'queued', 'unknown'
   stage: string | null; // e.g., "initializing", "extracting_goals", "planning_path_structure", "generating_cards", "finished", "queued"
   progress: number | null; // Overall progress percentage
-  total_cards?: number | null; // Estimated total cards
-  cards_completed?: number | null; // Cards generated so far
   learning_path_id: number | null; // Populated once path structure is created, key for fetching final result
-  errors: string[] | null; // List of error messages if status is "failed" or "timeout"
-  start_time: number | null; // Task start timestamp
-  end_time: number | null; // Task end timestamp
-  error_details?: string | null; // Optional traceback
+  errors: string[] | null; // List of error messages if status is "failed" or "timeout" (from original)
+  error_details?: string | null; // Optional traceback or detailed error
+  start_time: number | null; // Task start timestamp (original) -> Renamed from started_at for consistency? Keep doc name.
+  end_time: number | null; // Task end timestamp (original) -> Renamed from ended_at for consistency? Keep doc name.
+  // Added fields from UserTaskResponse doc
+  user_id?: number; // ID of the user who initiated the task
+  total_items?: number | null; // Estimated total items (e.g., cards)
+  completed_items?: number | null; // Items completed so far (e.g., cards)
+  result_message?: string | null; // Short message on completion or failure
+  started_at?: string | null; // ISO Timestamp when the task started processing
+  ended_at?: string | null; // ISO Timestamp when the task finished
+  id?: number; // Database ID of the task record
+  created_at?: string; // ISO Timestamp when the task was created/scheduled
+  updated_at?: string; // ISO Timestamp of the last status update
 }
 
 // --- New Interfaces for /api/users/me/learning-paths ---
@@ -138,6 +147,24 @@ export interface UserLearningPathResponseItem {
   start_date: string | null;
   completed_at: string | null;
   learning_path: NestedLearningPath; // The actual learning path details
+}
+
+// Interface for the courses structure sent from the chat page
+export interface ChatCourseStructure {
+  id: string | number;
+  title: string;
+  // Include sections if your backend expects them at this stage
+  // sections: { id: string | number; title: string }[];
+}
+
+// Interface for the payload to generate the full path from chat
+export interface GeneratePathPayload {
+  prompt: string;
+  title: string; // Add the overall learning path title
+  courses: ChatCourseStructure[];
+  difficulty_level: string;
+  // Add other relevant fields if needed by the backend, e.g.:
+  // estimated_days?: number;
 }
 
 // --- API Functions ---
@@ -188,8 +215,8 @@ export const apiGetFullLearningPath = async (id: number): Promise<FullLearningPa
   throw new Error(`Failed to fetch full learning path details (status: ${response?.status}).`);
 };
 
-// Function to *initiate* learning path generation via chat prompt
-export const apiGenerateLearningPathFromChat = async (prompt: string): Promise<TaskCreationResponse> => {
+// Function to *initiate* learning path generation via chat prompt AND structure
+export const apiGenerateLearningPathFromChat = async (payload: GeneratePathPayload): Promise<TaskCreationResponse> => {
   try {
     // Path matches the update doc: /api/chat/generate-learning-path
     const response = await apiClient('/api/chat/generate-learning-path', {
@@ -197,7 +224,8 @@ export const apiGenerateLearningPathFromChat = async (prompt: string): Promise<T
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ prompt }),
+      // Send the structured payload
+      body: JSON.stringify(payload),
     });
 
     if (!response || !response.ok) {
@@ -214,7 +242,7 @@ export const apiGenerateLearningPathFromChat = async (prompt: string): Promise<T
   }
 };
 
-// Function to get the status of a background task
+// Function to get the status of a background task by Task ID
 export const apiGetTaskStatus = async (taskId: string): Promise<TaskStatusResponse> => {
   try {
     // Path matches the update doc: /api/tasks/{task_id}/status
@@ -234,10 +262,33 @@ export const apiGetTaskStatus = async (taskId: string): Promise<TaskStatusRespon
     return response.json();
   } catch (error) {
      console.error(`Error in apiGetTaskStatus for task ${taskId}:`, error);
-     // Simulate a 'failed' status if the API call itself fails critically
-     // This helps the polling logic in the component handle unexpected errors.
-     // Alternatively, re-throw and let the component handle the polling interruption.
-     // Let's re-throw for now, component needs robust error handling.
+     // Re-throw for the component to handle.
+     throw error;
+  }
+};
+
+// Function to get the *latest* task status associated with a Learning Path ID
+export const apiGetLatestTaskForLearningPath = async (learningPathId: number): Promise<TaskStatusResponse | null> => {
+  try {
+    // Path matches the update doc: /tasks/learning-paths/{learning_path_id}
+    const response = await apiClient(`/api/tasks/learning-paths/${learningPathId}/latest`);
+
+    if (!response || !response.ok) {
+       // Handle 404 specifically - it might mean no task exists yet, which isn't necessarily an error here
+       if (response?.status === 404) {
+           console.log(`No task found for learning path ${learningPathId}.`);
+           return null; // Return null instead of throwing an error for 404
+       }
+       const errorData = response ? await response.json().catch(() => ({ detail: 'Unknown error occurred while fetching latest task.' })) : { detail: 'Network error or invalid response while fetching latest task.' };
+       console.error('Failed to get latest task status for learning path:', learningPathId, response?.status, errorData);
+       throw new Error(errorData.detail || `Failed to get latest task status (status: ${response?.status})`);
+    }
+
+    // Returns TaskStatusResponse (or null if 404)
+    return response.json();
+  } catch (error) {
+     console.error(`Error in apiGetLatestTaskForLearningPath for path ${learningPathId}:`, error);
+     // Re-throw for the component to handle unexpected errors
      throw error;
   }
 };
@@ -255,6 +306,36 @@ export const apiGetUserLearningPaths = async (): Promise<UserLearningPathRespons
   } catch (error) {
     console.error("Error in apiGetUserLearningPaths:", error);
     throw error; // Re-throw for the component
+  }
+};
+
+// Delete a learning path assigned to the current user
+export const apiDeleteUserLearningPath = async (learningPathId: number): Promise<Response | null> => {
+  try {
+    // Endpoint from doc/learing-path.md (lines 172-175)
+    const response = await apiClient(`/api/users/me/learning-paths/${learningPathId}`, {
+      method: 'DELETE',
+    });
+
+    // Check for successful deletion (204 No Content) or other statuses
+    if (response && (response.ok || response.status === 204)) {
+      return response; // Return the response object (even if it has no body)
+    }
+
+    // Handle specific errors if needed (e.g., 404)
+    if (response && response.status === 404) {
+        console.error(`Learning path ${learningPathId} not found or not assigned to user.`);
+        throw new Error(`Learning path not found or you don't have permission to delete it.`);
+    }
+
+    // Handle other errors
+    const errorData = response ? await response.json().catch(() => ({ detail: 'Unknown error during deletion.' })) : { detail: 'Network error or invalid response during deletion.' };
+    console.error('Failed to delete learning path:', response?.status, errorData);
+    throw new Error(errorData.detail || `Failed to delete learning path (status: ${response?.status})`);
+
+  } catch (error) {
+    console.error("Error in apiDeleteUserLearningPath:", error);
+    throw error; // Re-throw for the component to handle
   }
 };
 
