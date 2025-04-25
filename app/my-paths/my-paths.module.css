@@ -93,6 +93,14 @@
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  overflow-y: auto; /* Allow scrolling within the pane */
+  padding: 1.5rem;
+  background-color: var(--background-secondary, #f8f9fa);
+  scrollbar-width: none; /* For Firefox */
+  -ms-overflow-style: none; /* For Internet Explorer and Edge */
+  &::-webkit-scrollbar {
+    display: none; /* For Chrome, Safari, and Opera */
+  }
 }
 
 .pathItem {
@@ -275,4 +283,815 @@
   .container {
     padding: 1rem;
   }
-} 
+}
+
+/* --- NEW: Two-Pane Layout --- */
+.pageContainer {
+  display: flex;
+  /* gap: 1rem;  */
+  /* padding: 1rem; */ /* Remove padding here, add to panes if needed */
+  /* max-width: 1600px; */ /* Keep if desired, but not essential for layout */
+  /* margin: 1rem auto; */ /* Remove margin, let wrapper handle positioning */
+  height: 100%; /* Fill the height provided by LayoutClientWrapper */
+  /* Remove fixed height calculation like calc(100vh - 80px) */
+}
+
+.pathListPane {
+  width: 350px; /* Example: Increased from maybe 280px or 300px */
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto; /* Allow scrolling within the pane */
+  padding: 1.5rem;
+  scrollbar-width: thin; /* For Firefox */
+  -ms-overflow-style: auto; /* For Internet Explorer and Edge */
+  &::-webkit-scrollbar {
+    width: 8px; /* Width of the scrollbar */
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.2); /* Color of the scrollbar thumb */
+    border-radius: 4px; /* Rounded corners for the scrollbar thumb */
+    transition: background-color 0.3s ease; /* Smooth transition for fade effect */
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(0, 0, 0, 0.5); /* Darker color on hover */
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent; /* No background for the scrollbar track */
+  }
+}
+
+.detailPane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  background-color: #ffffff; /* Or your desired background */
+  padding: 2rem; /* Add padding around the content */
+  gap: 1.5rem; /* Space between header and structure */
+}
+
+/* --- Styles for Path List Items (Left Pane) --- */
+.listTitle {
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  padding-right: 1rem; /* Account for pane padding */
+  color: var(--text-color);
+}
+
+.listLoading,
+.listErrorBox,
+.emptyState {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--text-secondary);
+}
+.listErrorBox {
+    color: #d32f2f;
+    background-color: #ffebee;
+    border: 1px solid #d32f2f;
+    border-radius: 4px;
+    margin-right: 1rem; /* Account for pane padding */
+}
+.retryButton { /* Style as needed */
+    margin-top: 0.5rem;
+    padding: 0.3rem 0.8rem;
+    cursor: pointer;
+}
+
+.pathList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  padding-right: 1rem; /* Space for scrollbar */
+  flex-grow: 1; /* Allow list to take available space */
+}
+
+.pathListItem {
+  background-color: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 24px; /* Increased padding for more internal space */
+  margin-bottom: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  display: flex; /* Added for flex layout */
+  flex-direction: column; /* Stack content vertically */
+  min-height: 180px; /* Increased minimum height to make cards taller */
+}
+
+.pathListItem:hover {
+  background-color: var(--hover-background);
+  box-shadow: var(--shadow-sm);
+}
+
+.pathListItem.selected {
+  border-left: 4px solid var(--primary-color);
+  background-color: var(--selected-background); /* Optional: distinct background when selected */
+  /* Adjust padding-left if needed due to border */
+  padding-left: calc(24px - 3px); /* Example: Original padding minus (border - 1px original border) */
+}
+
+.pathListItemTitle {
+  font-size: 1.1rem; /* Slightly larger title */
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: var(--text-color);
+}
+
+.pathListItemDescription {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+  line-height: 1.5;
+  flex-grow: 1; /* Allow description to take up available space */
+}
+
+/* --- Status Badge within the List Item --- */
+.pathListStatusBadge {
+  display: inline-block;
+  padding: 4px 10px; /* Adjusted padding */
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  margin-top: auto; /* Push to bottom */
+  align-self: flex-start; /* Align to the start */
+  border: 1px solid transparent; /* Base border */
+}
+
+/* --- Page Layout --- */
+.pathListContainer {
+  width: 420px; /* Keep desired width */
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background-color: var(--background-color);
+  padding: 1rem; /* Add padding back here */
+  overflow-y: auto; /* Keep scroll */
+  height: 100%; /* Fill container height */
+  display: flex;
+  flex-direction: column; /* Stack header and list */
+  flex-shrink: 0; /* Prevent shrinking */
+}
+
+.pathListHeader {
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.pathListHeader h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.pathList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  flex-grow: 1; /* Allow list to take remaining space */
+  overflow-y: auto; /* Scroll only the list part */
+  /* Add some padding for scrollbar */
+  padding-right: 8px;
+  margin-right: -8px; /* Offset scrollbar padding */
+  display: flex; /* Use flex for list items */
+  flex-direction: column; /* Stack list items */
+  gap: 1rem; /* Add gap between list items */
+}
+
+/* --- Detail View Container --- */
+.detailViewContainer {
+  flex: 1; /* Take remaining space */
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background-color: var(--card-background);
+  overflow-y: auto; /* Allow detail view to scroll independently */
+  height: 100%; /* Fill container height */
+  display: flex; /* Use flex for internal layout */
+  flex-direction: column; /* Stack header and content */
+}
+
+/* Add styles for statusReady, statusInProgress, statusCompleted if they don't exist */
+.statusReady {
+  color: #0d6efd; /* Example blue */
+  background-color: #cfe2ff;
+  border-color: #b6d4fe;
+}
+
+.statusInProgress {
+  color: #6f42c1; /* Example purple */
+  background-color: #e2d9f3;
+  border-color: #d0c2ec;
+}
+
+/* Ensure statusCompleted styles match the detail view or define them */
+.statusCompleted {
+  color: #1a5d20; /* Darker green */
+  background-color: #d1e7dd; /* Lighter green */
+  border-color: #a3cfbb;
+}
+
+/* --- Responsive Adjustments (Example) --- */
+@media (max-width: 1024px) {
+  .pageContainer {
+    flex-direction: column;
+    height: 100%; /* Still fill parent height */
+    overflow-y: auto; /* Allow container to scroll when stacked */
+    gap: 1rem;
+  }
+
+  .pathListContainer {
+    width: 100%; /* Full width on smaller screens */
+    flex: 0 0 auto; /* Reset flex basis */
+    max-height: 40vh; /* Limit height */
+    height: auto; /* Override 100% height */
+    /* overflow-y: auto; */ /* Already has it */
+  }
+
+  .detailViewContainer {
+    width: 100%;
+    flex: 1; /* Allow detail to grow */
+    min-height: 50vh; /* Ensure it takes some space */
+    height: auto; /* Override 100% height */
+     /* overflow-y: auto; */ /* Already has it */
+  }
+}
+
+@media (max-width: 768px) {
+   .pathListItem {
+       padding: 16px;
+       min-height: 150px; /* Adjust min-height for mobile */
+   }
+   .pathListItemTitle {
+       font-size: 1rem;
+   }
+   .pathListItemDescription {
+       font-size: 0.85rem;
+   }
+   .pathListContainer {
+       padding: 0.5rem;
+       max-height: 50vh; /* Maybe adjust height limit */
+   }
+   .detailViewContainer {
+       min-height: 45vh;
+   }
+}
+
+/* --- Responsive Adjustments --- */
+@media (max-width: 992px) { /* Example breakpoint */
+  .pathListPane {
+    width: 300px; /* Adjust width for medium screens */
+    /* flex-basis: 300px; */
+  }
+}
+
+@media (max-width: 768px) { /* Example breakpoint for stacking */
+  .pageContainer {
+    flex-direction: column;
+    height: auto; /* Allow height to adjust */
+    overflow: visible; /* Reset overflow */
+  }
+  .pathListPane {
+    width: 100%; /* Full width when stacked */
+    height: auto; /* Adjust height */
+    max-height: 40vh; /* Limit height to avoid taking too much space */
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+    overflow-y: auto; /* Ensure it's scrollable */
+  }
+  .detailPane {
+    width: 100%;
+    height: auto; /* Adjust height */
+    overflow-y: visible; /* Reset overflow */
+  }
+}
+
+/* --- Styles for items within the Path List Pane --- */
+
+/* Adjust existing .pathListItem if needed, e.g., ensure flex layout */
+.pathListItem {
+  background-color: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  /* padding: 24px; */ /* Padding is now on the button */
+  /* margin-bottom: 1rem; */
+  transition: background-color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  display: flex; /* Ensure flex for button alignment */
+  position: relative; /* Needed for potential absolute positioning of delete button if kept */
+}
+
+.pathListItem:hover {
+  background-color: var(--hover-background);
+  box-shadow: var(--shadow-sm);
+}
+
+.pathListItem.selected {
+  border-left: 4px solid var(--primary-color);
+  background-color: var(--selected-background);
+  /* Adjust padding-left on the button if needed */
+}
+
+.pathListItem.deleting {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Style the button that contains the path info */
+.pathSelectButton {
+  background: none;
+  border: none;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  flex-grow: 1; /* Take available space */
+  display: flex; /* Use flex for internal layout */
+  flex-direction: column; /* Stack title, desc, status */
+  min-height: 160px; /* Ensure minimum height */
+  border-radius: 8px; /* Match parent li */
+  transition: background-color 0.15s ease;
+  overflow: hidden; /* Prevent content spilling out of the button */
+}
+.pathSelectButton:hover {
+   /* Optional: subtle hover on button itself */
+   /* background-color: rgba(0,0,0,0.02); */
+}
+.pathSelectButton:disabled {
+  cursor: not-allowed;
+}
+
+/* Container for text content inside the button */
+.pathInfo {
+  flex-grow: 1; /* Push status badge down */
+  display: flex;
+  flex-direction: column;
+  min-height: 0; /* Important for flex children overflow handling */
+}
+
+/* Title within the list item */
+.pathTitleSmall {
+  font-size: 1.1rem; /* Adjusted size */
+  font-weight: 600; /* Bolder */
+  margin-bottom: 8px;
+  color: var(--text-color);
+  line-height: 1.3; /* Adjust line height */
+  /* Truncate after 2 lines */
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* Limit to 2 lines */
+  -webkit-box-orient: vertical;
+  text-overflow: ellipsis;
+  word-break: break-word; /* Allow breaking long words if necessary */
+}
+
+/* Description within the list item */
+.pathDescriptionSmall {
+  font-size: 0.85rem; /* Smaller font size */
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+  line-height: 1.4; /* Adjust line height */
+  /* Truncate after 2 lines */
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* Limit to 2 lines */
+  -webkit-box-orient: vertical;
+  text-overflow: ellipsis;
+  /* Let it take space but not push badge out */
+  flex-shrink: 1; /* Allow description to shrink if needed */
+  word-break: break-word; /* Added just in case */
+}
+
+/* Status Badge within the list item */
+.statusBadgeSmall {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  /* margin-top: auto; */
+  align-self: flex-start; /* Align to the start */
+  border: 1px solid transparent; /* Base border */
+  flex-shrink: 0; /* Prevent badge from shrinking */
+}
+
+/* --- Status Badge Colors (ensure these match getPathDisplayStatus) --- */
+.statusReady {
+  color: #0d6efd; /* Example blue */
+  background-color: #cfe2ff;
+  border-color: #b6d4fe;
+}
+
+.statusInProgress {
+  color: #6f42c1; /* Example purple */
+  background-color: #e2d9f3;
+  border-color: #d0c2ec;
+}
+
+.statusCompleted {
+  color: #1a5d20; /* Darker green */
+  background-color: #d1e7dd; /* Lighter green */
+  border-color: #a3cfbb;
+}
+
+
+/* --- Remove Delete Button Styles from List --- */
+/* Comment out or delete styles related to .deleteButtonSmall */
+/*
+.deleteButtonSmall { ... }
+.deleteButtonDeleting { ... }
+.smallSpinner { ... }
+*/
+
+/* --- Adjust Page Layout if needed --- */
+/* Keep existing .pageContainer, .pathListContainer, etc. */
+/* Ensure .pathListContainer width is still appropriate (e.g., 420px) */
+.pathListContainer {
+  width: 420px; /* Keep the increased width */
+  /* ... other styles ... */
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background-color: var(--background-color); /* Or var(--card-background) */
+  padding: 1rem;
+  overflow-y: auto; /* Keep scroll */
+  height: 100%; /* Fill container height */
+  display: flex;
+  flex-direction: column; /* Stack header and list */
+}
+
+.pathList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  flex-grow: 1; /* Allow list to take remaining space */
+  overflow-y: auto; /* Scroll only the list part if header is fixed */
+  /* Add some padding for scrollbar */
+  padding-right: 8px;
+  margin-right: -8px;
+}
+
+/* ... rest of the styles ... */
+
+/* --- Styles for Detail View Header --- */
+.detailHeader {
+  background-color: var(--card-background);
+  padding: 24px;
+  border-radius: 8px 8px 0 0; /* Rounded top corners */
+  /* border: 1px solid var(--border-color); */
+  border-bottom: none; /* Bottom border handled by content */
+  margin-bottom: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.headerTitleSection {
+  flex: 1;
+}
+
+.pathTitleHeader {
+  font-size: 1.8rem; /* Larger title */
+  font-weight: 600;
+  color: var(--text-color, #212529);
+  margin: 0 0 0.5rem 0;
+}
+
+.pathDescriptionHeader {
+  font-size: 1rem;
+  color: var(--text-secondary, #6c757d);
+  margin-bottom: 1rem;
+  line-height: 1.6;
+}
+
+.pathMetaHeader {
+  display: flex;
+  flex-wrap: wrap; /* Allow wrapping on small screens */
+  gap: 0.5rem 1rem; /* Row and column gap */
+  font-size: 0.9rem;
+  color: var(--text-secondary, #6c757d);
+}
+
+.pathMetaHeader span {
+  background-color: #f1f3f5;
+  padding: 0.3rem 0.8rem;
+  border-radius: 15px;
+  white-space: nowrap;
+}
+
+.headerControls {
+  flex-shrink: 0; /* Prevent controls from shrinking */
+  padding-top: 4px; /* Align roughly with title */
+}
+
+/* --- New Delete Button Style for Detail View --- */
+.detailDeleteButton {
+  padding: 8px 16px;
+  background-color: var(--danger-color-light);
+  color: var(--danger-color);
+  border: 1px solid var(--danger-color);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+  font-weight: 500;
+  font-size: 0.9rem;
+  display: inline-flex; /* Align icon/spinner and text */
+  align-items: center;
+  gap: 6px;
+}
+
+.detailDeleteButton:hover:not(:disabled) {
+  background-color: var(--danger-color);
+  color: white;
+}
+
+.detailDeleteButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.detailDeleteButton.deleting {
+  /* Optional: specific styles while deleting */
+}
+
+/* Reusable small spinner */
+.smallSpinner {
+  border: 2px solid rgba(0, 0, 0, 0.1);
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border-left-color: currentColor; /* Use button's text color */
+  animation: spin 1s ease infinite;
+  display: inline-block; /* Needed for alignment */
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* --- Main Content Area in Detail View --- */
+.detailMainContent {
+    padding: 24px;
+    /* Add other styles as needed */
+    border: 1px solid var(--border-color);
+    border-top: none; /* Header has top/side borders */
+    border-radius: 0 0 8px 8px;
+    background-color: var(--background-color); /* Or card background */
+}
+
+/* ... rest of the styles ... */
+
+/* --- NEW Styles for Target Layout --- */
+
+/* --- Detail Pane General --- */
+.detailPane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  background-color: #ffffff; /* Or your desired background */
+  padding: 2rem; /* Add padding around the content */
+  gap: 1.5rem; /* Space between header and structure */
+}
+
+/* --- Detail Header (Target Style) --- */
+.detailHeaderTarget { /* Use a new class to avoid conflicts initially */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
+}
+
+.headerInfoTarget {
+  /* Styles for "Path 1", "Indie Developer" */
+}
+
+.headerPathNumber {
+  font-size: 0.9rem;
+  color: var(--text-secondary, #6c757d);
+  margin-bottom: 0.25rem;
+}
+
+.headerPathTitle {
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: var(--text-color, #212529);
+  margin: 0;
+}
+
+.headerControlsTarget {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.daySelector {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.dayButton {
+  padding: 0.5rem 1rem;
+  border: none;
+  background-color: #f1f3f5; /* Light grey */
+  color: var(--text-secondary, #495057);
+  border-radius: 20px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.dayButton:hover,
+.dayButton.active { /* Add 'active' class for selected day */
+  background-color: #e9ecef; /* Slightly darker grey */
+}
+
+.headerIcons {
+  display: flex;
+  gap: 0.5rem;
+  /* Style the icons (e.g., size, color) */
+}
+
+.headerIcon {
+  /* Example styles for the icons */
+  font-size: 1.5rem; /* Adjust as needed */
+  color: var(--text-secondary, #6c757d);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  background-color: #f1f3f5; /* Match day buttons */
+}
+.headerIcon:hover {
+   background-color: #e9ecef;
+}
+
+
+/* --- Structure View (Target Style) --- */
+.structureViewTarget { /* Use a new class */
+  display: flex;
+  gap: 1.5rem; /* Space between timeline and items */
+}
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem; /* Space between day markers */
+  padding-top: 1rem; /* Align roughly with first item */
+}
+
+.timelineSegment {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-grow: 1; /* Allow line to fill space */
+}
+
+.timelineDays {
+  background-color: #e9ecef; /* Grey background */
+  color: var(--text-secondary, #495057);
+  padding: 0.3rem 0.8rem;
+  border-radius: 15px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  white-space: nowrap;
+  margin-bottom: 0.5rem; /* Space between badge and line */
+}
+
+.timelineLine {
+  width: 2px;
+  background-color: var(--border-color, #e0e0e0);
+  flex-grow: 1; /* Make line fill vertical space */
+  min-height: 50px; /* Ensure line is visible */
+}
+
+.structureItems {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem; /* Space between course/section cards */
+}
+
+/* --- Course/Section Card (Target Style) --- */
+.courseSectionCard { /* Replaces .courseItem / .sectionItem */
+  background-color: #f8f9fa; /* Light grey background */
+  border-radius: 12px;
+  border: 1px solid var(--border-color, #e9ecef);
+  overflow: hidden; /* Ensure content stays within rounded corners */
+}
+
+.courseSectionHeader { /* Replaces .courseHeaderButton / .sectionHeaderButton */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+}
+
+.courseSectionInfo {
+  /* Container for label and title */
+}
+
+.itemLabel { /* e.g., "icebreaking" */
+  font-size: 0.8rem;
+  color: var(--text-secondary, #6c757d);
+  margin-bottom: 0.25rem;
+  text-transform: uppercase;
+}
+
+.itemTitle { /* e.g., "How to build backend AI agents?" */
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-color, #212529);
+  margin: 0;
+}
+
+.itemToggleIcon { /* Style the up/down arrow */
+  font-size: 1.2rem;
+  color: var(--text-secondary, #6c757d);
+  transition: transform 0.2s ease-in-out;
+}
+
+.itemToggleIcon.expanded {
+  transform: rotate(180deg);
+}
+
+/* --- Card List within Course/Section (Target Style) --- */
+.cardListTarget { /* Replaces .cardList */
+  list-style: none;
+  padding: 0 1.5rem 1.5rem 1.5rem; /* Padding around cards */
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem; /* Space between cards */
+  background-color: #f8f9fa; /* Match header background */
+}
+
+.cardItemTarget { /* Replaces .cardItem */
+  background-color: #e9ecef; /* Darker grey background */
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  cursor: pointer; /* Make the whole item clickable */
+  transition: background-color 0.2s;
+}
+.cardItemTarget:hover {
+  background-color: #dee2e6; /* Slightly darker on hover */
+}
+
+.cardItemContent {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-grow: 1; /* Allow text to take space */
+  overflow: hidden; /* Prevent text overflow */
+}
+
+.cardDragHandle { /* Style the "..." icon */
+  font-size: 1.2rem;
+  color: var(--text-secondary, #6c757d);
+  cursor: grab; /* Indicate draggable */
+}
+
+.cardItemTitle {
+  font-size: 1rem;
+  color: var(--text-color, #343a40);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cardRemoveIcon { /* Style the "X" icon */
+  font-size: 1.2rem;
+  color: var(--text-secondary, #6c757d);
+  cursor: pointer;
+  padding: 2px;
+  flex-shrink: 0; /* Prevent shrinking */
+}
+.cardRemoveIcon:hover {
+  color: var(--danger-color, #dc3545);
+}
+
+/* --- Remove or Adjust Old Styles --- */
+/* You might need to comment out or delete styles like:
+   .detailHeader, .headerTitleSection, .pathTitleHeader, .pathDescriptionHeader,
+   .pathMetaHeader, .headerControls, .detailDeleteButton, .structureView,
+   .courseItem, .courseHeaderButton, .courseTitle, .sectionList, .sectionItem,
+   .sectionHeaderButton, .sectionTitle, .cardCountInfo, .cardList, .cardItem,
+   .cardLink, .selectedCard, etc. if they conflict with the new Target styles.
+*/
+
+/* Ensure status badges from the previous step don't interfere if not needed */
+.statusBadge { /* Or specific status classes */
+  /* display: none; */ /* If completely removing */
+}

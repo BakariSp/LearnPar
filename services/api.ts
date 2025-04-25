@@ -153,21 +153,37 @@ export interface UserLearningPathResponseItem {
 
 // Interface for the courses structure sent from the chat page
 export interface ChatCourseStructure {
-  id: string | number;
+  id?: string | number; // Allow optional ID
   title: string;
-  // Include sections if your backend expects them at this stage
-  // sections: { id: string | number; title: string }[];
+  // Include sections if your backend expects them for structure creation
+  sections?: { id?: string | number; title: string }[];
 }
 
-// Interface for the payload to generate the full path from chat
+// Interface for the payload to generate the full path from chat OR structure
 export interface GeneratePathPayload {
-  prompt: string;
-  title: string; // Add the overall learning path title
+  prompt?: string; // Make prompt optional as per structure doc
+  title: string;
+  // Ensure ChatCourseStructure includes sections if needed by this endpoint
   courses: ChatCourseStructure[];
   difficulty_level: string;
-  // Add other relevant fields if needed by the backend, e.g.:
-  // estimated_days?: number;
+  estimated_days?: number; // Optional as per structure doc
 }
+
+// --- Add these interfaces ---
+
+export interface NextItemInfo {
+  type: 'section' | 'course' | 'end'; // Type of the next item
+  courseId?: number;
+  sectionId?: number;
+  title?: string; // Title of the next section/course
+}
+
+export interface CompletionInfo {
+  completedSectionTitle: string;
+  nextItem: NextItemInfo | null;
+}
+
+// --- End of added interfaces ---
 
 // --- API Functions ---
 
@@ -203,9 +219,6 @@ export const apiGetCourseById = async (id: number): Promise<Course | null> => {
 
 // Fetch the FULL learning path structure (Used after polling completes)
 export const apiGetFullLearningPath = async (id: number): Promise<FullLearningPathResponse | null> => {
-  // Note: The update doc mentions /recommendation/learning-paths/{path_id}/full
-  // but current implementation uses /api/learning-paths/{id}/full.
-  // Sticking with the current path unless backend confirms change.
   const response = await apiClient(`/api/learning-paths/${id}/full`);
   if (response && response.ok) {
     return response.json();
@@ -217,32 +230,60 @@ export const apiGetFullLearningPath = async (id: number): Promise<FullLearningPa
   throw new Error(`Failed to fetch full learning path details (status: ${response?.status}).`);
 };
 
-// Function to *initiate* learning path generation via chat prompt AND structure
-export const apiGenerateLearningPathFromChat = async (payload: GeneratePathPayload): Promise<TaskCreationResponse> => {
+// Function to initiate learning path generation via chat prompt
+// (Keep the existing function for chat-based initiation)
+export const apiGenerateLearningPathFromChat = async (payload: { prompt: string }): Promise<TaskCreationResponse> => {
   try {
-    // Path matches the update doc: /api/chat/generate-learning-path
+    // Path for prompt-based generation
     const response = await apiClient('/api/chat/generate-learning-path', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      // Send the structured payload
+      body: JSON.stringify(payload), // Only prompt is needed here
+    });
+
+    if (!response || !response.ok) {
+      const errorData = response ? await response.json().catch(() => ({ detail: 'Unknown error occurred during prompt generation request.' })) : { detail: 'Network error or invalid response during prompt generation request.' };
+      console.error('Failed to initiate learning path generation from prompt:', response?.status, errorData);
+      throw new Error(errorData.detail || `Failed to start generation from prompt (status: ${response?.status})`);
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("Error in apiGenerateLearningPathFromChat:", error);
+    throw error;
+  }
+};
+
+// --- NEW FUNCTION ---
+// Function to initiate learning path creation from a predefined structure
+export const apiCreatePathFromStructure = async (payload: GeneratePathPayload): Promise<TaskCreationResponse> => {
+  try {
+    // Path matches the structure doc: /api/learning-paths/create-from-structure
+    const response = await apiClient('/api/learning-paths/create-from-structure', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      // Send the full structured payload
       body: JSON.stringify(payload),
     });
 
     if (!response || !response.ok) {
-      const errorData = response ? await response.json().catch(() => ({ detail: 'Unknown error occurred during generation request.' })) : { detail: 'Network error or invalid response during generation request.' };
-      console.error('Failed to initiate learning path generation:', response?.status, errorData);
-      throw new Error(errorData.detail || `Failed to start generation (status: ${response?.status})`);
+      const errorData = response ? await response.json().catch(() => ({ detail: 'Unknown error occurred during structure creation request.' })) : { detail: 'Network error or invalid response during structure creation request.' };
+      console.error('Failed to initiate learning path creation from structure:', response?.status, errorData);
+      throw new Error(errorData.detail || `Failed to start creation from structure (status: ${response?.status})`);
     }
 
     // Returns TaskCreationResponse: { task_id: string, message: string }
     return response.json();
   } catch (error) {
-    console.error("Error in apiGenerateLearningPathFromChat:", error);
+    console.error("Error in apiCreatePathFromStructure:", error);
     throw error; // Re-throw for the component to handle
   }
 };
+// --- END NEW FUNCTION ---
 
 // Function to get the status of a background task by Task ID
 export const apiGetTaskStatus = async (taskId: string): Promise<TaskStatusResponse> => {

@@ -1,0 +1,172 @@
+---
+description: 
+globs: 
+---
+# rules.md – AI Agent Frontend Code Generation Rules
+
+**Tech Stack**: React + Next.js + Tailwind CSS + TypeScript (TSX)  
+**Goal**: Help AI agents generate robust, maintainable, and scalable frontend code for production environments.
+
+---
+
+## 🧠 General Principles
+
+1. **Use TypeScript (`.tsx`)** for all component files.
+2. **Component-based architecture** with reusable and isolated UI blocks.
+3. **Tailwind-first styling**, avoid writing custom CSS unless necessary.
+4. **Fully typed props**, no use of `any` type.
+5. **Functional components only**, using arrow function syntax.
+6. **Accessibility-aware** (`aria-*`, `alt`, `role` where appropriate).
+7. **Avoid logic in views**, extract logic into hooks or utils.
+8. **Stateless when possible**, keep UI presentational unless otherwise needed.
+9. **Default output is a full page or component** unless specified.
+10. **Use React 18+ and Next.js App Router (`app/`)**
+
+---
+
+## 🧩 Component Standards
+
+- File naming: PascalCase (`MyComponent.tsx`)
+- Functional component syntax:
+
+```tsx
+type Props = {
+  title: string
+  onClick?: () => void
+}
+
+const MyComponent: React.FC<Props> = ({ title, onClick }) => {
+  return <div onClick={onClick}>{title}</div>
+}
+```
+
+- Always type props explicitly using `interface` or `type`.
+- Add default props if needed with `defaultProps` or destructuring.
+- Export components as default:
+  ```tsx
+  export default MyComponent
+  ```
+
+---
+
+## 🎨 Tailwind Guidelines
+
+- Use utility classes for styling:
+  ```tsx
+  <div className="bg-white p-4 rounded-lg shadow-md hover:bg-gray-100">
+  ```
+
+- Common layout patterns:
+  - **Flex column**: `flex flex-col gap-4`
+  - **Grid**: `grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6`
+- Use responsive classes (`sm:`, `md:`, `lg:`) when necessary.
+- Avoid using inline `style={{ ... }}`.
+
+---
+
+## ⚙️ API / Data Fetching (Client-side)
+
+- Use `useEffect` + `fetch` or SWR/React Query if specified.
+- Always handle loading and error states:
+  ```tsx
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [data, setData] = useState<DataType | null>(null)
+  ```
+
+- Use loading skeletons or fallback UI instead of empty divs.
+
+---
+
+## 🧪 State Management
+
+- Use `useState`, `useReducer`, and `useContext` for lightweight state.
+- Prefer Zustand or Redux only for shared/global state.
+- Local state belongs inside components or hooks.
+
+---
+
+## 📦 Form & Interaction Guidelines
+
+- All interactive elements must have:
+  - Hover/focus/active styles (`focus:outline`, `hover:bg-*`)
+  - ARIA roles if they deviate from semantic HTML
+  - Label elements for all inputs
+- Form fields should be typed with `FormEvent`:
+  ```tsx
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+  }
+  ```
+
+---
+
+## 🧱 Page Structure (Next.js)
+
+- All pages should include `<Head>` for SEO:
+  ```tsx
+  import Head from "next/head"
+  <Head>
+    <title>Page Title</title>
+    <meta name="description" content="..." />
+  </Head>
+  ```
+
+- Use the `app/` router conventions and export `Page` component:
+  ```tsx
+  export default function Page() {
+    return <main className="...">...</main>
+  }
+  ```
+
+---
+
+## 💬 Code Output Format
+
+- Always wrap TSX code with triple backticks and `tsx`:
+  \`\`\`tsx
+  // Your code here
+  \`\`\`
+
+- Include the filename as a comment at the top:
+  ```tsx
+  // components/Button.tsx
+  ```
+
+- Provide explanation comments (`//`) where non-obvious.
+
+---
+
+## 🔍 Optional: Use of Third-Party UI Kits
+
+If using UI libraries (based on project context), prefer:
+
+- **shadcn/ui**
+- **headlessui**
+- **radix-ui**
+
+Always wrap or customize for consistent styling with Tailwind.
+
+---
+
+## 🚨 Common Mistakes to Avoid
+
+- ❌ Using `any` type
+- ❌ Inline styling for layout
+- ❌ Mixing logic and UI
+- ❌ Untyped or unused props
+- ❌ No loading/error handling for async UI
+
+---
+
+## ✅ Deliverables Summary for Each AI-Generated Output
+
+- ✅ Clear filename header
+- ✅ Valid `.tsx` code
+- ✅ Explicitly typed props
+- ✅ Responsive and accessible Tailwind CSS
+- ✅ Explanation comments for logic
+
+---
+
+*This ruleset ensures your frontend is clean, reusable, accessible, and aligned with modern professional standards.*

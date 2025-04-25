@@ -1,0 +1,182 @@
+/* Copy relevant styles from learning-path-detail.module.css */
+/* Example: */
+
+.courseItemContainer {
+  /* Styles for the overall course container */
+  background-color: #fff; /* Example */
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  overflow: hidden; /* Contain borders/background */
+}
+
+.courseHeaderButton {
+  /* Styles for the clickable course header */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 1rem;
+  background-color: #f8f9fa; /* Light background for header */
+  border: none;
+  border-bottom: 1px solid #e9ecef; /* Separator */
+  text-align: left;
+  cursor: pointer;
+  font-size: 1rem;
+}
+.courseHeaderButton:hover {
+  background-color: #e9ecef;
+}
+
+.courseHeaderInfo {
+  /* Styles for text within the header */
+  flex-grow: 1;
+}
+
+.courseTitle {
+  /* Styles for the course title */
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+  color: #212529;
+}
+
+.sectionsContainer {
+  /* Styles for the div containing sections */
+  padding: 0; /* Remove padding if section items handle it */
+}
+
+.sectionItem {
+  /* Styles for each section block */
+  border-bottom: 1px solid #e9ecef;
+}
+.sectionItem:last-child {
+  border-bottom: none;
+}
+
+.sectionHeaderButton {
+  /* Styles for the clickable section header */
+   display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 0.75rem 1rem; /* Slightly less padding than course */
+  background-color: #fff;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 1rem;
+}
+.sectionHeaderButton:hover {
+  background-color: #f1f3f5;
+}
+
+.sectionHeaderInfo {
+  flex-grow: 1;
+}
+
+.sectionTitle {
+  /* Styles for the section title */
+  font-size: 1rem;
+  font-weight: 500;
+  margin: 0;
+  color: #343a40;
+}
+
+.itemToggleIcon, .toggleIcon /* Use consistent naming if possible */ {
+  /* Styles for the expand/collapse icon (e.g., ▼) */
+  transition: transform 0.2s ease-in-out;
+  font-size: 0.8em; /* Make icon slightly smaller */
+  color: #6c757d;
+}
+
+.itemToggleIcon.expanded, .toggleIcon.expanded {
+  transform: rotate(180deg);
+}
+
+.sectionContent {
+  /* Styles for the area holding cards/loading state */
+  padding: 0.5rem 1rem 1rem 2rem; /* Indent card list */
+  background-color: #fff;
+}
+
+.loadingCards, .errorLoadingCards, .noCards {
+  /* Styles for loading/error/no cards messages */
+  font-style: italic;
+  color: #6c757d;
+  padding: 0.5rem 0;
+  font-size: 0.9rem;
+}
+.errorLoadingCards {
+    color: #dc3545;
+}
+
+.smallSpinner {
+    /* Add animation for a small loading spinner */
+    display: inline-block;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #6c757d;
+    border-radius: 50%;
+    width: 12px;
+    height: 12px;
+    animation: spin 1s linear infinite;
+    margin-right: 8px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+
+.cardList {
+  /* Styles for the card list */
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem; /* Space between card buttons */
+}
+
+.cardListItem {
+  /* Styles for each li wrapping a card button */
+}
+
+.cardButton {
+  /* Styles for the clickable card button */
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid transparent; /* For hover/selected state */
+  border-radius: 4px;
+  width: 100%;
+  text-align: left;
+  background-color: transparent;
+  cursor: pointer;
+  font-size: 0.95rem;
+  color: #495057;
+}
+.cardButton:hover {
+  background-color: #e9ecef;
+  border-color: #dee2e6;
+}
+
+.cardButton.selectedCard {
+  /* Styles for the selected card */
+  background-color: #cfe2ff;
+  border-color: #b6d4fe;
+  font-weight: 500;
+  color: #0a3678;
+}
+
+.cardIcon {
+  /* Styles for the card icon (e.g., 📄) */
+  color: #6c757d;
+}
+
+.cardKeyword {
+  /* Styles for the card keyword text */
+  flex-grow: 1;
+} 

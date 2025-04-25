@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
+import React, { createContext, useState, useEffect, useContext, ReactNode, useCallback } from 'react';
 import { getCurrentUser, UserProfile, getToken, logout as authLogout, login as authLogin, LoginCredentials, handleOAuthCallback as authHandleOAuthCallback } from '../services/auth'; // Adjust path as needed
 import { useRouter } from 'next/navigation';
 
@@ -48,7 +48,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     validateTokenAndFetchUser();
   }, []); // Run only once on mount
 
-  const login = async (credentials: LoginCredentials) => {
+  const login = useCallback(async (credentials: LoginCredentials) => {
     setIsLoading(true);
     try {
       await authLogin(credentials); // Original login handles token storage
@@ -57,44 +57,52 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       router.push('/'); // Redirect after successful login
     } catch (error) {
       setUser(null);
-      setIsLoading(false);
+      // Don't set isLoading false here if error is thrown, let finally handle it if needed
       console.error("Login failed:", error);
       throw error; // Re-throw for the login page to handle
     } finally {
-       // Set loading false only if login didn't throw (handled in catch)
-       // setIsLoading(false); // Might cause flicker if redirect is immediate
+       // Setting loading false here might be okay after redirect starts or error is thrown
+       setIsLoading(false);
     }
-  };
+  }, [router]); // Dependencies: router, setIsLoading, setUser (implicitly stable from useState)
 
-  const logout = () => {
+  // Memoize logout function
+  const logout = useCallback(() => {
     authLogout(); // Original logout handles token removal and redirect
     setUser(null);
     // No need to push router here if authLogout handles redirect
-  };
+  }, []); // Dependencies: setUser (implicitly stable)
 
-   const handleOAuthCallback = async (token: string) => {
+   // Memoize handleOAuthCallback function
+   const handleOAuthCallback = useCallback(async (token: string) => {
+     console.log("AuthContext: handleOAuthCallback started"); // Added log
      authHandleOAuthCallback(token); // Stores the token
      setIsLoading(true);
      try {
+        console.log("AuthContext: Calling getCurrentUser..."); // Added log
         const userData = await getCurrentUser(); // Fetch user after getting token
+        console.log("AuthContext: getCurrentUser returned:", userData); // Added log
         setUser(userData);
-        router.push('/dashboard'); // Redirect to dashboard
+        console.log("AuthContext: Redirecting to / ..."); // Added log
+        router.push('/'); // Redirect to explore page
+        console.log("AuthContext: Redirect initiated."); // Added log
      } catch (error) {
-        console.error("Failed to fetch user after OAuth:", error);
-        logout(); // Log out if fetching fails
+        console.error("AuthContext: Failed to fetch user after OAuth:", error); // Added log
+        logout(); // Log out if fetching fails (logout is now memoized)
      } finally {
+        console.log("AuthContext: handleOAuthCallback finally block"); // Added log
         setIsLoading(false);
      }
-   };
+   }, [router, logout]); // Dependencies: router, logout (memoized version), setIsLoading, setUser (implicitly stable)
 
 
   const value = {
     user,
     isLoading,
     isAuthenticated: !!user, // User is authenticated if user object exists
-    login,
-    logout,
-    handleOAuthCallback
+    login, // Use memoized version
+    logout, // Use memoized version
+    handleOAuthCallback // Use memoized version
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
