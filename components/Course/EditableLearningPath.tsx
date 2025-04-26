@@ -86,8 +86,11 @@ export function EditableLearningPath({
   // --- Local state for UI elements derived from props ---
   // Use initialPlan to set initial state for difficulty, courses etc.
   const pathTitle = initialPlan?.title || 'Learning Plan';
-  // Ensure courses is always an array, even if initialPlan is null/undefined
-  const courses = initialPlan?.courses || [];
+  // Map incoming courses to add order_index based on array position
+  const courses: Course[] = (initialPlan?.courses || []).map((course, index) => ({
+    ...course,
+    order_index: index,
+  }));
   const selectedDifficulty = initialPlan?.difficulty_level || 'Intermediate';
 
   // State for schedule selector (remains local)

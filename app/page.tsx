@@ -1,5 +1,9 @@
-import Image from "next/image";
-import ZeroLandingPage, { RecommendationsResponse } from './landing-page/landing-page';
+'use client'; // Make this a client component to use hooks
+
+import { useAuth } from '../context/AuthContext'; // Import useAuth
+import ZeroLandingPage, { RecommendationsResponse } from './home/home';
+import { useEffect, useState } from 'react';
+import LandingPage from './landing-page/landing-page'; // Import the new LandingPage component
 
 // Define the fetch function (can be in a separate services file)
 async function fetchRecommendations(): Promise<RecommendationsResponse | null> {
@@ -25,13 +29,23 @@ async function fetchRecommendations(): Promise<RecommendationsResponse | null> {
   }
 }
 
-// Make the Page component async
-export default async function Home() {
-  // Fetch data on the server
-  const initialRecommendations = await fetchRecommendations();
+// Use client component
+export default function Home() {
+  const { user } = useAuth(); // Get user state
+  const [recommendations, setRecommendations] = useState<RecommendationsResponse | null>(null);
 
-  // Pass the fetched data as props to the client component
-  return (
-    <ZeroLandingPage initialRecommendations={initialRecommendations} />
-  );
+  // Fetch recommendations only if the user is logged in
+  useEffect(() => {
+    if (user) {
+      fetchRecommendations().then(setRecommendations);
+    }
+  }, [user]); // Dependency array includes user
+
+  // If user is logged in, show the main app page (home/dashboard)
+  if (user) {
+    return <ZeroLandingPage initialRecommendations={recommendations} />;
+  }
+
+  // If user is not logged in, show the static landing page component
+  return <LandingPage />;
 }

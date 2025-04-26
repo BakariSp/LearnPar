@@ -4,6 +4,7 @@ import { GeistMono } from 'geist/font/mono';
 import "./globals.css";
 import { AuthProvider } from '../context/AuthContext';
 import { LayoutClientWrapper } from '../components/LayoutClientWrapper';
+import { NotificationProvider } from '@/context/NotificationContext';
 
 export const metadata: Metadata = {
   title: "Learning Platform",
@@ -19,11 +20,14 @@ export default function RootLayout({
     <html lang="en" className="h-full" suppressHydrationWarning>
       <body
         className={`${GeistSans.variable} ${GeistMono.variable} antialiased flex h-screen overflow-hidden bg-gray-100`}
+        suppressHydrationWarning
       >
         <AuthProvider>
-          <LayoutClientWrapper>
-            {children}
-          </LayoutClientWrapper>
+          <NotificationProvider>
+            <LayoutClientWrapper>
+              {children}
+            </LayoutClientWrapper>
+          </NotificationProvider>
         </AuthProvider>
       </body>
     </html>

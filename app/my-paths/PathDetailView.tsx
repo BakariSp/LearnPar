@@ -20,27 +20,28 @@ interface PathDetailViewProps {
     learningPathData: FullLearningPathResponse | null;
     isLoadingDetails: boolean;
     detailError: string | null;
-    taskStatus: TaskStatusResponse | null;
+    taskStatus: TaskStatusResponse | null; // Overall task status
     isFetchingStatus: boolean;
     currentViewMode: 'structure' | 'card' | 'completion';
     selectedCard: CardResponse | null;
-    selectedCardSectionId: number | null; // Keep for context if needed, though selectedCard implies it
+    selectedCardSectionId: number | null;
     selectedCardSectionCards: CardResponse[];
     completionInfo: CompletionInfo | null;
     expandedItems: Record<string, boolean>;
     sectionCardsCache: Record<number, CardResponse[]>;
     isFetchingSection: boolean;
-    currentSectionIdForFetch: number | null; // ID of section being fetched
+    currentSectionIdForFetch: number | null;
     toggleExpand: (itemId: string, itemType: 'course' | 'section', sectionId?: number) => void;
     handleCardSelect: (card: CardResponse, sectionId: number, sectionCards: CardResponse[], autoSelect?: boolean) => void;
     navigateToPreviousCard: () => void;
     navigateToNextCard: () => void;
     handleNavigateNext: (nextItem: NextItemInfo | null) => void;
     getCurrentCardIndex: () => number;
-    hasPreviousCard: boolean; // Added for clarity, though logic is inside
+    hasPreviousCard: boolean;
     hasNextCardInSection: boolean;
     handleDeletePath: (pathId: number) => void;
     deletingPathId: number | null;
+    sectionReadyStatus: Record<number, boolean>; // NEW: Section readiness map
     // styles?: Record<string, string>;
 }
 
@@ -53,7 +54,7 @@ export const PathDetailView: React.FC<PathDetailViewProps> = ({
     isFetchingStatus,
     currentViewMode,
     selectedCard,
-    // selectedCardSectionId, // Can often be derived if needed
+    selectedCardSectionId,
     selectedCardSectionCards,
     completionInfo,
     expandedItems,
@@ -66,10 +67,11 @@ export const PathDetailView: React.FC<PathDetailViewProps> = ({
     navigateToNextCard,
     handleNavigateNext,
     getCurrentCardIndex,
-    // hasPreviousCard, // Not directly used in render, logic is in navigateToPreviousCard button
+    hasPreviousCard,
     hasNextCardInSection,
     handleDeletePath,
     deletingPathId,
+    sectionReadyStatus,
     // styles // Remove if it was only for LearningPathCourseItem
 }) => {
 
@@ -226,6 +228,8 @@ export const PathDetailView: React.FC<PathDetailViewProps> = ({
                                         selectedCard={selectedCard}
                                         toggleExpand={toggleExpand}
                                         handleCardSelect={handleCardSelect}
+                                        taskStatus={taskStatus}
+                                        sectionReadyStatus={sectionReadyStatus}
                                     />
                                 );
                             })}
@@ -237,10 +241,6 @@ export const PathDetailView: React.FC<PathDetailViewProps> = ({
                             <div className={styles.cardContainer}>
                                 {/* Card Header */}
                                 <div className={styles.cardHeader}>
-                                    <div className={styles.cardType}>
-                                        <span className={styles.cardIcon}>⚡</span>
-                                        <span>{selectedCard.card_type || 'Concept'}</span>
-                                    </div>
                                     <div className={styles.cardTags}>
                                         {selectedCard.tags?.map(tag => <span key={tag} className={styles.tag}>{tag}</span>)}
                                     </div>
@@ -270,7 +270,7 @@ export const PathDetailView: React.FC<PathDetailViewProps> = ({
                                         className={styles.navButton}
                                         onClick={navigateToNextCard}
                                     >
-                                        {hasNextCardInSection() ? 'Next →' : 'Finish Section →'}
+                                        {hasNextCardInSection ? 'Next →' : 'Finish Section →'}
                                     </button>
                                 </div>
                             </div>
@@ -281,9 +281,9 @@ export const PathDetailView: React.FC<PathDetailViewProps> = ({
                         <div className={styles.completionView}>
                             <h2>🎉 Congratulations! 🎉</h2>
                             <p>You've completed: <strong>{completionInfo.completedSectionTitle}</strong></p>
-                            {completionInfo.nextItem?.type === 'section' && <button onClick={handleNavigateNext} className={styles.navButton}>Go to Next Section: {completionInfo.nextItem.title} →</button>}
-                            {completionInfo.nextItem?.type === 'course' && <button onClick={handleNavigateNext} className={styles.navButton}>Start Next Course: {completionInfo.nextItem.title} →</button>}
-                            {completionInfo.nextItem?.type === 'end' && <div><p><strong>You've finished the entire learning path!</strong></p><button onClick={handleNavigateNext} className={styles.navButton}>Finish Path</button></div>}
+                            {completionInfo.nextItem?.type === 'section' && <button onClick={() => handleNavigateNext(completionInfo.nextItem)} className={styles.navButton}>Go to Next Section: {completionInfo.nextItem.title} →</button>}
+                            {completionInfo.nextItem?.type === 'course' && <button onClick={() => handleNavigateNext(completionInfo.nextItem)} className={styles.navButton}>Start Next Course: {completionInfo.nextItem.title} →</button>}
+                            {completionInfo.nextItem?.type === 'end' && <div><p><strong>You've finished the entire learning path!</strong></p><button onClick={() => handleNavigateNext(completionInfo.nextItem)} className={styles.navButton}>Finish Path</button></div>}
                             <button onClick={navigateToPreviousCard} className={`${styles.navButton} ${styles.secondaryAction}`}>← Back to Last Card</button>
                         </div>
                     )}

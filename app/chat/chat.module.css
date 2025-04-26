@@ -624,3 +624,124 @@
 
 /* --- Add any missing styles copied from EditableLearningPath.module.css if needed --- */
 /* e.g., .statusDot, .sectionPlaceholderContainer, etc. if they appear in SortableCourseItem */
+
+/* --- Dark Mode Overrides --- */
+@media (prefers-color-scheme: dark) {
+  .chatContainer {
+    background-color: var(--background); /* Dark page background */
+    color: var(--text-color);
+  }
+
+  .title {
+    color: var(--heading-color);
+  }
+
+  .subtitle {
+    color: var(--text-secondary);
+  }
+
+  .loadingIndicator {
+    color: var(--text-secondary);
+  }
+
+  .spinner {
+    border-left-color: var(--primary-color); /* Use dark primary */
+  }
+
+  .errorBox {
+    background-color: rgba(var(--danger-rgb, 220 53 69) / 0.15);
+    border-color: var(--danger-color, #f44336);
+    color: var(--danger-color, #f44336);
+  }
+
+  /* Two Column Layout */
+  .twoColumnLayout {
+     /* background defaults to page bg */
+  }
+
+  .leftColumn {
+    /* background defaults to page bg */
+  }
+
+  .rightColumn {
+    background-color: var(--card-background); /* Slightly lighter dark */
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+  }
+
+  /* Chat Display Area */
+  .chatDisplayArea {
+    background-color: transparent; /* Inherit from rightColumn */
+    /* border needed? rightColumn has one */
+  }
+
+  .chatMessage.user {
+    background-color: rgba(var(--primary-rgb, 255 163 54) / 0.2); /* Use primary color with alpha */
+    color: var(--primary-color);
+  }
+
+  .chatMessage.ai {
+    background-color: var(--background); /* Darker grey, matches list bg */
+    color: var(--text-color);
+  }
+
+  .chatMessage.error {
+    background-color: rgba(var(--danger-rgb, 220 53 69) / 0.15);
+    border-color: var(--danger-color, #f44336);
+    color: var(--danger-color, #f44336);
+  }
+
+  .chatRole {
+    color: var(--text-secondary);
+  }
+
+  .chatMessage.user .chatRole {
+    color: var(--primary-color); /* Darker tint of primary */
+  }
+  .chatMessage.ai .chatRole {
+    color: var(--text-secondary);
+  }
+  .chatMessage.error .chatRole {
+    color: var(--danger-color);
+  }
+
+  .chatContent i {
+    color: var(--text-secondary);
+  }
+
+  /* Buttons */
+  .generateFullPathButton {
+    background-color: var(--primary-color);
+    color: var(--card-background); /* Light text */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  }
+
+  .generateFullPathButton:hover:not(:disabled) {
+    background-color: var(--primary-color-dark, #E8902D); /* Use a darker shade if defined */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+  }
+
+  .generateFullPathButton:disabled {
+    background-color: var(--text-secondary);
+    opacity: 0.5;
+  }
+
+  /* Finalization Messages */
+  .successMessage {
+      color: var(--success-color, #a5d6a7); /* Lighter green */
+      background-color: rgba(var(--success-rgb, 165 214 167) / 0.15);
+      border: 1px solid rgba(var(--success-rgb, 165 214 167) / 0.3);
+  }
+  .errorMessage {
+      color: var(--danger-color, #f44336);
+      background-color: rgba(var(--danger-rgb, 220 53 69) / 0.1);
+      border: 1px solid rgba(var(--danger-rgb, 220 53 69) / 0.3);
+  }
+
+  /* Placeholder */
+  .placeholder {
+    color: var(--text-secondary);
+    background-color: var(--card-background);
+    border: 1px solid var(--border-color);
+  }
+}

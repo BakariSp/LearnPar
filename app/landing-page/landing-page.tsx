@@ -1,177 +1,103 @@
-'use client';
+import React from 'react';
+import styles from './landing-page.module.css'; // Import the CSS module
+import Link from 'next/link'; // Import Link for navigation
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { AiDialog } from '../../components/AiChat/AiDialog';
-import { CourseCard } from '../../components/Course/CourseCard';
-import { KeywordCard } from '../../components/Course/KeywordCard';
-import { LearningPathCard } from '../../components/Course/LearningPathCard';
-import styles from './landing-page.module.css';
-
-// Define interfaces for the API response data
-interface Resource {
-  url: string;
-  title: string;
-}
-
-interface Card {
-  id: number;
-  keyword: string;
-  explanation: string;
-  resources: Resource[];
-  level: string;
-  tags: string[];
-  created_by: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-interface Course {
-  id: number;
-  title: string;
-  description: string;
-  sections: any[];
-  created_at: string;
-  updated_at: string;
-}
-
-interface LearningPath {
-  id: number;
-  title: string;
-  description: string;
-  category: string;
-  difficulty_level: string;
-  estimated_days: number;
-  courses: any[];
-  created_at: string;
-  updated_at: string;
-}
-
-// Export the response type for the server component
-export interface RecommendationsResponse {
-  learning_paths: LearningPath[];
-  courses: Course[];
-  cards: Card[];
-}
-
-// Define props for the component
-interface ZeroLandingPageProps {
-  initialRecommendations: RecommendationsResponse | null;
-}
-
-export default function ZeroLandingPage({ initialRecommendations }: ZeroLandingPageProps) {
-  const [query, setQuery] = useState('');
-  // Use the initial data passed via props
-  // Determine initial loading/error state based on the prop
-  const [recommendations] = useState<RecommendationsResponse | null>(initialRecommendations);
-  const [isLoading] = useState<boolean>(!initialRecommendations); // Loading if prop is null initially
-  const [error] = useState<string | null>(
-    initialRecommendations === null ? 'Failed to load recommendations. Please try again later.' : null
-  );
-  const router = useRouter();
-
-  // Map API cards to KeywordCard format (Add the safety check from fix #1)
-  const keywordCards = recommendations?.cards.map(card => ({
-    id: card.id,
-    title: card.keyword,
-    description: card.explanation,
-    keywords: card.tags || [], // Ensure keywords is always an array
-    icon: getIconForTag(card.tags && card.tags.length > 0 ? card.tags[0] : '') // Safe access
-  })) || [];
-
-  // Map API courses to CourseCard format
-  const courseCards = recommendations?.courses.map(course => ({
-    id: course.id,
-    title: course.title,
-    subtitle: course.description,
-    progress: 0 // New courses start at 0% progress
-  })) || [];
-
-  // Map API learning paths to LearningPathCard format
-  const learningPathCards = recommendations?.learning_paths.map(path => ({
-    id: path.id,
-    title: path.title,
-    description: path.description,
-    category: path.category,
-    difficulty: path.difficulty_level,
-    days: path.estimated_days
-  })) || [];
-
-  // Helper function to assign icons based on tags
-  function getIconForTag(tag: string): string {
-    const iconMap: {[key: string]: string} = {
-      'memory': '🧠',
-      'essential': '⭐',
-      'theoretical': '📚',
-      'cognitive science': '🔬',
-      'Balanced Diet': '🥗',
-      'Regular Exercise': '🏃‍♂️',
-      'Mental Wellness': '🧘‍♀️'
-    };
-    
-    return iconMap[tag] || '📝'; // Default icon if no match
-  }
-
-  // Function to handle query submission from AiDialog
-  const handleQuerySubmit = (submittedQuery: string) => {
-    // Navigate to the chat page with the query as a parameter
-    router.push(`/chat?prompt=${encodeURIComponent(submittedQuery)}`);
-  };
-
+export default function LandingPage() {
   return (
-    <main className={styles.container}>
-      <div className={styles.content}>
-        <section className={styles.aiSection}>
-          <h1 className={styles.heading}>What would you like to learn today?</h1>
-          <AiDialog query={query} setQuery={setQuery} onQuerySubmit={handleQuerySubmit} />
+    <div className={styles.pageContainer}>
+      {/* Navbar Section - REMOVED (Now handled globally) */}
+      {/* 
+      <nav className={styles.navbar}>
+        <div className={styles.navbarBrand}>
+          Zero AI
+        </div>
+        <div className={styles.navbarActions}>
+          <Link href="/login" passHref>
+            <button className={styles.loginButton}>Login</button>
+          </Link>
+        </div>
+      </nav>
+      */}
+
+      <div className={styles.contentWrapper}>
+        {/* Header Section - REMOVED */}
+        {/* 
+        <header className={styles.header}>
+          <h1 className={styles.mainHeading}>
+            Zero AI
+          </h1>
+          <p className={styles.subHeading}>
+            Go from 0 to 0.5 in any unfamiliar field.
+          </p>
+        </header>
+        */}
+
+        {/* Vision Section */}
+        <section className={styles.section}>
+          <h2 className={styles.sectionHeading}>
+            Our Vision
+          </h2>
+          <p className={styles.sectionParagraph}>
+            At Zero AI, we believe that the beginning of every journey is the most important step.
+            Our mission is to empower curious minds to explore new fields effortlessly, by breaking down barriers to knowledge and providing a personalized, gamified learning experience.
+            We envision a future where learning is lightweight, joyful, and truly accessible for everyone starting from zero.
+          </p>
         </section>
-        
-        {isLoading ? (
-          <div className={styles.loadingContainer}>
-            <div className={styles.loadingSpinner}></div>
-            <p>Loading recommendations...</p>
+
+        {/* Product Description Section */}
+        <section className={styles.section}>
+          <h2 className={styles.sectionHeading}>
+            How It Works
+          </h2>
+          <div className={styles.featureGrid}>
+            {/* Feature Card 1 */}
+            <div className={styles.featureCard}>
+              <h3 className={styles.featureCardHeading}>
+                Keyword Cards
+              </h3>
+              <p className={styles.featureCardText}>
+                The smallest unit of knowledge, offering clear explanations, examples, and resources.
+              </p>
+            </div>
+             {/* Feature Card 2 */}
+            <div className={styles.featureCard}>
+              <h3 className={styles.featureCardHeading}>
+                Learning Paths
+              </h3>
+              <p className={styles.featureCardText}>
+                Personalized routes built around your interests and goals, generated by AI Agents.
+              </p>
+            </div>
+             {/* Feature Card 3 */}
+            <div className={styles.featureCard}>
+              <h3 className={styles.featureCardHeading}>
+                Achievement System
+              </h3>
+              <p className={styles.featureCardText}>
+                Visualize your progress, collect milestones, and build a structured knowledge map.
+              </p>
+            </div>
           </div>
-        ) : error ? (
-          <div className={styles.errorContainer}>
-            <p>{error}</p>
-          </div>
-        ) : (
-          <>
-            {learningPathCards.length > 0 && (
-              <section className={styles.learningPathsSection}>
-                <h2 className={styles.sectionTitle}>Recommended Learning Paths</h2>
-                <div className={styles.learningPathGrid}>
-                  {learningPathCards.map(path => (
-                    <LearningPathCard key={path.id} path={path} />
-                  ))}
-                </div>
-              </section>
-            )}
-            
-            {courseCards.length > 0 && (
-              <section className={styles.coursesSection}>
-                <h2 className={styles.sectionTitle}>Recommended Courses</h2>
-                <div className={styles.courseGrid}>
-                  {courseCards.map(course => (
-                    <CourseCard key={course.id} course={course} />
-                  ))}
-                </div>
-              </section>
-            )}
-            
-            {keywordCards.length > 0 && (
-              <section className={styles.keywordsSection}>
-                <h2 className={styles.sectionTitle}>Light Learn</h2>
-                <div className={styles.keywordGrid}>
-                  {keywordCards.map(card => (
-                    <KeywordCard key={card.id} card={card} />
-                  ))}
-                </div>
-              </section>
-            )}
-          </>
-        )}
+          {/* Added productDescriptionClosingParagraph for specific margin */}
+          <p className={`${styles.sectionParagraph} ${styles.productDescriptionClosingParagraph}`}>
+            Whether you're switching careers, exploring a new hobby, or simply feeding your curiosity, Zero AI helps you take the first meaningful step — and keeps you motivated along the way.
+          </p>
+        </section>
+
+        {/* Waitlist Section */}
+        <section className={styles.waitlistSection}>
+          <h2 className={styles.waitlistHeading}>
+            Join the Waitlist
+          </h2>
+          <p className={styles.waitlistText}>
+            Be among the first to experience the future of learning with Zero AI.
+          </p>
+          <button className={styles.waitlistButton}>
+            🚀 Get Early Access
+          </button>
+        </section>
+
       </div>
-    </main>
+    </div>
   );
 }

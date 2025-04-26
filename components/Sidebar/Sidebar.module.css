@@ -61,20 +61,21 @@
 }
 
 .navItem {
+  /* Ensure relative positioning if needed for absolute positioning of the dot */
+  position: relative;
   display: flex;
   align-items: center;
+  padding: 10px 15px;
+  color: var(--text-secondary); /* Darker default text color */
   text-decoration: none;
-  color: #333;
-  padding: 10px 12px;
-  border-radius: 8px;
-  transition: background-color 0.2s;
-  overflow: hidden; /* Crucial: Clip the sliding navText */
-  white-space: nowrap;
-  justify-content: flex-start;
+  transition: background-color 0.2s ease, color 0.2s ease; /* Added color transition */
+  border-radius: 4px;
+  margin-bottom: 5px; /* Add some space between items */
 }
 
 .navItem:hover {
-  background-color: #e0e0e0;
+  background-color: #e9ecef; /* Slightly darker grey hover */
+  color: var(--text-color); /* Darker text on hover */
 }
 
 .navIcon {
@@ -87,15 +88,30 @@
 }
 
 .navText {
-  font-size: 0.9rem;
-  flex-shrink: 0; /* Prevent shrinking before transform */
-  margin-left: 0; /* Remove margin, rely on icon margin */
+  margin-left: 15px; /* Space between icon and text */
+  flex-grow: 1; /* Allow text to take available space */
   /* Add transition for transform and opacity */
   transition: transform 0.3s ease-in-out, opacity 0.2s ease-in-out;
   transform: translateX(0); /* Start position */
   opacity: 1; /* Start opacity */
   white-space: nowrap; /* Prevent wrapping during slide */
 }
+
+.notificationDot {
+  display: inline-block; /* Or block, depending on layout needs */
+  width: 8px;
+  height: 8px;
+  background-color: red;
+  border-radius: 50%;
+  margin-left: 8px; /* Space between text and dot */
+  /* Position it if needed, e.g., absolute positioning relative to .navItem */
+  /* position: absolute; */
+  /* top: 10px; */
+  /* right: 10px; */
+}
+
+/* Optional: Styles for the dot when collapsed */
+/* .notificationDotCollapsed { ... } */
 
 /* --- Collapsed State --- */
 .sidebar.collapsed {
@@ -161,41 +177,43 @@
 
   /* New styles for top position */
   background: none;
-  border: 1px solid transparent;
-  border-radius: 50%;
+  
   cursor: pointer;
   color: #555;
   transition: background-color 0.2s, border-color 0.2s, transform 0.3s ease-in-out; /* Add transform transition */
-  width: 32px;
+  width: 100%;
   height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  align-self: flex-end;
-  margin-right: -8px;
+  align-self: flex-start;
   margin-bottom: 15px;
-  margin-top: -15px;
   z-index: 5; /* Ensure it stays above sliding content */
-}
-
-.toggleButton:hover {
-  background-color: #e0e0e0;
-  border-color: #d0d0d0;
 }
 
 .toggleButton .navIcon {
   margin: 0;
   font-size: 1.2rem;
   line-height: 1;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  padding: 4px; /* Add padding for the circle */
+  transition: background-color 0.2s, border-color 0.2s; /* Add transition for hover */
+  width: 32px; /* Explicit width */
+  height: 32px; /* Explicit height */
+  display: flex; /* Enable flex for centering */
+  align-items: center; /* Center vertically */
+  justify-content: center; /* Center horizontally */
+}
+
+/* Add hover effect to the icon itself */
+.toggleButton:hover .navIcon {
+  background-color: #e0e0e0;
+  border-color: #d0d0d0;
 }
 
 .sidebar.collapsed .toggleButton {
-  align-self: center; /* Center the button itself */
-  margin-right: 0; /* Reset horizontal margin */
-  margin-top: 0; /* Reset top margin */
-  margin-bottom: 20px; /* Adjust spacing */
-  /* Optional: Slightly move button left if needed */
-  /* transform: translateX(-5px); */
+  padding: 0px 15px;
 }
 
 /* Ensure navText is hidden in the button */
@@ -220,4 +238,57 @@
     /* Optional: Adjust button position/size for mobile */
     margin-right: 5px;
   }
-} 
+}
+
+/* Style for the active navigation item */
+.navItem.active {
+  background-color: var(--primary-color); /* Use global primary color */
+  color: var(--primary-text-color); /* Use global primary text color */
+  font-weight: 600; /* Make text slightly bolder */
+}
+
+/* --- Dark Mode Styles --- */
+@media (prefers-color-scheme: dark) {
+  .sidebar {
+    background-color: var(--card-background); /* Use card bg for sidebar */
+    border-right: 1px solid var(--border-color);
+    color: var(--text-color);
+  }
+
+  .profileSection h2 {
+    color: var(--heading-color);
+  }
+
+  .avatar {
+    background-color: var(--text-secondary); /* Adjust avatar background */
+    color: var(--background); /* Adjust avatar text color */
+  }
+
+  .navItem {
+    color: var(--text-secondary); /* Lighter text for inactive items */
+  }
+
+  .navItem:hover {
+    background-color: rgba(255, 255, 255, 0.1); /* Subtle white hover */
+    color: var(--text-color); /* Brighter text on hover */
+  }
+
+  /* Style for active item in dark mode */
+  .navItem.active {
+    background-color: var(--primary-color); /* Use global primary color (overridden to blue in dark mode) */
+    color: var(--primary-text-color); /* Use global primary text color */
+    font-weight: 600; /* Make text bolder */
+  }
+
+  .toggleButton {
+    color: var(--text-secondary);
+  }
+
+  .toggleButton:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: var(--border-color);
+  }
+}
+
+/* Style for the active navigation item */
+/* MOVED UP */ 

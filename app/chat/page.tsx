@@ -7,7 +7,9 @@ import formStyles from '../../components/Shared/InputForm.module.css';
 // Ensure type names don't clash if reused locally
 import { EditableLearningPath, Course as EditableCourseDefinition, Section as EditableSectionDefinition } from '../../components/Course/EditableLearningPath';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { FullLearningPathResponse, GeneratePathPayload, apiCreatePathFromStructure } from '@/services/api'; // Keep this type
+import { FullLearningPathResponse, GeneratePathPayload, apiCreatePathFromStructure } from '@/services/api'; // Keep this type, Removed apiGenerateFullPath
+// Remove NotificationContext import if no longer needed anywhere else in this file
+// import { useNotificationContext } from '@/context/NotificationContext';
 
 // --- Define Dialogue types here ---
 interface DialogueMessage {
@@ -61,6 +63,8 @@ export default function ChatPage() {
   const searchParams = useSearchParams();
   const initialPromptProcessed = useRef(false);
   const chatEndRef = useRef<HTMLDivElement>(null); // Chat scroll ref
+  // Remove if NotificationContext is not used elsewhere in this file
+  // const { setHasNewPaths } = useNotificationContext();
 
   // --- Re-introduce chat scroll effect ---
   useEffect(() => {
@@ -178,7 +182,7 @@ export default function ChatPage() {
       // Add logic for sections/cards if the API provides them separately and needs merging
 
       // If the plan structure was updated, call the state update handler
-      if (planChanged && Object.keys(planUpdates).length > 0) {
+      if (planChanged && planUpdates && Object.keys(planUpdates).length > 0) {
           handlePlanUpdateFromAI(planUpdates);
       }
       // --- End notification logic ---
@@ -224,22 +228,27 @@ export default function ChatPage() {
   // --- Handlers for EditableLearningPath (modified - removed sendMessage calls) ---
   const handleDeleteCourse = (courseId: string | number) => {
     if (!currentPlan || !currentPlan.courses) return;
-    const updatedCourses = currentPlan.courses.filter(course => (course.id || course.title || `course-${course.order_index}`) !== courseId);
-    // Renumber order_index after deletion
-    const renumberedCourses = updatedCourses.map((course, index) => ({ ...course, order_index: index }));
-    const updatedPlan = { ...currentPlan, courses: renumberedCourses };
+    // Filter using the correct course ID
+    const updatedCourses = currentPlan.courses.filter(course => course.id !== courseId);
+    // Remove the renumbering step that added order_index back
+    // Ensure updatedPlan.courses matches the expected CourseResponse[] structure
+    const updatedPlan = { ...currentPlan, courses: updatedCourses };
     setCurrentPlan(updatedPlan);
     // Optionally: Inform AI about the deletion?
-    // sendMessage(`I have deleted the course titled "${currentPlan.courses.find(c => (c.id || c.title || `course-${c.order_index}`) === courseId)?.title}". Please acknowledge.`, updatedPlan);
+    sendMessage(`I have deleted the course titled "${currentPlan.courses.find(c => c.id === courseId)?.title}". Please acknowledge.`, updatedPlan);
   };
 
   const handleReorderCourses = (reorderedCourses: EditableCourseDefinition[]) => {
     if (!currentPlan) return;
-    // The reorderedCourses already have updated order_index from EditableLearningPath
-    const updatedPlan = { ...currentPlan, courses: reorderedCourses };
+    // Map reordered courses back to the expected structure (e.g., CourseResponse)
+    // Assuming CourseResponse doesn't have order_index, remove it.
+    // Adjust this mapping if CourseResponse structure differs significantly.
+    const coursesForState = reorderedCourses.map(({ order_index, ...rest }) => rest);
+
+    const updatedPlan = { ...currentPlan, courses: coursesForState as any }; // Use 'as any' for now to bypass strict type check, review needed
     setCurrentPlan(updatedPlan);
      // Optionally: Inform AI about the reorder?
-    // sendMessage(`I have reordered the courses. Please acknowledge.`, updatedPlan);
+    sendMessage(`I have reordered the courses. Please acknowledge.`, updatedPlan);
   };
 
   const handleDifficultyChange = (difficulty: string) => {
@@ -247,7 +256,7 @@ export default function ChatPage() {
     const updatedPlan = { ...currentPlan, difficulty_level: difficulty };
     setCurrentPlan(updatedPlan);
     // Optionally: Inform AI about the difficulty change?
-    // sendMessage(`I have changed the difficulty to ${difficulty}. Please update the plan if necessary.`, updatedPlan);
+    sendMessage(`I have changed the difficulty to ${difficulty}. Please update the plan if necessary.`, updatedPlan);
   };
 
 
@@ -258,41 +267,44 @@ export default function ChatPage() {
         return;
     }
 
-    // Reset messages
-    setFinalizationMessage(null);
+    setFinalizationMessage(null); // Clear previous messages
     setFinalizationError(null);
-    setError(null); // Clear chat errors too
-    setIsFinalizing(true);
+    setError(null);
+    setIsFinalizing(true); // Start finalizing/loading state
 
-    // Construct payload for the create-from-structure API
+    // --- Show Initial Finalizing Message ---
+    setFinalizationMessage("Generating full path and content..."); // Optional: Initial message
+
     const payload: GeneratePathPayload = {
-        prompt: initialPrompt || currentPlan.description || "User generated and finalized this learning path via chat.",
-        title: currentPlan.title || "Untitled Learning Path",
-        courses: currentPlan.courses.map(course => ({
-            title: course.title,
-            // Ensure sections are included and mapped correctly if needed by API
-            sections: course.sections?.map(section => ({
-                title: section.title
-            })) || [] // API might expect sections array
-        })),
-        difficulty_level: currentPlan.difficulty_level || 'Intermediate',
-        estimated_days: currentPlan.estimated_days || currentPlan.courses.length * 7 // Example fallback
+      prompt: initialPrompt || currentPlan.description || "User generated and finalized this learning path via chat.",
+      title: currentPlan.title || "Untitled Learning Path",
+      courses: currentPlan.courses.map(course => ({
+          title: course.title,
+          sections: course.sections?.map(section => ({ title: section.title })) || []
+      })),
+      difficulty_level: currentPlan.difficulty_level || 'Intermediate',
+      estimated_days: currentPlan.estimated_days || currentPlan.courses.length * 7
     };
 
     try {
-        // Call the API function
+        console.log('[ChatPage] Attempting apiCreatePathFromStructure...');
         const result = await apiCreatePathFromStructure(payload);
+        console.log('[ChatPage] apiCreatePathFromStructure SUCCESS:', result);
 
-        setFinalizationMessage(result.message || "Learning path submitted successfully! Generating content...");
-        // Optionally: Disable further edits or navigate away after success
-        // Consider disabling chat/editing controls here
-        // router.push(`/learning-paths/${result.task_id}`); // Example navigation
+        // <<< --- UPDATE MESSAGE & REDIRECT --- >>>
+        setFinalizationMessage("Path created successfully! Redirecting to My Paths...");
+
+        // Redirect immediately after setting the message
+        router.push('/my-paths');
+        // NOTE: We intentionally DON'T set isFinalizing=false here.
+        // The redirect will unmount the component. If the redirect fails
+        // or is slow, the "Redirecting..." message will persist.
 
     } catch (err: any) {
         const errorMsg = err.response?.data?.detail || err.message || "Failed to finalize learning path.";
-        console.error("Finalization API error:", err);
+        console.error("[ChatPage] Finalization API error:", err);
         setFinalizationError(errorMsg);
-    } finally {
+        // Set finalizing false only on error, so the button becomes active again
         setIsFinalizing(false);
     }
   };
@@ -319,11 +331,13 @@ export default function ChatPage() {
                 className={styles.generateFullPathButton} // Use style defined in chat.module.css
                 disabled={isFinalizing || isLoading || !currentPlan || !currentPlan.courses || currentPlan.courses.length === 0}
             >
-                {isFinalizing ? 'Finalizing...' : 'Generate Full Path'}
+                {/* Show generic "Processing..." if finalizing */}
+                {isFinalizing ? 'Processing...' : 'Generate Full Path'}
             </button>
-            {/* --- Display Finalization Status --- */}
-            {finalizationMessage && <p className={styles.successMessage}>{finalizationMessage}</p>}
-            {finalizationError && <p className={styles.errorMessage}>{finalizationError}</p>}
+            {/* --- Display Finalization Status (includes Redirecting message) --- */}
+            {isFinalizing && finalizationMessage && <p className={styles.successMessage}>{finalizationMessage}</p>}
+            {/* Show error only if NOT finalizing (finalizing has its own message) */}
+            {!isFinalizing && finalizationError && <p className={styles.errorMessage}>{finalizationError}</p>}
           </>
         ) : (
           // Show placeholder if no plan exists yet

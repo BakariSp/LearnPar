@@ -114,7 +114,7 @@ export interface TaskCreationResponse {
 // Updated to include fields from UserTaskResponse in doc/task_api.md
 export interface TaskStatusResponse {
   task_id: string;
-  status: 'pending' | 'queued' | 'starting' | 'running' | 'completed' | 'failed' | 'timeout' | 'unknown'; // Added 'queued', 'unknown'
+  status: 'pending' | 'queued' | 'starting' | 'running' | 'completed' | 'failed' | 'timeout' | 'unknown';
   stage: string | null; // e.g., "initializing", "extracting_goals", "planning_path_structure", "generating_cards", "finished", "queued"
   progress: number | null; // Overall progress percentage
   learning_path_id: number | null; // Populated once path structure is created, key for fetching final result

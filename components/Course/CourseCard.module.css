@@ -1,26 +1,31 @@
 .courseCard {
-  background-color: #ffffff;
+  /* background-color: #ffffff; */
+  background-color: var(--card-background);
   border-radius: 10px;
   padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  /* box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05); */
+  box-shadow: var(--shadow-sm);
   transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .courseCard:hover {
   transform: translateY(-5px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  /* box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); */
+  box-shadow: var(--shadow-md);
 }
 
 .courseTitle {
   font-size: 1.1rem;
   font-weight: 600;
   margin-bottom: 5px;
-  color: #212529;
+  /* color: #212529; */
+  color: var(--text-color);
 }
 
 .courseSubtitle {
   font-size: 0.9rem;
-  color: #6c757d;
+  /* color: #6c757d; */
+  color: var(--text-secondary);
   margin-bottom: 15px;
 }
 
@@ -30,19 +35,22 @@
 
 .progressText {
   font-size: 0.8rem;
-  color: #6c757d;
+  /* color: #6c757d; */
+  color: var(--text-secondary);
   margin-bottom: 5px;
 }
 
 .progressBar {
   height: 5px;
-  background-color: #e9ecef;
+  /* background-color: #e9ecef; */
+  background-color: var(--border-color); /* Use border color for muted track */
   border-radius: 10px;
   overflow: hidden;
 }
 
 .progressFill {
   height: 100%;
-  background-color: #4dabf7;
+  /* background-color: #4dabf7; */
+  background-color: var(--primary-color); /* Use primary theme color */
   border-radius: 10px;
 } 

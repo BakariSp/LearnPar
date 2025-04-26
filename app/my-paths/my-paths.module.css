@@ -95,7 +95,7 @@
   gap: 1.5rem;
   overflow-y: auto; /* Allow scrolling within the pane */
   padding: 1.5rem;
-  background-color: var(--background-secondary, #f8f9fa);
+  /* background-color: var(--background-secondary, #f8f9fa); */
   scrollbar-width: none; /* For Firefox */
   -ms-overflow-style: none; /* For Internet Explorer and Edge */
   &::-webkit-scrollbar {
@@ -1094,4 +1094,175 @@
 /* Ensure status badges from the previous step don't interfere if not needed */
 .statusBadge { /* Or specific status classes */
   /* display: none; */ /* If completely removing */
+}
+
+/* --- Dark Mode Overrides --- */
+@media (prefers-color-scheme: dark) {
+  /* Page Container & Panes */
+  .pageContainer {
+    /* No specific change needed, relies on children */
+  }
+  .pathListContainer, /* For two-pane layout */
+  .pathListPane { /* For split-pane layout */
+    background-color: var(--background); /* Darker background for list pane */
+    border-right: 1px solid var(--border-color);
+    border-color: var(--border-color);
+  }
+
+  .detailViewContainer, /* For two-pane layout */
+  .detailPane { /* For split-pane layout */
+    background-color: var(--card-background); /* Slightly lighter dark for detail */
+    color: var(--text-color);
+    border-color: var(--border-color);
+  }
+
+  /* List Header */
+  .listTitle, .pathListHeader h1 {
+    color: var(--heading-color);
+    border-bottom-color: var(--border-color);
+  }
+
+  /* Loading/Error/Empty States */
+  .listLoading, .listErrorBox, .emptyState {
+    color: var(--text-secondary);
+    background-color: var(--card-background); /* Match pane background */
+    border-color: var(--border-color);
+  }
+  .listErrorBox {
+    color: var(--danger-color); /* Use danger vars if defined for dark */
+    background-color: rgba(211, 47, 47, 0.1); /* Example dark danger bg */
+    border-color: var(--danger-color);
+  }
+
+  /* Path List Items (Left Pane) */
+  .pathListItem {
+    background-color: var(--background); /* Slightly darker than detail pane */
+    border-color: var(--border-color);
+  }
+  .pathListItem:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    box-shadow: var(--shadow-sm); /* Use dark shadow if defined */
+  }
+  .pathListItem.selected {
+    border-left-color: var(--primary-color);
+    background-color: rgba(var(--primary-rgb, 255 163 54) / 0.1); /* Use primary color with alpha */
+    border-color: var(--border-color);
+  }
+  .pathSelectButton {
+    color: var(--text-color);
+  }
+  .pathTitleSmall, .pathListItemTitle {
+    color: var(--heading-color);
+  }
+  .pathDescriptionSmall, .pathListItemDescription {
+    color: var(--text-secondary);
+  }
+
+  /* Status Badges */
+  .statusBadge, .pathListStatusBadge, .statusBadgeSmall {
+    /* Define dark mode badge colors */
+    border-color: transparent; /* Reset border */
+  }
+  .statusReady {
+    color: #90caf9; /* Lighter blue */
+    background-color: rgba(144, 202, 249, 0.15);
+  }
+  .statusInProgress {
+    color: #ce93d8; /* Lighter purple */
+    background-color: rgba(206, 147, 216, 0.15);
+  }
+  .statusCompleted {
+    color: #a5d6a7; /* Lighter green */
+    background-color: rgba(165, 214, 167, 0.15);
+  }
+
+  /* --- Detail View Specifics --- */
+  .detailHeader, .detailHeaderTarget {
+    background-color: var(--card-background);
+    border-bottom-color: var(--border-color);
+  }
+  .pathTitleHeader, .headerPathTitle {
+    color: var(--heading-color);
+  }
+  .pathDescriptionHeader, .headerPathNumber {
+    color: var(--text-secondary);
+  }
+  .pathMetaHeader span {
+    background-color: var(--background); /* Darker tags */
+    color: var(--text-secondary);
+  }
+  .detailDeleteButton {
+     background-color: rgba(var(--danger-rgb, 220 53 69) / 0.15);
+     color: var(--danger-color, #f44336);
+     border-color: var(--danger-color, #f44336);
+  }
+  .detailDeleteButton:hover:not(:disabled) {
+    background-color: var(--danger-color, #f44336);
+    color: var(--card-background); /* White/light text on hover */
+  }
+  .detailMainContent {
+    background-color: var(--background); /* Darkest background for content area */
+    border-color: var(--border-color);
+    border-top: none;
+  }
+
+  /* Target Header Styles */
+  .dayButton {
+    background-color: var(--background); /* Match tags */
+    color: var(--text-secondary);
+  }
+  .dayButton:hover, .dayButton.active {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+  .headerIcon {
+    background-color: var(--background);
+    color: var(--text-secondary);
+  }
+  .headerIcon:hover {
+     background-color: rgba(255, 255, 255, 0.1);
+  }
+
+  /* Target Structure View Styles */
+  .timelineDays {
+    background-color: var(--background);
+    color: var(--text-secondary);
+  }
+  .timelineLine {
+    background-color: var(--border-color);
+  }
+  .courseSectionCard {
+    background-color: var(--card-background); /* Use card background */
+    border-color: var(--border-color);
+  }
+  .courseSectionHeader {
+    /* No specific background, inherits from card */
+  }
+  .itemLabel {
+    color: var(--text-secondary);
+  }
+  .itemTitle {
+    color: var(--heading-color);
+  }
+  .itemToggleIcon {
+    color: var(--text-secondary);
+  }
+  .cardListTarget {
+    background-color: var(--card-background);
+  }
+  .cardItemTarget {
+    background-color: var(--background); /* Darker background for cards */
+    color: var(--text-color);
+  }
+  .cardItemTarget:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+  .cardDragHandle, .cardRemoveIcon {
+    color: var(--text-secondary);
+  }
+  .cardRemoveIcon:hover {
+    color: var(--danger-color, #f44336);
+  }
+  .cardItemTitle {
+    color: var(--text-color);
+  }
 }
