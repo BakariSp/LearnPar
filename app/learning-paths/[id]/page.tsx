@@ -607,12 +607,15 @@ export default function LearningPathDetailPage() {
 
              {/* Card Content */}
              <div className={styles.cardContent}>
-                 {selectedCard.card_type && <p><strong>Type:</strong> {selectedCard.card_type}</p>}
-                 {selectedCard.tags && <p><strong>Tags:</strong> {selectedCard.tags.join(', ')}</p>}
+                 {/* {selectedCard.card_type && <p><strong>Type:</strong> {selectedCard.card_type}</p>} */}
+                 {selectedCard.tags && selectedCard.tags.length > 0 && <p><strong>Tags:</strong> {selectedCard.tags.join(', ')}</p>}
                  {selectedCard.question && <div className={styles.cardSection}><h3>Question</h3><p>{selectedCard.question}</p></div>}
                  {selectedCard.answer && <div className={styles.cardSection}><h3>Answer</h3><p>{selectedCard.answer}</p></div>}
                  {selectedCard.explanation && <div className={styles.cardSection}><h3>Explanation</h3><p>{selectedCard.explanation}</p></div>}
-                 <div className={styles.cardSection}><h3>Resources</h3>{renderResources(selectedCard.resources || {})}</div>
+                 {/* Conditionally render the entire resources section */}
+                 {selectedCard.resources && Object.keys(selectedCard.resources).length > 0 && (
+                    <div className={styles.cardSection}><h3>Resources</h3>{renderResources(selectedCard.resources)}</div>
+                 )}
              </div>
 
              {/* Card Navigation */}

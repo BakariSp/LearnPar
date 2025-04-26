@@ -69,7 +69,7 @@ export function Sidebar({ isCollapsed, toggleSidebar }: SidebarProps) {
           {!isCollapsed && <span className={styles.navText}>AI Chat Path</span>}
         </Link> */}
         <Link href="/my-paths" className={getNavItemClass('/my-paths')} title={isCollapsed ? 'My Paths' : undefined}>
-          <span className={styles.navIcon}>📚</span>
+          <span className={styles.navIcon}>🏴󠁫󠁩󠁬󠁿</span>
           {!isCollapsed && <span className={styles.navText}>My Paths</span>}
           {/* Show dot if hasNewPaths is true and sidebar is not collapsed */}
           {hasNewPaths && !isCollapsed && <span className={styles.notificationDot}></span>}
@@ -85,7 +85,7 @@ export function Sidebar({ isCollapsed, toggleSidebar }: SidebarProps) {
           {!isCollapsed && <span className={styles.navText}>Course</span>}
         </Link> */}
         <Link href="/knowledge-map" className={getNavItemClass('/knowledge-map')} title={isCollapsed ? 'Knowledge Map' : undefined}>
-          <span className={styles.navIcon}>🌐</span>
+          <span className={styles.navIcon}>⛯</span>
           {!isCollapsed && <span className={styles.navText}>Knowledge Map</span>}
         </Link>
         <Link href="/updates" className={getNavItemClass('/updates')} title={isCollapsed ? 'Updates' : undefined}>

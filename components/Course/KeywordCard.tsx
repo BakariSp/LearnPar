@@ -20,13 +20,15 @@ export function KeywordCard({ card }: KeywordCardProps) {
       
       <p className={styles.cardDescription}>{card.description}</p>
       
-      <div className={styles.keywordTags}>
-        {card.keywords.map((keyword, index) => (
-          <span key={index} className={styles.keywordTag}>
-            {keyword}
-          </span>
-        ))}
-      </div>
+      {card.keywords && card.keywords.length > 0 && (
+        <div className={styles.keywordTags}>
+          {card.keywords.map((keyword, index) => (
+            <span key={index} className={styles.keywordTag}>
+              {keyword}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 } 
