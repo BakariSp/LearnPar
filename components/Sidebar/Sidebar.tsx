@@ -88,9 +88,9 @@ export function Sidebar({ isCollapsed, toggleSidebar }: SidebarProps) {
           <span className={styles.navIcon}>⛯</span>
           {!isCollapsed && <span className={styles.navText}>Knowledge Map</span>}
         </Link>
-        <Link href="/updates" className={getNavItemClass('/updates')} title={isCollapsed ? 'Updates' : undefined}>
-          <span className={styles.navIcon}>🔔</span>
-          {!isCollapsed && <span className={styles.navText}>Updates</span>}
+        <Link href="/dashboard" className={getNavItemClass('/dashboard')} title={isCollapsed ? 'Dashboard' : undefined}>
+          <span className={styles.navIcon}>🏠</span>
+          {!isCollapsed && <span className={styles.navText}>Dashboard</span>}
         </Link>
         
 
