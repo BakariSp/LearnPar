@@ -10,7 +10,21 @@ const compat = new FlatCompat({
 });
 
 const eslintConfig = [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
+  ...compat.extends("next/core-web-vitals"),
+  // Add your custom rules here
+  {
+    rules: {
+      "@next/next/no-img-element": "off",
+      "react-hooks/exhaustive-deps": "warn",
+      "no-console": "off",
+      "no-unused-vars": "warn",
+      "quotes": "off",
+      "semi": "off",
+      "indent": "off",
+      "prefer-arrow-callback": "off",
+      "prefer-const": "warn"
+    }
+  }
 ];
 
 export default eslintConfig;
