@@ -38,12 +38,15 @@ export default function LoginPage() {
     }
   };
 
+  // Use the deployed backend URL for OAuth initiation
+  const backendBaseUrl = 'https://zero-ai-d9e8f5hgczgremge.westus-01.azurewebsites.net'; // Replace if needed, or use env variable
+
   const handleGoogleLogin = () => {
-    window.location.href = 'http://localhost:8000/oauth/google';
+    window.location.href = `${backendBaseUrl}/oauth/google`;
   };
 
   const handleMicrosoftLogin = () => {
-    window.location.href = 'http://localhost:8000/oauth/microsoft';
+    window.location.href = `${backendBaseUrl}/oauth/microsoft`;
   };
 
   return (

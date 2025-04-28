@@ -6,7 +6,8 @@ const nextConfig: NextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: 'http://localhost:8000/api/:path*', // FastAPI backend
+        // Update the destination URL to the provided Azure address
+        destination: 'https://zero-ai-d9e8f5hgczgremge.westus-01.azurewebsites.net/api/:path*', // FastAPI backend
       },
     ];
   },

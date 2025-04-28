@@ -9,7 +9,7 @@ import LandingPage from './landing-page/landing-page'; // Import the new Landing
 async function fetchRecommendations(): Promise<RecommendationsResponse | null> {
   try {
     // Use the full URL or environment variable for the API endpoint
-    const response = await fetch('http://localhost:8000/api/recommendations', {
+    const response = await fetch('/api/recommendations', {
       // Optional: Add caching options if desired
       // cache: 'no-store', // To prevent caching during development/testing
       // next: { revalidate: 60 } // Revalidate every 60 seconds
