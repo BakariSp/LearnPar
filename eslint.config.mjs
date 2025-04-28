@@ -23,7 +23,8 @@ const eslintConfig = [
       "indent": "off",
       "prefer-arrow-callback": "off",
       "prefer-const": "warn",
-      "react/no-unescaped-entities": "off"
+      "react/no-unescaped-entities": "off",
+      "no-unused-vars": "off"
     }
   }
 ];

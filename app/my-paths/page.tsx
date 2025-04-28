@@ -1,7 +1,6 @@
-/// <reference types="react" />
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, JSX } from 'react';
 import { useRouter } from 'next/navigation'; // Keep if needed elsewhere, remove if not
 import Link from 'next/link';
 import {

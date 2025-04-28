@@ -1,13 +1,14 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, Suspense } from 'react';
 // Removed axios import as fetch is used
 import styles from './chat.module.css';
 import formStyles from '../../components/Shared/InputForm.module.css';
 // Ensure type names don't clash if reused locally
 import { EditableLearningPath, Course as EditableCourseDefinition, Section as EditableSectionDefinition } from '../../components/Course/EditableLearningPath';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { FullLearningPathResponse, GeneratePathPayload, apiCreatePathFromStructure } from '@/services/api'; // Keep this type, Removed apiGenerateFullPath
+// Import the missing types along with existing ones
+import { FullLearningPathResponse, GeneratePathPayload, apiCreatePathFromStructure, CourseResponse, SectionResponse, CardResponse } from '@/services/api'; // Keep this type, Removed apiGenerateFullPath
 // Remove NotificationContext import if no longer needed anywhere else in this file
 // import { useNotificationContext } from '@/context/NotificationContext';
 
@@ -44,7 +45,8 @@ interface DialogueResponseData {
 // Keep the LearningPlan type alias
 type LearningPlan = FullLearningPathResponse | null;
 
-export default function ChatPage() {
+// --- Rename the original component ---
+function ChatPageContent() {
   // --- Re-introduce chat-specific state ---
   const [userInput, setUserInput] = useState('');
   const [messages, setMessages] = useState<DialogueMessage[]>([]);
@@ -163,18 +165,26 @@ export default function ChatPage() {
       }
       // Check for course list updates
       if (data.status.has_courses && data.result.courses) {
-          // Ensure courses have a structure compatible with LearningPlan
-          const formattedCourses = data.result.courses.map((course, index) => ({
-              id: course.id || `temp-course-${Date.now()}-${index}`, // Ensure an ID exists
+          // Ensure courses have a structure compatible with LearningPlan (CourseResponse[])
+          const formattedCourses: CourseResponse[] = data.result.courses.map((course, index) => ({
+              // --- CourseResponse Fields ---
+              id: course.id || Date.now() + index, // Use a temporary numeric ID if missing
               title: course.title || `Course ${index + 1}`,
-              order_index: course.order_index ?? index,
-              sections: course.sections?.map((section: any, sIndex: number) => ({
-                  id: section.id || `temp-section-${Date.now()}-${index}-${sIndex}`,
+              description: course.description || "", // Default description
+              estimated_days: course.estimated_days || 0, // Default estimated_days
+              created_at: course.created_at || new Date().toISOString(), // Default created_at
+              updated_at: course.updated_at || new Date().toISOString(), // Default updated_at
+              // --- Map Sections to SectionResponse ---
+              sections: course.sections?.map((section: any, sIndex: number): SectionResponse => ({
+                  id: section.id || Date.now() + index + sIndex + 1000, // Temp numeric ID
                   title: section.title || `Section ${sIndex + 1}`,
-                  order_index: section.order_index ?? sIndex,
+                  description: section.description || "", // Default description
+                  order_index: section.order_index ?? sIndex, // Keep order_index for sections
+                  estimated_days: section.estimated_days || 0, // Default estimated_days
+                  cards: section.cards || [], // Default to empty cards array
+                  created_at: section.created_at || new Date().toISOString(), // Default created_at
+                  updated_at: section.updated_at || new Date().toISOString(), // Default updated_at
               })) || [],
-              // Add other course fields if necessary (description, etc.)
-              description: course.description || "",
           }));
           planUpdates = { ...planUpdates, courses: formattedCourses };
           planChanged = true;
@@ -419,3 +429,25 @@ export default function ChatPage() {
     </main>
   );
 }
+
+// --- New default export component wrapping the content in Suspense ---
+export default function ChatPage() {
+  return (
+    // Provide a fallback UI while the search params are read
+    <Suspense fallback={<div className={styles.loadingFallback}>Loading Chat...</div>}>
+      <ChatPageContent />
+    </Suspense>
+  );
+}
+
+// --- Optional: Add some basic styling for the fallback ---
+/* Add to learn-par/app/chat/chat.module.css:
+.loadingFallback {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 80vh; // Adjust as needed
+  font-size: 1.2rem;
+  color: #555;
+}
+*/

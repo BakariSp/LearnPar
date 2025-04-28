@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { JSX } from 'react';
 import styles from './my-paths.module.css'; // Assuming styles are passed or imported
 import {
     FullLearningPathResponse,

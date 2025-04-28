@@ -32,7 +32,7 @@ const KnowledgeMapPage = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const router = useRouter();
-  const fgRef = useRef<ForceGraphMethods>();
+  const fgRef = useRef<ForceGraphMethods<CustomNode, LinkObject> | undefined>(undefined);
 
   useEffect(() => {
     const fetchLearningPaths = async () => {
@@ -174,7 +174,7 @@ const KnowledgeMapPage = () => {
         )}
         {!isLoading && !error && keywords.length > 0 && dimensions.width > 0 && (
           <ForceGraph2D
-            ref={fgRef}
+            ref={fgRef as any}
             width={dimensions.width}
             height={dimensions.height}
             graphData={graphData}
