@@ -22,7 +22,8 @@ const eslintConfig = [
       "semi": "off",
       "indent": "off",
       "prefer-arrow-callback": "off",
-      "prefer-const": "warn"
+      "prefer-const": "warn",
+      "react/no-unescaped-entities": "off"
     }
   }
 ];

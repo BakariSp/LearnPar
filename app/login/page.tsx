@@ -117,7 +117,7 @@ export default function LoginPage() {
         </form>
         
         <div className={styles.registerLink}>
-          Don't have an account? <Link href="/register">Register</Link>
+          {"Don't"} have an account? <Link href="/register">Register</Link>
         </div>
       </div>
     </div>
