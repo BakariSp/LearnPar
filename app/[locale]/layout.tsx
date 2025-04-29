@@ -1,9 +1,10 @@
+
 import type { Metadata } from "next";
 import { GeistSans } from 'geist/font/sans';
 import { GeistMono } from 'geist/font/mono';
 import "./globals.css";
-import { AuthProvider } from '../context/AuthContext';
-import { LayoutClientWrapper } from '../components/LayoutClientWrapper';
+import { AuthProvider } from '../../context/AuthContext';
+import { LayoutClientWrapper } from '../../components/LayoutClientWrapper';
 import { NotificationProvider } from '@/context/NotificationContext';
 
 export const metadata: Metadata = {

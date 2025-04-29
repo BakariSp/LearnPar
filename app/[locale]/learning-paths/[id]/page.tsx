@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link'; // Import Link for potential back button
+import { useTranslation } from 'react-i18next';
 import {
   apiGetFullLearningPath,
   apiGetLatestTaskForLearningPath,
@@ -21,9 +22,11 @@ import styles from './learning-path-detail.module.css';
 // import { CheckCircleIcon, ExclamationTriangleIcon, ArrowPathIcon } from '@heroicons/react/20/solid';
 
 export default function LearningPathDetailPage() {
+  const { t } = useTranslation('common');
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const locale = Array.isArray(params.locale) ? params.locale[0] : params.locale; // ✅ locale
   const id = params.id as string;
 
   const [learningPathData, setLearningPathData] = useState<FullLearningPathResponse | null>(null);
@@ -484,15 +487,15 @@ export default function LearningPathDetailPage() {
 
 
   if (isLoading) {
-    return <div className={styles.loading}>Loading Learning Path...</div>;
+    return <div className={styles.loading}>{t('learning_path.loading')}</div>; // ✅ 加t
   }
 
   if (error && !learningPathData) {
-    return <div className={styles.errorPage}>Error: {error}</div>;
+    return <div className={styles.errorPage}>{t('learning_path.error')}: {error}</div>; // ✅ 加t
   }
 
   if (!learningPathData) {
-    return <div className={styles.notFound}>Learning Path not found or failed to load.</div>;
+    return <div className={styles.notFound}>{t('learning_path.not_found')}</div>; // ✅ 加t
   }
 
   return (
@@ -509,153 +512,141 @@ export default function LearningPathDetailPage() {
            <div className={styles.pathMetaHeader}>
                 <span>{learningPathData.category}</span>
                 <span>{learningPathData.difficulty_level}</span>
-                <span>{learningPathData.estimated_days} days</span>
+                <span>{learningPathData.estimated_days} {t('learning_path.days')}</span> {/* ✅ days翻译 */}
                 {renderStatusIndicator()}
            </div>
-           {error && <p className={styles.inlineError}>Error loading details: {error}</p>}
+           {error && <p className={styles.inlineError}>{t('learning_path.error_loading_details')}: {error}</p>}
         </div>
 
-        {/* Course/Section/Card List */}
-        <ul className={styles.navCourseList}>
-          {learningPathData.courses.map((course, courseIndex) => {
-            const courseItemId = `course-${course.id}`;
-            const isCourseExpanded = !!expandedItems[courseItemId];
-            return (
-              <li key={course.id} className={styles.navCourseItem}>
-                <button
-                  onClick={() => toggleExpand(courseItemId, 'course')}
-                  className={styles.navCourseHeaderButton}
-                  aria-expanded={isCourseExpanded}
-                >
-                  <span className={`${styles.navToggleIcon} ${isCourseExpanded ? styles.expanded : ''}`}>▼</span>
-                  <span className={styles.navCourseTitle}>
-                    {courseIndex + 1}. {course.title}
-                  </span>
-                </button>
-                {isCourseExpanded && (
-                  <ul className={styles.navSectionList}>
-                    {course.sections.map((section) => {
-                      const sectionItemId = `section-${section.id}`;
-                      const isSectionExpanded = !!expandedItems[sectionItemId];
-                      const cards = sectionCardsCache[section.id];
-                      // Use currentSectionIdForFetch to check loading state
-                      const isLoadingThisSection = currentSectionIdForFetch === section.id && isFetchingSection;
-                      const cardCount = cards ? cards.length : (isLoadingThisSection ? '...' : '?');
 
-                      return (
-                        <li key={section.id} className={styles.navSectionItem}>
-                          <button
-                            onClick={() => toggleExpand(sectionItemId, 'section', section.id)}
-                            className={styles.navSectionHeaderButton}
-                            aria-expanded={isSectionExpanded}
-                          >
-                            <span className={`${styles.navToggleIcon} ${isSectionExpanded ? styles.expanded : ''}`}>▼</span>
-                            <span className={styles.navSectionTitle}>{section.title}</span>
-                            <span className={styles.navCardCountInfo}>
-                                {isLoadingThisSection ? <span className={styles.loadingText}>Loading...</span> : `(${cardCount} cards)`}
-                            </span>
-                          </button>
-                          {isSectionExpanded && ( // Only show card list if section is expanded
-                            <ul className={styles.navCardList}>
-                              {isLoadingThisSection ? (
-                                <li className={styles.navLoadingCards}>Loading cards...</li>
-                              ) : cards && cards.length > 0 ? (
-                                cards.map((card) => (
-                                  <li key={card.id} className={styles.navCardItem}>
-                                    <button
-                                      // Use handleCardSelect to update main view
-                                      onClick={() => handleCardSelect(card, section.id, cards)}
-                                      className={`${styles.navCardLink} ${selectedCard?.id === card.id ? styles.selectedCard : ''}`}
-                                    >
-                                      {card.keyword}
-                                    </button>
-                                  </li>
-                                ))
-                              ) : cards && cards.length === 0 ? (
-                                <li className={styles.navNoCards}>No cards in this section.</li>
-                              ) : (
-                                // Should not happen if toggleExpand triggers fetch correctly
-                                <li className={styles.navNoCards}>Expand section to load cards.</li>
-                              )}
-                            </ul>
-                          )}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      </aside>
+      {/* Course/Section/Card List */}
+      <ul className={styles.navCourseList}>
+        {learningPathData.courses.map((course, courseIndex) => {
+          const courseItemId = `course-${course.id}`;
+          const isCourseExpanded = !!expandedItems[courseItemId];
+          return (
+            <li key={course.id} className={styles.navCourseItem}>
+              <button
+                onClick={() => toggleExpand(courseItemId, 'course')}
+                className={styles.navCourseHeaderButton}
+                aria-expanded={isCourseExpanded}
+              >
+                <span className={`${styles.navToggleIcon} ${isCourseExpanded ? styles.expanded : ''}`}>▼</span>
+                <span className={styles.navCourseTitle}>
+                  {courseIndex + 1}. {course.title}
+                </span>
+              </button>
+              {isCourseExpanded && (
+                <ul className={styles.navSectionList}>
+                  {course.sections.map((section) => {
+                    const sectionItemId = `section-${section.id}`;
+                    const isSectionExpanded = !!expandedItems[sectionItemId];
+                    const cards = sectionCardsCache[section.id];
+                    const isLoadingThisSection = currentSectionIdForFetch === section.id && isFetchingSection;
+                    const cardCount = cards ? cards.length : (isLoadingThisSection ? '...' : '?');
 
-      {/* Right Pane: Detail Content */}
-      <main className={styles.detailPane}>
-        {currentViewMode === 'structure' && !selectedCard && (
-          <div className={styles.detailPlaceholder}>
-            <h2>Select a Card</h2>
-            <p>Choose a card from the navigation on the left to view its details.</p>
-            {/* You could also show path overview info here if desired */}
-          </div>
-        )}
+                    return (
+                      <li key={section.id} className={styles.navSectionItem}>
+                        <button
+                          onClick={() => toggleExpand(sectionItemId, 'section', section.id)}
+                          className={styles.navSectionHeaderButton}
+                          aria-expanded={isSectionExpanded}
+                        >
+                          <span className={`${styles.navToggleIcon} ${isSectionExpanded ? styles.expanded : ''}`}>▼</span>
+                          <span className={styles.navSectionTitle}>{section.title}</span>
+                          <span className={styles.navCardCountInfo}>
+                              {isLoadingThisSection ? <span className={styles.loadingText}>{t('learning_path.loading')}</span> : `(${cardCount} ${t('learning_path.cards')})`}
+                          </span>
+                        </button>
+                        {isSectionExpanded && ( // Only show card list if section is expanded
+                          <ul className={styles.navCardList}>
+                            {isLoadingThisSection ? (
+                              <li className={styles.navLoadingCards}>{t('learning_path.loading_cards')}</li>
+                            ) : cards && cards.length > 0 ? (
+                              cards.map((card) => (
+                                <li key={card.id} className={styles.navCardItem}>
+                                  <button
+                                    onClick={() => handleCardSelect(card, section.id, cards)}
+                                    className={`${styles.navCardLink} ${selectedCard?.id === card.id ? styles.selectedCard : ''}`}
+                                  >
+                                    {card.keyword}
+                                  </button>
+                                </li>
+                              ))
+                            ) : cards && cards.length === 0 ? (
+                              <li className={styles.navNoCards}>{t('learning_path.no_cards_in_section')}</li>
+                            ) : (
+                              <li className={styles.navNoCards}>{t('learning_path.expand_section_to_load_cards')}</li>
+                            )}
+                          </ul>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </aside>
 
-        {currentViewMode === 'card' && selectedCard && selectedCardSectionId && (
-          <div className={styles.cardDetailView}>
-             {/* Card Title */}
-             <h2 className={styles.cardTitle}>{selectedCard.keyword}</h2>
+    {/* Right Pane: Detail Content */}
+    <main className={styles.detailPane}>
+      {currentViewMode === 'structure' && !selectedCard && (
+        <div className={styles.detailPlaceholder}>
+          <h2>{t('learning_path.select_card')}</h2>
+          <p>{t('learning_path.choose_card_prompt')}</p>
+        </div>
+      )}
 
-             {/* Card Content */}
-             <div className={styles.cardContent}>
-                 {/* {selectedCard.card_type && <p><strong>Type:</strong> {selectedCard.card_type}</p>} */}
-                 {selectedCard.tags && selectedCard.tags.length > 0 && <p><strong>Tags:</strong> {selectedCard.tags.join(', ')}</p>}
-                 {selectedCard.question && <div className={styles.cardSection}><h3>Question</h3><p>{selectedCard.question}</p></div>}
-                 {selectedCard.answer && <div className={styles.cardSection}><h3>Answer</h3><p>{selectedCard.answer}</p></div>}
-                 {selectedCard.explanation && <div className={styles.cardSection}><h3>Explanation</h3><p>{selectedCard.explanation}</p></div>}
-                 {/* Conditionally render the entire resources section */}
-                 {selectedCard.resources && Object.keys(selectedCard.resources).length > 0 && (
-                    <div className={styles.cardSection}><h3>Resources</h3>{renderResources(selectedCard.resources)}</div>
-                 )}
-             </div>
+      {currentViewMode === 'card' && selectedCard && selectedCardSectionId && (
+        <div className={styles.cardDetailView}>
+           <h2 className={styles.cardTitle}>{selectedCard.keyword}</h2>
 
-             {/* Card Navigation */}
-             <div className={styles.cardNavigation}>
-                 <button
-                     className={styles.navButton} // Standard nav button style
-                     onClick={navigateToPreviousCard}
-                     // Disable button if it's the very first card
-                     disabled={getCurrentCardIndex() === 0}
-                 >
-                     ← Previous
-                 </button>
-                 <div className={styles.cardCounter}>
-                     {`${getCurrentCardIndex() + 1} / ${selectedCardSectionCards.length}`}
-                 </div>
-                 <button
-                     // Apply the primary action style to the Next/Finish button
-                     className={`${styles.navButton} ${styles.nextAction}`}
-                     onClick={navigateToNextCard}
-                     // No need to disable the next button usually,
-                     // as clicking it on the last card triggers completion.
-                 >
-                     {hasNextCard() ? 'Next →' : 'Finish Section →'}
-                 </button>
-             </div>
-          </div>
-        )}
+           <div className={styles.cardContent}>
+               {selectedCard.tags && selectedCard.tags.length > 0 && <p><strong>{t('learning_path.tags')}:</strong> {selectedCard.tags.join(', ')}</p>}
+               {selectedCard.question && <div className={styles.cardSection}><h3>{t('learning_path.question')}</h3><p>{selectedCard.question}</p></div>}
+               {selectedCard.answer && <div className={styles.cardSection}><h3>{t('learning_path.answer')}</h3><p>{selectedCard.answer}</p></div>}
+               {selectedCard.explanation && <div className={styles.cardSection}><h3>{t('learning_path.explanation')}</h3><p>{selectedCard.explanation}</p></div>}
+               {selectedCard.resources && Object.keys(selectedCard.resources).length > 0 && (
+                  <div className={styles.cardSection}><h3>{t('learning_path.resources')}</h3>{renderResources(selectedCard.resources)}</div>
+               )}
+           </div>
 
-        {currentViewMode === 'completion' && completionInfo && (
-          <div className={styles.completionView}>
-            <h2>🎉 Section Complete! 🎉</h2>
-            <p>You've finished: <strong>{completionInfo.completedSectionTitle}</strong></p>
-            {completionInfo.nextItem?.type === 'section' && <button onClick={handleNavigateNext} className={styles.navButton}>Go to Next Section: {completionInfo.nextItem.title} →</button>}
-            {completionInfo.nextItem?.type === 'course' && <button onClick={handleNavigateNext} className={styles.navButton}>Start Next Course: {completionInfo.nextItem.title} →</button>}
-            {completionInfo.nextItem?.type === 'end' && <div><p><strong>You've finished the entire learning path!</strong></p><button onClick={handleNavigateNext} className={styles.navButton}>Finish Path</button></div>}
-            <button onClick={navigateToPreviousCard} className={`${styles.navButton} ${styles.secondaryAction}`}>← Back to Last Card</button>
-          </div>
-        )}
-      </main>
+           <div className={styles.cardNavigation}>
+               <button
+                   className={styles.navButton}
+                   onClick={navigateToPreviousCard}
+                   disabled={getCurrentCardIndex() === 0}
+               >
+                   ← {t('learning_path.previous')}
+               </button>
+               <div className={styles.cardCounter}>
+                   {`${getCurrentCardIndex() + 1} / ${selectedCardSectionCards.length}`}
+               </div>
+               <button
+                   className={`${styles.navButton} ${styles.nextAction}`}
+                   onClick={navigateToNextCard}
+               >
+                   {hasNextCard() ? `${t('learning_path.next')} →` : `${t('learning_path.finish_section')} →`}
+               </button>
+           </div>
+        </div>
+      )}
 
-    </div>
-  );
+      {currentViewMode === 'completion' && completionInfo && (
+        <div className={styles.completionView}>
+          <h2>🎉 {t('learning_path.section_complete')} 🎉</h2>
+          <p>{t('learning_path.finished')} <strong>{completionInfo.completedSectionTitle}</strong></p>
+          {completionInfo.nextItem?.type === 'section' && <button onClick={handleNavigateNext} className={styles.navButton}>{t('learning_path.go_to_next_section')}: {completionInfo.nextItem.title} →</button>}
+          {completionInfo.nextItem?.type === 'course' && <button onClick={handleNavigateNext} className={styles.navButton}>{t('learning_path.start_next_course')}: {completionInfo.nextItem.title} →</button>}
+          {completionInfo.nextItem?.type === 'end' && <div><p><strong>{t('learning_path.finished_entire_path')}</strong></p><button onClick={handleNavigateNext} className={styles.navButton}>{t('learning_path.finish_path')}</button></div>}
+          <button onClick={navigateToPreviousCard} className={`${styles.navButton} ${styles.secondaryAction}`}>← {t('learning_path.back_to_last_card')}</button>
+        </div>
+      )}
+    </main>
+
+  </div>
+);
 } 

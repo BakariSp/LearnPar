@@ -1,12 +1,14 @@
 'use client';
+import { useTranslation } from 'react-i18next';
 
 import { useState } from 'react';
 import styles from './login.module.css';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../../context/AuthContext';
 
 export default function LoginPage() {
+  const { t } = useTranslation('common');
   const [credentials, setCredentials] = useState({
     username: '',
     password: ''
@@ -14,6 +16,9 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
+  const params = useParams(); // ✅ 正确拿 params
+  const locale = Array.isArray(params.locale) ? params.locale[0] : params.locale;
+
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -52,7 +57,7 @@ export default function LoginPage() {
   return (
     <div className={styles.loginContainer}>
       <div className={styles.loginCard}>
-        <h1 className={styles.loginTitle}>Log In</h1>
+        <h1 className={styles.loginTitle}>{t('login.title')}</h1>
         
         {error && <div className={styles.errorMessage}>{error}</div>}
         
@@ -63,7 +68,7 @@ export default function LoginPage() {
             className={`${styles.oauthButton} ${styles.googleButton}`}
           >
             <span className={styles.oauthIcon}>G</span>
-            Sign in with Google
+            {t('login.google')}
           </button>
           
           <button 
@@ -72,17 +77,17 @@ export default function LoginPage() {
             className={`${styles.oauthButton} ${styles.microsoftButton}`}
           >
             <span className={styles.oauthIcon}>M</span>
-            Sign in with Microsoft
+            {t('login.microsoft')}
           </button>
         </div>
         
         <div className={styles.divider}>
-          <span>OR</span>
+          <span>{t('login.or')}</span>
         </div>
         
         <form onSubmit={handleSubmit} className={styles.loginForm}>
           <div className={styles.formGroup}>
-            <label htmlFor="username">Username</label>
+            <label htmlFor="username">{t('login.username')}</label>
             <input
               type="text"
               id="username"
@@ -95,7 +100,7 @@ export default function LoginPage() {
           </div>
           
           <div className={styles.formGroup}>
-            <label htmlFor="password">Password</label>
+            <label htmlFor="password">{t('login.password')}</label>
             <input
               type="password"
               id="password"
@@ -112,14 +117,14 @@ export default function LoginPage() {
             className={styles.loginButton}
             disabled={isLoading}
           >
-            {isLoading ? 'Logging in...' : 'Log In'}
+            {isLoading ? t('login.logging_in') : t('login.button')}
           </button>
         </form>
         
         <div className={styles.registerLink}>
-          {"Don't"} have an account? <Link href="/register">Register</Link>
+          {t('login.no_account')} <Link href={`/${locale}/register`}>{t('login.register')}</Link>
         </div>
       </div>
     </div>
   );
-} 
+}

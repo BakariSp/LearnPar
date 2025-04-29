@@ -1,12 +1,12 @@
 'use client';
 
+import '../i18n/client.ts';
 import { useState, ReactNode } from 'react';
-import { Sidebar } from "./Sidebar/Sidebar"; // Adjust path if needed
-import { LoginModal } from './LoginModal'; // Import the modal
-import { useAuth } from '../context/AuthContext'; // Import useAuth
-import Link from 'next/link';
-// import styles from '../app/landing-page/landing-page.module.css'; // Removed unused import
-import { TopNavBar } from './TopNavBar/top-nav-bar'; // Import the new TopNavBar component
+import { Sidebar } from "./Sidebar/Sidebar";
+import { LoginModal } from './LoginModal';
+import { useAuth } from '../context/AuthContext';
+import { TopNavBar } from './TopNavBar/top-nav-bar';
+import { useParams } from 'next/navigation';
 
 interface LayoutClientWrapperProps {
   children: ReactNode;
@@ -14,8 +14,10 @@ interface LayoutClientWrapperProps {
 
 export function LayoutClientWrapper({ children }: LayoutClientWrapperProps) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false); // State for login modal
-  const { user, logout } = useAuth(); // Get user and logout function
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const { user } = useAuth();
+  const params = useParams();
+  const locale = Array.isArray(params.locale) ? params.locale[0] : params.locale;
 
   const toggleSidebar = () => {
     setIsSidebarCollapsed(!isSidebarCollapsed);
@@ -24,33 +26,26 @@ export function LayoutClientWrapper({ children }: LayoutClientWrapperProps) {
   const openLoginModal = () => setIsLoginModalOpen(true);
   const closeLoginModal = () => setIsLoginModalOpen(false);
 
-  // Adjust margin based on sidebar state *and* whether the user is logged in (sidebar shown)
   const getMarginLeft = () => {
-    if (!user) return '0px'; // No sidebar, no margin
+    if (!user) return '0px';
     return isSidebarCollapsed ? '80px' : '250px';
   };
 
   return (
     <>
-      {/* Conditionally render Sidebar only if logged in */}
-      {user && <Sidebar isCollapsed={isSidebarCollapsed} toggleSidebar={toggleSidebar} />}
+      {user && <Sidebar isCollapsed={isSidebarCollapsed} toggleSidebar={toggleSidebar} locale={locale as string} />}
 
-      {/* Main content area */}
       <div
         className="flex flex-1 flex-col overflow-hidden bg-[var(--background-color)] dark:bg-[var(--background)] transition-all duration-300 ease-in-out"
-        style={{ marginLeft: getMarginLeft() }} // Use dynamic margin
+        style={{ marginLeft: getMarginLeft() }}
       >
-        {/* Use the new TopNavBar component */}
-        <TopNavBar />
-
-        {/* Page Content */}
+        <TopNavBar locale={locale as string} /> 
         <div className="flex-1 overflow-y-auto p-4 md:p-6">
           {children}
         </div>
       </div>
 
-      {/* Login Modal */}
       <LoginModal isOpen={isLoginModalOpen} onClose={closeLoginModal} />
     </>
   );
-} 
+}

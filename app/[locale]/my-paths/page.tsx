@@ -1,4 +1,6 @@
 'use client';
+import { useTranslation } from 'react-i18next';
+import { useParams } from 'next/navigation';
 
 import React, { useState, useEffect, useCallback, useRef, JSX } from 'react';
 import { useRouter } from 'next/navigation'; // Keep if needed elsewhere, remove if not
@@ -30,6 +32,10 @@ import { PathDetailView } from './PathDetailView';
 const POLLING_INTERVAL = 5000; // Check status every 5 seconds
 
 export default function MyLearningPathsPage() {
+  const { t } = useTranslation('common');
+  const params = useParams();
+  const locale = Array.isArray(params.locale) ? params.locale[0] : params.locale;
+
   const router = useRouter(); // Initialize router
   const [userPaths, setUserPaths] = useState<UserLearningPathResponseItem[]>([]);
   const [isLoadingList, setIsLoadingList] = useState(true);
@@ -304,7 +310,7 @@ export default function MyLearningPathsPage() {
   // --- Define handleCardSelect *before* toggleExpand --- 
   const handleCardSelect = useCallback((card: CardResponse, sectionId: number, sectionCards: CardResponse[], autoSelect: boolean = false) => {
     if (selectedPathId) {
-        router.push(`/learning-paths/${selectedPathId}?section=${sectionId}&card=${card.id}`);
+      router.push(`/${locale}/learning-paths/${selectedPathId}?section=${sectionId}&card=${card.id}`);
     } else {
         console.warn("Cannot navigate to card, no path selected.");
     }
@@ -551,12 +557,12 @@ export default function MyLearningPathsPage() {
   // --- Helper for Path List Item Status (Simplified from original my-paths) ---
   const getPathDisplayStatus = useCallback((pathItem: UserLearningPathResponseItem): { text: string; className: string } => {
     if (pathItem.completed_at) {
-      return { text: 'Completed', className: styles.statusCompleted };
+      return { text: t('my_paths.completed'), className: styles.statusCompleted }
     }
     if (pathItem.progress > 0) {
-      return { text: `In Progress (${Math.round(pathItem.progress * 100)}%)`, className: styles.statusInProgress };
+      return { text: t('my_paths.in_progress', { percent: Math.round(pathItem.progress * 100) }), className: styles.statusInProgress }
     }
-    return { text: 'Ready to Start', className: styles.statusReady };
+    return { text: t('my_paths.ready_to_start'), className: styles.statusReady }
   }, []);
 
   // --- Main Render ---
@@ -564,20 +570,19 @@ export default function MyLearningPathsPage() {
     <div className={styles.pageContainer}>
       {/* Left Pane: Path List */}
       <aside className={styles.pathListPane}>
-        <h1 className={styles.listTitle}>
-          My Learning Paths {userPaths.length > 0 && `(${userPaths.length})`}
-        </h1>
-        {isLoadingList && <div className={styles.listLoading}>Loading paths...</div>}
+      <h1 className={styles.listTitle}>
+        {t('my_paths.title')} {userPaths.length > 0 && `(${userPaths.length})`}
+      </h1>
+        {isLoadingList && <div className={styles.listLoading}>{t('my_paths.loading')}</div>}
         {listError && !isLoadingList && (
           <div className={styles.listErrorBox}>
-            <p>Error: {listError}</p>
-            <button onClick={fetchUserPaths} className={styles.retryButton}>Retry</button>
+            <p>{t('my_paths.error')}: {listError}</p>
+            <button onClick={fetchUserPaths} className={styles.retryButton}>{t('common.retry')}</button>
           </div>
         )}
         {!isLoadingList && !listError && userPaths.length === 0 && (
           <div className={styles.emptyState}>
-            <p>You haven't started any learning paths yet.</p>
-            {/* Add links to generate/browse */}
+            <p>{t('my_paths.no_paths')}</p>
           </div>
         )}
 {!isLoadingList && !listError && userPaths.length > 0 && (
@@ -590,11 +595,22 @@ export default function MyLearningPathsPage() {
               const isSelected = selectedPathId === pathDetailId;
               return (
                 <li key={listItemKey} className={`${styles.pathListItem} ${isDeleting ? styles.deleting : ''} ${isSelected ? styles.selected : ''}`}>
-                  <button className={styles.pathSelectButton} onClick={() => handlePathSelect(pathDetailId)} disabled={isDeleting || isLoadingList} title={pathItem.learning_path.title || 'Untitled Path'}>
+                  <button
+                    className={styles.pathSelectButton}
+                    onClick={() => handlePathSelect(pathDetailId)}
+                    disabled={isDeleting || isLoadingList}
+                    title={pathItem.learning_path.title || t('my_paths.untitled_path')}
+                  >
                     <div className={styles.pathInfo}>
-                      <h2 className={styles.pathTitleSmall}>{pathItem.learning_path.title || 'Untitled Path'}</h2>
-                      <p className={styles.pathDescriptionSmall}>{pathItem.learning_path.description || 'No description.'}</p>
-                      <span className={`${styles.statusBadgeSmall} ${displayStatus.className}`}>{displayStatus.text}</span>
+                      <h2 className={styles.pathTitleSmall}>
+                        {pathItem.learning_path.title || t('my_paths.untitled_path')}
+                      </h2>
+                      <p className={styles.pathDescriptionSmall}>
+                        {pathItem.learning_path.description || t('my_paths.no_description')}
+                      </p>
+                      <span className={`${styles.statusBadgeSmall} ${displayStatus.className}`}>
+                        {displayStatus.text}
+                      </span>
                     </div>
                   </button>
                 </li>
