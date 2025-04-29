@@ -94,22 +94,6 @@ export function Sidebar({ isCollapsed, toggleSidebar, locale }: SidebarProps) {
           <span className={styles.navIcon}>🏠</span>
           {!isCollapsed && <span className={styles.navText}>{t('sidebar.dashboard')}</span>}
         </Link>
-        
-
-        {/* --- Auth Links --- */}
-        {!isLoading && ( // Only render auth links after initial load check
-          isAuthenticated ? (
-            <a href="#" onClick={handleLogout} className={styles.navItem} title={isCollapsed ? t('sidebar.logout') : undefined}>
-              <span className={styles.navIcon}>🚪</span>
-              {!isCollapsed && <span className={styles.navText}>{t('sidebar.logout')}</span>}
-            </a>
-          ) : (
-            <Link href={`/${locale}/login`} className={getNavItemClass(`/${locale}/login`)} title={isCollapsed ? t('sidebar.login') : undefined}>
-              <span className={styles.navIcon}>🔑</span>
-              {!isCollapsed && <span className={styles.navText}>{t('sidebar.login')}</span>}
-            </Link>
-          )
-        )}
       </nav>
     </div>
   );

@@ -577,7 +577,7 @@ export default function MyLearningPathsPage() {
       {/* Left Pane: Path List */}
       <aside className={styles.pathListPane}>
       <h1 className={styles.listTitle}>
-        {isClient && t('my_paths.title')} {userPaths.length > 0 && `(${userPaths.length})`}
+        {isClient && t('my paths')} {userPaths.length > 0 && `(${userPaths.length})`}
       </h1>
         {isLoadingList && <div className={styles.listLoading}>{isClient && t('my_paths.loading')}</div>}
         {listError && !isLoadingList && (

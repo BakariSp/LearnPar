@@ -140,17 +140,43 @@ function ChatPageContent() {
     };
 
     try {
-      const response = await fetch(`/${locale}/api/ai/dialogue`, {
+      const response = await fetch(`/api/ai/dialogue`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ detail: 'Unknown error occurred' }));
-        throw new Error(errorData.detail || `API Error: ${response.status}`);
+        let errorDetail = `API Error: ${response.status}`; // Default message with status
+        // Clone the response here so we can potentially read the body twice
+        const responseForErrorHandling = response.clone();
+
+        try {
+          // Try to parse JSON from the original response
+          const errorData = await response.json();
+          // Use the 'detail' field if available, otherwise stringify the whole object for context
+          errorDetail = errorData.detail || JSON.stringify(errorData);
+        } catch (jsonError) {
+          // If JSON parsing fails, the response body might be text or HTML
+          console.warn("API error response was not valid JSON. Trying to read as text.", jsonError);
+          try {
+            // Use the cloned response to read as text
+            const errorText = await responseForErrorHandling.text();
+            // Use the text if available, otherwise stick with the status code message
+            if (errorText) {
+              // Limit length to avoid overly long messages in UI
+              errorDetail = `API Error ${response.status}: ${errorText.substring(0, 150)}${errorText.length > 150 ? '...' : ''}`;
+            }
+          } catch (textError) {
+            // If reading as text also fails, log it but stick with the status code message
+            console.error("Failed to read API error response body as text:", textError);
+          }
+        }
+        // Throw the error with the best detail we could get
+        throw new Error(errorDetail);
       }
 
+      // If response.ok is true, read the JSON body from the original response
       const data: DialogueResponseData = await response.json();
 
       // Add AI reply to messages
@@ -172,22 +198,22 @@ function ChatPageContent() {
           // Ensure courses have a structure compatible with LearningPlan (CourseResponse[])
           const formattedCourses: CourseResponse[] = data.result.courses.map((course, index) => ({
               // --- CourseResponse Fields ---
-              id: course.id || Date.now() + index, // Use a temporary numeric ID if missing
+              id: course.id, // Rely on API ID
               title: course.title || `${t('default_course_title')} ${index + 1}`,
               description: course.description || "", // Default description
               estimated_days: course.estimated_days || 0, // Default estimated_days
-              created_at: course.created_at || new Date().toISOString(), // Default created_at
-              updated_at: course.updated_at || new Date().toISOString(), // Default updated_at
+              created_at: course.created_at, // Rely on API timestamp
+              updated_at: course.updated_at, // Rely on API timestamp
               // --- Map Sections to SectionResponse ---
               sections: course.sections?.map((section: any, sIndex: number): SectionResponse => ({
-                  id: section.id || Date.now() + index + sIndex + 1000, // Temp numeric ID
+                  id: section.id, // Rely on API ID
                   title: section.title || `${t('default_section_title')} ${sIndex + 1}`,
                   description: section.description || "", // Default description
                   order_index: section.order_index ?? sIndex, // Keep order_index for sections
                   estimated_days: section.estimated_days || 0, // Default estimated_days
                   cards: section.cards || [], // Default to empty cards array
-                  created_at: section.created_at || new Date().toISOString(), // Default created_at
-                  updated_at: section.updated_at || new Date().toISOString(), // Default updated_at
+                  created_at: section.created_at, // Rely on API timestamp
+                  updated_at: section.updated_at, // Rely on API timestamp
               })) || [],
           }));
           planUpdates = { ...planUpdates, courses: formattedCourses };
@@ -211,7 +237,7 @@ function ChatPageContent() {
       setIsLoading(false);
     }
     // Pass handlePlanUpdateFromAI as dependency
-  }, [messages, currentPlan, handlePlanUpdateFromAI]);
+  }, [messages, currentPlan, handlePlanUpdateFromAI, locale, t]); // Added locale and t to dependencies
 
 
   // Handle initial prompt from URL query parameter

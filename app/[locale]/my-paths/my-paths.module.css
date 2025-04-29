@@ -90,17 +90,71 @@
   list-style: none;
   padding: 0;
   margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  overflow-y: auto; /* Allow scrolling within the pane */
-  padding: 1.5rem;
-  /* background-color: var(--background-secondary, #f8f9fa); */
-  scrollbar-width: none; /* For Firefox */
-  -ms-overflow-style: none; /* For Internet Explorer and Edge */
+  flex-grow: 1; /* Allow list to take remaining space */
+  overflow-y: auto; /* Enable scrolling */
+  /* Add some padding for scrollbar visibility area */
+  padding-right: 8px;
+  margin-right: -8px; /* Offset scrollbar padding */
+  display: flex; /* Use flex for list items */
+  flex-direction: column; /* Stack list items */
+  gap: 1rem; /* Add gap between list items */
+
+  /* --- Scrollbar Styling --- */
+
+  /* Firefox - Hide initially */
+  scrollbar-width: thin; /* Or 'auto' */
+  scrollbar-color: transparent transparent; /* thumb track */
+  transition: scrollbar-color 0.3s ease-out; /* Smooth transition for Firefox */
+
+  /* WebKit (Chrome, Safari, Edge) - Hide initially */
   &::-webkit-scrollbar {
-    display: none; /* For Chrome, Safari, and Opera */
+    width: 8px; /* Width of the scrollbar */
   }
+
+  &::-webkit-scrollbar-track {
+    background: transparent; /* Make track invisible */
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: transparent; /* Make thumb invisible */
+    border-radius: 4px;
+    transition: background-color 0.3s ease-out; /* Smooth transition for WebKit */
+  }
+}
+
+/* Show scrollbar on hover */
+.pathList:hover {
+  /* Firefox - Show on hover */
+  scrollbar-color: rgba(0, 0, 0, 0.3) transparent; /* Adjust color/opacity as needed */
+
+  /* WebKit - Show on hover */
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.3); /* Adjust color/opacity as needed */
+  }
+}
+
+/* Optional: Slightly darker thumb when actively scrolling (WebKit only) */
+.pathList::-webkit-scrollbar-thumb:active {
+   background-color: rgba(0, 0, 0, 0.5);
+}
+
+/* --- Dark Mode Adjustments for Scrollbar --- */
+@media (prefers-color-scheme: dark) {
+  .pathList:hover {
+    /* Firefox - Use a lighter color for dark mode */
+    scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+
+    /* WebKit - Use a lighter color for dark mode */
+    &::-webkit-scrollbar-thumb {
+      background-color: rgba(255, 255, 255, 0.3);
+    }
+  }
+
+  .pathList::-webkit-scrollbar-thumb:active {
+     background-color: rgba(255, 255, 255, 0.5);
+  }
+
+  /* ... other dark mode styles ... */
 }
 
 .pathItem {
