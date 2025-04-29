@@ -1,18 +1,28 @@
 import styles from './KeywordCard.module.css';
+import { useRouter } from 'next/navigation';
 
-interface KeywordCardProps {
-  card: {
-    id: number;
-    title: string;
-    description: string;
-    keywords: string[];
-    icon: string;
-  };
+interface CardData {
+  id: number;
+  title: string;
+  description: string;
+  keywords: string[];
+  icon: string;
 }
 
-export function KeywordCard({ card }: KeywordCardProps) {
+interface KeywordCardProps {
+  card: CardData;
+  locale: string;
+}
+
+export function KeywordCard({ card, locale }: KeywordCardProps) {
+  const router = useRouter();
+
+  const handleClick = () => {
+    router.push(`/${locale}/cards/${card.id}`);
+  };
+
   return (
-    <div className={styles.keywordCard}>
+    <div onClick={handleClick} style={{ cursor: 'pointer' }} className={styles.keywordCard}>
       <div className={styles.cardHeader}>
         <span className={styles.cardIcon}>{card.icon}</span>
         <h3 className={styles.cardTitle}>{card.title}</h3>

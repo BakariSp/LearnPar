@@ -1,45 +1,52 @@
 import Link from 'next/link';
 import styles from './LearningPathCard.module.css';
+import { useRouter } from 'next/navigation';
 
-interface LearningPathCardProps {
-  path: {
-    id: number;
-    title: string;
-    description: string;
-    category: string;
-    difficulty: string;
-    days: number;
-  };
+interface PathData {
+  id: number;
+  title: string;
+  description: string;
+  category: string;
+  difficulty: string;
+  days: number;
 }
 
-export function LearningPathCard({ path }: LearningPathCardProps) {
+interface LearningPathCardProps {
+  path: PathData;
+  locale: string;
+}
+
+export function LearningPathCard({ path, locale }: LearningPathCardProps) {
+  const router = useRouter();
   const difficultyLevel = path.difficulty;
 
+  const handleClick = () => {
+    router.push(`/${locale}/learning-paths/${path.id}`);
+  };
+
   return (
-    <Link href={`/learning-paths/${path.id}`} className={styles.learningPathCardLink}>
-      <div className={styles.learningPathCard}>
-        <h3 className={styles.pathTitle}>{path.title}</h3>
-        <p className={styles.pathDescription}>{path.description}</p>
-        
-        <div className={styles.pathMeta}>
-          <div className={styles.metaItem}>
-            <span className={styles.metaLabel}>Category:</span>
-            <span className={styles.metaValue}>{path.category}</span>
-          </div>
-          <div className={styles.metaItem}>
-            <span className={styles.metaLabel}>Difficulty:</span>
-            <span className={`${styles.metaValue} ${styles[difficultyLevel.toLowerCase()]}`}>
-              {difficultyLevel.charAt(0).toUpperCase() + difficultyLevel.slice(1)}
-            </span>
-          </div>
-          <div className={styles.metaItem}>
-            <span className={styles.metaLabel}>Duration:</span>
-            <span className={styles.metaValue}>{path.days} days</span>
-          </div>
+    <div onClick={handleClick} style={{ cursor: 'pointer' }} className={styles.learningPathCard}>
+      <h3 className={styles.pathTitle}>{path.title}</h3>
+      <p className={styles.pathDescription}>{path.description}</p>
+      
+      <div className={styles.pathMeta}>
+        <div className={styles.metaItem}>
+          <span className={styles.metaLabel}>Category:</span>
+          <span className={styles.metaValue}>{path.category}</span>
         </div>
-        
-        <button className={styles.startButton} tabIndex={-1}>View Path</button>
+        <div className={styles.metaItem}>
+          <span className={styles.metaLabel}>Difficulty:</span>
+          <span className={`${styles.metaValue} ${styles[difficultyLevel.toLowerCase()]}`}>
+            {difficultyLevel.charAt(0).toUpperCase() + difficultyLevel.slice(1)}
+          </span>
+        </div>
+        <div className={styles.metaItem}>
+          <span className={styles.metaLabel}>Duration:</span>
+          <span className={styles.metaValue}>{path.days} days</span>
+        </div>
       </div>
-    </Link>
+      
+      <button className={styles.startButton} tabIndex={-1}>View Path</button>
+    </div>
   );
 } 

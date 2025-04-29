@@ -69,6 +69,13 @@ export default function ZeroLandingPage({ initialRecommendations }: ZeroLandingP
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
+  // Add a check for locale before proceeding
+  if (!locale) {
+    // Optionally return a loading state or null while locale is resolving
+    // Or handle the case where locale might genuinely be missing
+    return <div>Loading locale or locale not found...</div>;
+  }
+
   useEffect(() => {
     if (initialRecommendations) {
       setRecommendations(initialRecommendations);
@@ -144,22 +151,22 @@ export default function ZeroLandingPage({ initialRecommendations }: ZeroLandingP
                 <h2 className={styles.sectionTitle}>{t('landing.recommended_paths')}</h2> {/* ✅ 翻译 */}
                 <div className={styles.learningPathGrid}>
                   {learningPathCards.map(path => (
-                    <LearningPathCard key={path.id} path={path} />
+                    <LearningPathCard key={path.id} path={path} locale={locale} />
                   ))}
                 </div>
               </section>
             )}
 
-            {keywordCards.length > 0 && (
+            {/* {keywordCards.length > 0 && (
               <section className={styles.keywordsSection}>
-                <h2 className={styles.sectionTitle}>{t('landing.light_learn')}</h2> {/* ✅ 翻译 */}
+                <h2 className={styles.sectionTitle}>{t('landing.light_learn')}</h2> 
                 <div className={styles.keywordGrid}>
                   {keywordCards.map(card => (
-                    <KeywordCard key={card.id} card={card} />
+                    <KeywordCard key={card.id} card={card} locale={locale} />
                   ))}
                 </div>
               </section>
-            )}
+            )} */}
           </>
         )}
       </div>

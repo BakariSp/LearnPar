@@ -1,4 +1,5 @@
-import React, { JSX } from 'react';
+import React, { JSX, useCallback } from 'react';
+import { useRouter, useParams } from 'next/navigation';
 import styles from './my-paths.module.css'; // Assuming styles are passed or imported
 import {
     FullLearningPathResponse,
@@ -32,7 +33,6 @@ interface PathDetailViewProps {
     isFetchingSection: boolean;
     currentSectionIdForFetch: number | null;
     toggleExpand: (itemId: string, itemType: 'course' | 'section', sectionId?: number) => void;
-    handleCardSelect: (card: CardResponse, sectionId: number, sectionCards: CardResponse[], autoSelect?: boolean) => void;
     navigateToPreviousCard: () => void;
     navigateToNextCard: () => void;
     handleNavigateNext: (nextItem: NextItemInfo | null) => void;
@@ -62,7 +62,6 @@ export const PathDetailView: React.FC<PathDetailViewProps> = ({
     isFetchingSection,
     currentSectionIdForFetch,
     toggleExpand,
-    handleCardSelect,
     navigateToPreviousCard,
     navigateToNextCard,
     handleNavigateNext,
@@ -74,6 +73,27 @@ export const PathDetailView: React.FC<PathDetailViewProps> = ({
     sectionReadyStatus,
     // styles // Remove if it was only for LearningPathCourseItem
 }) => {
+
+    // --- Hooks ---
+    const router = useRouter();
+    const params = useParams(); // Get params
+    // Explicitly check and log the locale derived from params
+    const locale = Array.isArray(params.locale) ? params.locale[0] : params.locale;
+    console.log('[PathDetailView] Locale from params:', locale); // Add this log
+
+    // --- handleCardSelect Function ---
+    const handleCardSelect = useCallback((card: CardResponse, sectionId: number, sectionCards: CardResponse[], autoSelect: boolean = false) => {
+        console.log('[handleCardSelect] Attempting navigation. Locale:', locale, 'Path ID:', selectedPathId); // Add this log
+        // Use the selectedPathId prop passed into this component
+        if (selectedPathId && locale) { // Check BOTH selectedPathId AND locale
+            const targetUrl = `/${locale}/learning-paths/${selectedPathId}?section=${sectionId}&card=${card.id}`;
+            console.log('[PathDetailView] Navigating to:', targetUrl);
+            router.push(targetUrl);
+        } else {
+            // Log why navigation failed
+            console.warn("Cannot navigate to card view: selectedPathId or locale missing.", { selectedPathId, locale });
+        }
+    }, [selectedPathId, locale, router]); // Ensure locale and router are dependencies
 
     // --- Helper Functions Moved Here ---
 

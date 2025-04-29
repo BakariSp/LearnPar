@@ -119,7 +119,7 @@ export default function LearningPathDetailPage() {
 
             // Clean the URL - remove query params after processing
             // Use replace to avoid adding to browser history
-            router.replace(`/learning-paths/${id}`, { scroll: false });
+            router.replace(`/${locale}/learning-paths/${id}`, { scroll: false });
           }
         }
         // --- End query parameter check ---

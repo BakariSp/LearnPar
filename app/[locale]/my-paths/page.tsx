@@ -1,6 +1,6 @@
 'use client';
 import { useTranslation } from 'react-i18next';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { useIsClient } from '@/hooks/useIsClient';
 import React, { useState, useEffect, useCallback, useRef, JSX } from 'react';
 import { useRouter } from 'next/navigation'; // Keep if needed elsewhere, remove if not
@@ -21,6 +21,8 @@ import {
   CardResource,
   NextItemInfo, // Ensure this type is defined or imported
   CompletionInfo, // Ensure this type is defined or imported
+  apiGetUserLearningPathsBasic, // Import the basic fetch function
+  LearningPathBasicInfo,        // Import the basic info type
 } from '@/services/api'; // Adjust path if needed
 import styles from './my-paths.module.css'; // Create this CSS module
 import { useNotificationContext } from '@/context/NotificationContext'; // Import the context hook
@@ -35,10 +37,11 @@ export default function MyLearningPathsPage() {
   const isClient = useIsClient();
   const { t } = useTranslation('common');
   const params = useParams();
+  const searchParams = useSearchParams();
   const locale = Array.isArray(params.locale) ? params.locale[0] : params.locale;
 
   const router = useRouter(); // Initialize router
-  const [userPaths, setUserPaths] = useState<UserLearningPathResponseItem[]>([]);
+  const [userPaths, setUserPaths] = useState<LearningPathBasicInfo[]>([]);
   const [isLoadingList, setIsLoadingList] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
   const [deletingPathId, setDeletingPathId] = useState<number | null>(null);
@@ -97,7 +100,7 @@ export default function MyLearningPathsPage() {
     if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
 
     try {
-      const paths = await apiGetUserLearningPaths();
+      const paths = await apiGetUserLearningPathsBasic();
       setUserPaths(paths);
     } catch (err: any) {
       console.error('Failed to load learning paths:', err);
@@ -203,7 +206,7 @@ export default function MyLearningPathsPage() {
     setListError(null);
     try {
       await apiDeleteUserLearningPath(pathToDeleteId);
-      setUserPaths(currentPaths => currentPaths.filter(p => p.learning_path_id !== pathToDeleteId));
+      setUserPaths(currentPaths => currentPaths.filter(p => p.id !== pathToDeleteId));
       if (selectedPathId === pathToDeleteId) {
         setSelectedPathId(null);
         setLearningPathData(null);
@@ -308,16 +311,6 @@ export default function MyLearningPathsPage() {
     // Run when taskStatus changes (to start/stop polling) or selectedPathId changes
   }, [taskStatus, selectedPathId, learningPathData]);
 
-  // --- Define handleCardSelect *before* toggleExpand --- 
-  const handleCardSelect = useCallback((card: CardResponse, sectionId: number, sectionCards: CardResponse[], autoSelect: boolean = false) => {
-    if (selectedPathId) {
-      router.push(`/${locale}/learning-paths/${selectedPathId}?section=${sectionId}&card=${card.id}`);
-    } else {
-        console.warn("Cannot navigate to card, no path selected.");
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedPathId]); // router is stable
-
   // --- Toggle expand/collapse for courses/sections ---
   const toggleExpand = useCallback(async (itemId: string, itemType: 'course' | 'section', sectionId?: number) => {
     const isCurrentlyExpanded = !!expandedItems[itemId];
@@ -346,7 +339,9 @@ export default function MyLearningPathsPage() {
 
                 // Handle auto-select after successful fetch
                 if (autoSelectFirstCardInSectionId === sectionId) {
-                    if (cards.length > 0) handleCardSelect(cards[0], sectionId, cards, true);
+                    if (cards.length > 0 && selectedPathId && locale) {
+                        router.push(`/${locale}/learning-paths/${selectedPathId}?section=${sectionId}&card=${cards[0].id}`);
+                    }
                     else setSelectedCard(null);
                     setAutoSelectFirstCardInSectionId(null);
                 }
@@ -370,7 +365,9 @@ export default function MyLearningPathsPage() {
              console.log(`Section ${sectionId} already has >0 cards in cache. Handling auto-select if necessary.`);
              if (autoSelectFirstCardInSectionId === sectionId) {
                  const cachedCards = sectionCardsCache[sectionId]; // We know this exists and is non-empty
-                 if (cachedCards.length > 0) handleCardSelect(cachedCards[0], sectionId, cachedCards, true);
+                 if (cachedCards.length > 0 && selectedPathId && locale) {
+                    router.push(`/${locale}/learning-paths/${selectedPathId}?section=${sectionId}&card=${cachedCards[0].id}`);
+                 }
                  else setSelectedCard(null); // Should not happen based on needsFetch logic, but safe fallback
                  setAutoSelectFirstCardInSectionId(null);
              }
@@ -384,10 +381,18 @@ export default function MyLearningPathsPage() {
          }
      }
   // Dependencies: Include everything read or called inside
-  }, [expandedItems, sectionReadyStatus, sectionCardsCache, autoSelectFirstCardInSectionId, isFetchingSection, currentSectionIdForFetch, handleCardSelect, taskStatus]); // Added taskStatus back as it's read by isTaskActive indirectly via UI
+  }, [expandedItems, sectionReadyStatus, sectionCardsCache, autoSelectFirstCardInSectionId, isFetchingSection, currentSectionIdForFetch, taskStatus, router, locale, selectedPathId]); // Added router, locale, selectedPathId dependencies
 
   // --- Card Navigation Logic (wrapped in useCallback) ---
-  // (Keep handleCardSelect defined above)
+  const handleCardSelect = useCallback((card: CardResponse, sectionId: number, sectionCards: CardResponse[], autoSelect: boolean = false) => {
+    if (selectedPathId && locale) {
+      const targetUrl = `/${locale}/learning-paths/${selectedPathId}?section=${sectionId}&card=${card.id}`;
+      console.log('[PathDetailView] Navigating to:', targetUrl);
+      router.push(targetUrl);
+    } else {
+      console.warn("Cannot navigate to card view: selectedPathId or locale missing.", { selectedPathId, locale });
+    }
+  }, [selectedPathId, locale, router]);
 
    const renderResources = useCallback((resources: CardResource): JSX.Element => {
      const resourceEntries = Object.entries(resources).filter(([, value]) => value && value.length > 0);
@@ -556,15 +561,15 @@ export default function MyLearningPathsPage() {
    }, [completionInfo, learningPathData, sectionCardsCache, toggleExpand]); // Added toggleExpand dependency
 
   // --- Helper for Path List Item Status (Simplified from original my-paths) ---
-  const getPathDisplayStatus = useCallback((pathItem: UserLearningPathResponseItem): { text: string; className: string } => {
-    if (pathItem.completed_at) {
-      return { text: t('my_paths.completed'), className: styles.statusCompleted }
-    }
-    if (pathItem.progress > 0) {
-      return { text: t('my_paths.in_progress', { percent: Math.round(pathItem.progress * 100) }), className: styles.statusInProgress }
-    }
-    return { text: t('my_paths.ready_to_start'), className: styles.statusReady }
-  }, []);
+  // const getPathDisplayStatus = useCallback((pathItem: LearningPathBasicInfo): { text: string; className: string } => {
+  //   if (pathItem.completed_at) {
+  //     return { text: t('my_paths.completed'), className: styles.statusCompleted }
+  //   }
+  //   if (pathItem.progress > 0) {
+  //     return { text: t('my_paths.in_progress', { percent: Math.round(pathItem.progress * 100) }), className: styles.statusInProgress }
+  //   }
+  //   return { text: t('my_paths.ready_to_start'), className: styles.statusReady }
+  // }, []);
 
   // --- Main Render ---
   return (
@@ -589,29 +594,19 @@ export default function MyLearningPathsPage() {
 {!isLoadingList && !listError && userPaths.length > 0 && (
           <ul className={styles.pathList}>
             {userPaths.map(pathItem => {
-              const displayStatus = getPathDisplayStatus(pathItem);
-              const pathDetailId = pathItem.learning_path_id;
+              const pathDetailId = pathItem.id;
               const listItemKey = pathItem.id;
               const isDeleting = deletingPathId === pathDetailId;
               const isSelected = selectedPathId === pathDetailId;
+              // Use the title directly from the basic info
+              const displayTitle = pathItem.title || 'Untitled Path';
               return (
                 <li key={listItemKey} className={`${styles.pathListItem} ${isDeleting ? styles.deleting : ''} ${isSelected ? styles.selected : ''}`}>
-                  <button
-                    className={styles.pathSelectButton}
-                    onClick={() => handlePathSelect(pathDetailId)}
-                    disabled={isDeleting || isLoadingList}
-                    title={pathItem.learning_path.title || t('my_paths.untitled_path')}
-                  >
+                  <button className={styles.pathSelectButton} onClick={() => handlePathSelect(pathDetailId)} disabled={isDeleting || isLoadingList} title={displayTitle}>
                     <div className={styles.pathInfo}>
-                      <h2 className={styles.pathTitleSmall}>
-                        {pathItem.learning_path.title || t('my_paths.untitled_path')}
-                      </h2>
-                      <p className={styles.pathDescriptionSmall}>
-                        {pathItem.learning_path.description || t('my_paths.no_description')}
-                      </p>
-                      <span className={`${styles.statusBadgeSmall} ${displayStatus.className}`}>
-                        {displayStatus.text}
-                      </span>
+                      <h2 className={styles.pathTitleSmall}>{displayTitle}</h2>
+                      <p className={styles.pathDescriptionSmall}>{pathItem.description || 'No description.'}</p>
+                      {/* Status badge removed */}
                     </div>
                   </button>
                 </li>
@@ -640,7 +635,6 @@ export default function MyLearningPathsPage() {
           isFetchingSection={isFetchingSection}
           currentSectionIdForFetch={currentSectionIdForFetch} // Pass for loading indicator
           toggleExpand={toggleExpand}
-          handleCardSelect={handleCardSelect}
           navigateToPreviousCard={navigateToPreviousCard}
           navigateToNextCard={navigateToNextCard}
           handleNavigateNext={handleNavigateNext}
