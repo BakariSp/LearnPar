@@ -1,5 +1,5 @@
 'use client';
-
+import { useTranslation } from 'react-i18next'; 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation'; // Import usePathname
 import styles from './Sidebar.module.css';
@@ -12,9 +12,11 @@ import { useNotificationContext } from '../../context/NotificationContext'; // I
 interface SidebarProps {
   isCollapsed: boolean;
   toggleSidebar: () => void;
+  locale: string;
 }
 
-export function Sidebar({ isCollapsed, toggleSidebar }: SidebarProps) {
+export function Sidebar({ isCollapsed, toggleSidebar, locale }: SidebarProps) {
+  const { t } = useTranslation('common');
   const pathname = usePathname(); // Get current pathname
   // Consume the context
   const { user, isLoading, isAuthenticated, logout } = useAuth();
@@ -60,17 +62,17 @@ export function Sidebar({ isCollapsed, toggleSidebar }: SidebarProps) {
 
       <nav className={styles.navigation}>
         {/* Apply active class conditionally using the helper function */}
-        <Link href="/" className={getNavItemClass('/')} title={isCollapsed ? 'Explore' : undefined}>
+        <Link href={`/${locale}`} className={getNavItemClass(`/${locale}`)} title={isCollapsed ? t('sidebar.explore') : undefined}>
           <span className={styles.navIcon}>🧭</span>
-          {!isCollapsed && <span className={styles.navText}>Explore</span>}
+          {!isCollapsed && <span className={styles.navText}>{t('sidebar.explore')}</span>}
         </Link>
         {/* <Link href="/chat" className={getNavItemClass('/chat')} title={isCollapsed ? 'AI Chat Path' : undefined}>
           <span className={styles.navIcon}>💬</span>
           {!isCollapsed && <span className={styles.navText}>AI Chat Path</span>}
         </Link> */}
-        <Link href="/my-paths" className={getNavItemClass('/my-paths')} title={isCollapsed ? 'My Paths' : undefined}>
-          <span className={styles.navIcon}>🏴󠁫󠁩󠁬󠁿</span>
-          {!isCollapsed && <span className={styles.navText}>My Paths</span>}
+        <Link href={`/${locale}/my-paths`} className={getNavItemClass(`/${locale}/my-paths`)} title={isCollapsed ? t('sidebar.my_paths') : undefined}>
+        <span className={styles.navIcon}>🏴</span>
+          {!isCollapsed && <span className={styles.navText}>{t('sidebar.my_paths')}</span>}
           {/* Show dot if hasNewPaths is true and sidebar is not collapsed */}
           {hasNewPaths && !isCollapsed && <span className={styles.notificationDot}></span>}
           {/* Optional: Show dot even when collapsed (needs separate styling) */}
@@ -84,31 +86,31 @@ export function Sidebar({ isCollapsed, toggleSidebar }: SidebarProps) {
           <span className={styles.navIcon}>🎓</span>
           {!isCollapsed && <span className={styles.navText}>Course</span>}
         </Link> */}
-        <Link href="/knowledge-map" className={getNavItemClass('/knowledge-map')} title={isCollapsed ? 'Knowledge Map' : undefined}>
+        <Link href={`/${locale}/knowledge-map`} className={getNavItemClass(`/${locale}/knowledge-map`)} title={isCollapsed ? t('sidebar.knowledge_map') : undefined}>
           <span className={styles.navIcon}>⛯</span>
-          {!isCollapsed && <span className={styles.navText}>Knowledge Map</span>}
+          {!isCollapsed && <span className={styles.navText}>{t('sidebar.knowledge_map')}</span>}
         </Link>
-        <Link href="/dashboard" className={getNavItemClass('/dashboard')} title={isCollapsed ? 'Dashboard' : undefined}>
+        <Link href={`/${locale}/dashboard`} className={getNavItemClass(`/${locale}/dashboard`)} title={isCollapsed ? t('sidebar.dashboard') : undefined}>
           <span className={styles.navIcon}>🏠</span>
-          {!isCollapsed && <span className={styles.navText}>Dashboard</span>}
+          {!isCollapsed && <span className={styles.navText}>{t('sidebar.dashboard')}</span>}
         </Link>
         
 
         {/* --- Auth Links --- */}
         {!isLoading && ( // Only render auth links after initial load check
           isAuthenticated ? (
-            <a href="#" onClick={handleLogout} className={styles.navItem} title={isCollapsed ? 'Logout' : undefined}>
+            <a href="#" onClick={handleLogout} className={styles.navItem} title={isCollapsed ? t('sidebar.logout') : undefined}>
               <span className={styles.navIcon}>🚪</span>
-              {!isCollapsed && <span className={styles.navText}>Logout</span>}
+              {!isCollapsed && <span className={styles.navText}>{t('sidebar.logout')}</span>}
             </a>
           ) : (
-            <Link href="/login" className={getNavItemClass('/login')} title={isCollapsed ? 'Login' : undefined}>
+            <Link href={`/${locale}/login`} className={getNavItemClass(`/${locale}/login`)} title={isCollapsed ? t('sidebar.login') : undefined}>
               <span className={styles.navIcon}>🔑</span>
-              {!isCollapsed && <span className={styles.navText}>Login</span>}
+              {!isCollapsed && <span className={styles.navText}>{t('sidebar.login')}</span>}
             </Link>
           )
         )}
       </nav>
     </div>
   );
-} 
+}

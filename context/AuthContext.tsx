@@ -19,7 +19,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
-
+  const [authReady, setAuthReady] = useState(false); 
   useEffect(() => {
     const validateTokenAndFetchUser = async () => {
       setIsLoading(true);
@@ -44,6 +44,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(null); // No token, not logged in
       }
       setIsLoading(false);
+      setAuthReady(true);
     };
     validateTokenAndFetchUser();
   }, []); // Run only once on mount
@@ -100,6 +101,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     user,
     isLoading,
     isAuthenticated: !!user, // User is authenticated if user object exists
+    authReady,
     login, // Use memoized version
     logout, // Use memoized version
     handleOAuthCallback // Use memoized version

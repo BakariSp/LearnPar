@@ -1,12 +1,12 @@
 'use client';
-
+import { useTranslation } from 'react-i18next'; 
 import React, { useState, useRef, useEffect, useCallback, Suspense } from 'react';
 // Removed axios import as fetch is used
 import styles from './chat.module.css';
-import formStyles from '../../components/Shared/InputForm.module.css';
+import formStyles from '../../../components/Shared/InputForm.module.css';
 // Ensure type names don't clash if reused locally
-import { EditableLearningPath, Course as EditableCourseDefinition, Section as EditableSectionDefinition } from '../../components/Course/EditableLearningPath';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { EditableLearningPath, Course as EditableCourseDefinition, Section as EditableSectionDefinition } from '../../../components/Course/EditableLearningPath';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 // Import the missing types along with existing ones
 import { FullLearningPathResponse, GeneratePathPayload, apiCreatePathFromStructure, CourseResponse, SectionResponse, CardResponse } from '@/services/api'; // Keep this type, Removed apiGenerateFullPath
 // Remove NotificationContext import if no longer needed anywhere else in this file
@@ -47,6 +47,10 @@ type LearningPlan = FullLearningPathResponse | null;
 
 // --- Rename the original component ---
 function ChatPageContent() {
+  const { t } = useTranslation('common');
+  const params = useParams();
+  const locale = Array.isArray(params.locale) ? params.locale[0] : params.locale;
+
   // --- Re-introduce chat-specific state ---
   const [userInput, setUserInput] = useState('');
   const [messages, setMessages] = useState<DialogueMessage[]>([]);
@@ -90,7 +94,7 @@ function ChatPageContent() {
         }
         // Ensure essential fields exist if creating a new plan
         if (!prevPlan && mergedPlan) {
-            mergedPlan.title = mergedPlan.title || "Generated Learning Plan";
+            mergedPlan.title = mergedPlan.title || t('default_plan_title'); 
             mergedPlan.difficulty_level = mergedPlan.difficulty_level || "Intermediate";
             // Add other defaults if needed
         }
@@ -136,7 +140,7 @@ function ChatPageContent() {
     };
 
     try {
-      const response = await fetch('/api/ai/dialogue', {
+      const response = await fetch(`/${locale}/api/ai/dialogue`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -169,7 +173,7 @@ function ChatPageContent() {
           const formattedCourses: CourseResponse[] = data.result.courses.map((course, index) => ({
               // --- CourseResponse Fields ---
               id: course.id || Date.now() + index, // Use a temporary numeric ID if missing
-              title: course.title || `Course ${index + 1}`,
+              title: course.title || `${t('default_course_title')} ${index + 1}`,
               description: course.description || "", // Default description
               estimated_days: course.estimated_days || 0, // Default estimated_days
               created_at: course.created_at || new Date().toISOString(), // Default created_at
@@ -177,7 +181,7 @@ function ChatPageContent() {
               // --- Map Sections to SectionResponse ---
               sections: course.sections?.map((section: any, sIndex: number): SectionResponse => ({
                   id: section.id || Date.now() + index + sIndex + 1000, // Temp numeric ID
-                  title: section.title || `Section ${sIndex + 1}`,
+                  title: section.title || `${t('default_section_title')} ${sIndex + 1}`,
                   description: section.description || "", // Default description
                   order_index: section.order_index ?? sIndex, // Keep order_index for sections
                   estimated_days: section.estimated_days || 0, // Default estimated_days
@@ -199,7 +203,7 @@ function ChatPageContent() {
 
     } catch (err: any) {
       console.error('Dialogue API error:', err);
-      const errorMessage = err.message || 'Failed to get response from AI.';
+      const errorMessage = err.message || t('error_default');
       setError(errorMessage); // Set chat error state
       // Add an error message to the chat display
       setMessages(prev => [...prev, { role: 'error', content: errorMessage }]);
@@ -222,7 +226,7 @@ function ChatPageContent() {
         // Pass null for planOverride initially, API should generate from scratch
         sendMessage(decodedPrompt, null, []);
         // Clean the URL
-        router.replace('/chat', undefined);
+        router.replace(`/${locale}/chat`);
       }
     }
     // Add sendMessage to dependency array
@@ -342,8 +346,8 @@ function ChatPageContent() {
                 disabled={isFinalizing || isLoading || !currentPlan || !currentPlan.courses || currentPlan.courses.length === 0}
             >
                 {/* Show generic "Processing..." if finalizing */}
-                {isFinalizing ? 'Processing...' : 'Generate Full Path'}
-            </button>
+                {isFinalizing ? t('chat.processing') : t('chat.generate_full_path')}
+              </button>
             {/* --- Display Finalization Status (includes Redirecting message) --- */}
             {isFinalizing && finalizationMessage && <p className={styles.successMessage}>{finalizationMessage}</p>}
             {/* Show error only if NOT finalizing (finalizing has its own message) */}
@@ -355,11 +359,11 @@ function ChatPageContent() {
              {/* Show different message while initial prompt is loading */}
              {isLoading && messages.length === 0 && initialPrompt ? (
                 <>
-                    Generating initial plan...
-                    <div className={styles.spinner}></div>
+                  {t('chat.generating_initial_plan')}
+                  <div className={styles.spinner}></div>
                 </>
              ) : (
-                'Enter a prompt in the chat to start generating a learning path.'
+                t('chat.start_prompt')
              )}
           </div>
         )}
@@ -372,9 +376,9 @@ function ChatPageContent() {
             {/* Optional: Add a welcome message or initial state message */}
             {messages.length === 0 && !isLoading && (
                 <div className={`${styles.chatMessage} ${styles.ai}`}>
-                    <span className={styles.chatRole}>AI</span>
-                    <p className={styles.chatContent}>Hello! How can I help you create a learning path today?</p>
-                </div>
+                  <span className={styles.chatRole}>AI</span>
+                  <p className={styles.chatContent}>{t('chat.chat_greeting')}</p>
+              </div>
             )}
             {/* Render actual messages */}
             {messages.map((msg, index) => (
@@ -388,8 +392,8 @@ function ChatPageContent() {
             {/* Display loading indicator within chat */}
             {isLoading && (
                 <div className={`${styles.chatMessage} ${styles.ai}`}>
-                    <span className={styles.chatRole}>AI</span>
-                    <p className={styles.chatContent}><i>Thinking... <span className={styles.smallSpinner}></span></i></p>
+                  <span className={styles.chatRole}>AI</span>
+                  <p className={styles.chatContent}><i>{t('chat.thinking')} <span className={styles.smallSpinner}></span></i></p>
                 </div>
             )}
             {/* Scroll anchor */}
@@ -402,7 +406,7 @@ function ChatPageContent() {
                 type="text"
                 value={userInput}
                 onChange={(e) => setUserInput(e.target.value)}
-                placeholder="Ask AI to modify the plan..."
+                placeholder={t('chat.chat_placeholder')}
                 className={formStyles.input}
                 disabled={isLoading || isFinalizing} // Disable if chat loading OR finalizing
                 aria-label="Chat input"
@@ -412,7 +416,7 @@ function ChatPageContent() {
                 className={formStyles.submitButton}
                 // style={{ backgroundColor: 'black', color: 'white' }} // Style for black button from image
                 disabled={isLoading || isFinalizing || !userInput.trim()}
-                aria-label={isLoading ? "Sending..." : "Send message"}
+                aria-label={isLoading ? t('chat.sending') : t('chat.send_message')}
             >
                 {isLoading ? <span className={styles.smallSpinner}></span> : <span className={formStyles.submitButtonIcon}>→</span>}
             </button>
@@ -431,10 +435,14 @@ function ChatPageContent() {
 }
 
 // --- New default export component wrapping the content in Suspense ---
+function ChatFallback() {
+  const { t } = useTranslation('common');
+  return <div className={styles.loadingFallback}>{t('chat.loading')}</div>;
+}
+
 export default function ChatPage() {
   return (
-    // Provide a fallback UI while the search params are read
-    <Suspense fallback={<div className={styles.loadingFallback}>Loading Chat...</div>}>
+    <Suspense fallback={<ChatFallback />}>
       <ChatPageContent />
     </Suspense>
   );

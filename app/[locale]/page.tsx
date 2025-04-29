@@ -1,6 +1,6 @@
 'use client'; // Make this a client component to use hooks
 
-import { useAuth } from '../context/AuthContext'; // Import useAuth
+import { useAuth } from '../../context/AuthContext'; // Import useAuth
 import ZeroLandingPage, { RecommendationsResponse } from './home/home';
 import { useEffect, useState } from 'react';
 import LandingPage from './landing-page/landing-page'; // Import the new LandingPage component

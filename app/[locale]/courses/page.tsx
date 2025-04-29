@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import styles from './courses.module.css';
 import { courseData } from './courseData';
-import { CourseCard } from '../../components/Course/CourseCard';
+import { CourseCard } from '../../../components/Course/CourseCard';
 
 export default function CoursePage() {
   const [filter, setFilter] = useState('all');
