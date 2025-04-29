@@ -1266,3 +1266,83 @@
     color: var(--text-color);
   }
 }
+
+/* Status Badges - Add new ones, adjust/remove old ones as needed */
+.statusBadgeSmall { /* Ensure this base style exists if used */
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 12px;
+  line-height: 1.2;
+  vertical-align: middle;
+}
+
+/* Keep if used in Detail View Header */
+.statusCompleted {
+  background-color: #dcfce7; /* Lighter green */
+  color: #16a34a; /* Darker green */
+}
+.statusInProgress { /* Keep if progress is shown elsewhere */
+  background-color: #dbeafe; /* Lighter blue */
+  color: #2563eb; /* Darker blue */
+}
+.statusReady { /* Keep if used as a default or elsewhere */
+  background-color: #f3f4f6; /* Light grey */
+  color: #4b5563; /* Darker grey */
+}
+
+/* ADD Styles for new states from basic endpoint */
+.statusPublished {
+  background-color: #dbeafe; /* Example: Use light blue like In Progress */
+  color: #2563eb; /* Example: Use darker blue */
+}
+
+.statusDraft {
+  background-color: #fef3c7; /* Example: Light yellow */
+  color: #d97706; /* Example: Darker yellow/amber */
+}
+
+.statusUnknown { /* Fallback style */
+  background-color: #e5e7eb; /* Light grey */
+  color: #4b5563; /* Darker grey */
+}
+
+/* --- Dark Mode Overrides --- */
+@media (prefers-color-scheme: dark) {
+  /* ... other dark mode styles ... */
+
+  /* Status Badges */
+  .statusBadge, .pathListStatusBadge, .statusBadgeSmall {
+    border-color: transparent; /* Reset border */
+  }
+  /* Keep if used */
+  .statusReady {
+    color: #90caf9;
+    background-color: rgba(144, 202, 249, 0.15);
+  }
+  .statusInProgress {
+    color: #ce93d8;
+    background-color: rgba(206, 147, 216, 0.15);
+  }
+  .statusCompleted {
+    color: #a5d6a7;
+    background-color: rgba(165, 214, 167, 0.15);
+  }
+
+  /* ADD Dark mode for new statuses */
+  .statusPublished {
+    color: #90caf9; /* Example: Light blue */
+    background-color: rgba(144, 202, 249, 0.15); /* Example: Blue tint */
+  }
+  .statusDraft {
+    color: #fde047; /* Example: Light yellow */
+    background-color: rgba(253, 224, 71, 0.15); /* Example: Yellow tint */
+  }
+  .statusUnknown {
+    color: #9ca3af; /* Lighter grey */
+    background-color: rgba(156, 163, 175, 0.15); /* Grey tint */
+  }
+
+  /* ... rest of dark mode styles ... */
+}

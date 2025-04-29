@@ -185,6 +185,16 @@ export interface CompletionInfo {
 
 // --- End of added interfaces ---
 
+// --- Add this interface ---
+// Interface for the response from /api/users/me/learning-paths/basic
+export interface LearningPathBasicInfo {
+  id: number;
+  title: string; // Add title field
+  name?: string; // Keep name, maybe make it optional if title is primary
+  description: string;
+  state: 'published' | 'draft' | string; // Allow other potential states
+}
+
 // --- API Functions ---
 
 // Fetch details for a single learning path (Basic)
@@ -336,10 +346,27 @@ export const apiGetLatestTaskForLearningPath = async (learningPathId: number): P
   }
 };
 
-// Fetch all learning paths associated with the currently authenticated user
+// Fetch a basic list of learning paths for the currently authenticated user
+export const apiGetUserLearningPathsBasic = async (): Promise<LearningPathBasicInfo[]> => {
+  try {
+    // ADD '/api' back, assuming apiClient does NOT add it automatically
+    const response = await apiClient('/api/users/me/learning-paths/basic');
+    if (response && response.ok) {
+      return response.json();
+    }
+    // Log the actual status from the response object when it's not ok
+    console.error('Failed to fetch basic user learning paths:', response?.status);
+    throw new Error(`Failed to fetch basic learning paths (status: ${response?.status})`);
+  } catch (error) {
+    console.error("Error in apiGetUserLearningPathsBasic:", error);
+    throw error; // Re-throw for the component
+  }
+};
+
+// Fetch all learning paths associated with the currently authenticated user (Full details)
 export const apiGetUserLearningPaths = async (): Promise<UserLearningPathResponseItem[]> => {
   try {
-    // Use the new endpoint
+    // Use the endpoint that returns full nested details
     const response = await apiClient('/api/users/me/learning-paths');
     if (response && response.ok) {
       return response.json();

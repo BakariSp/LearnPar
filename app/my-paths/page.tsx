@@ -4,10 +4,9 @@ import React, { useState, useEffect, useCallback, useRef, JSX } from 'react';
 import { useRouter } from 'next/navigation'; // Keep if needed elsewhere, remove if not
 import Link from 'next/link';
 import {
-  apiGetUserLearningPaths,
-  UserLearningPathResponseItem, // Import the new type
-  apiDeleteUserLearningPath, // Import the new delete function
-  // --- Imports from learning-path-detail ---
+  apiGetUserLearningPathsBasic, // ADD this
+  LearningPathBasicInfo,      // ADD this
+  apiDeleteUserLearningPath,
   apiGetFullLearningPath,
   apiGetLatestTaskForLearningPath,
   apiGetSectionWithCards,
@@ -31,7 +30,7 @@ const POLLING_INTERVAL = 5000; // Check status every 5 seconds
 
 export default function MyLearningPathsPage() {
   const router = useRouter(); // Initialize router
-  const [userPaths, setUserPaths] = useState<UserLearningPathResponseItem[]>([]);
+  const [userPaths, setUserPaths] = useState<LearningPathBasicInfo[]>([]);
   const [isLoadingList, setIsLoadingList] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
   const [deletingPathId, setDeletingPathId] = useState<number | null>(null);
@@ -90,10 +89,10 @@ export default function MyLearningPathsPage() {
     if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
 
     try {
-      const paths = await apiGetUserLearningPaths();
+      const paths = await apiGetUserLearningPathsBasic();
       setUserPaths(paths);
     } catch (err: any) {
-      console.error('Failed to load learning paths:', err);
+      console.error('Failed to load basic learning paths:', err);
       setListError(err.message || 'Failed to load your learning paths. Please try again.');
     } finally {
       setIsLoadingList(false);
@@ -196,7 +195,7 @@ export default function MyLearningPathsPage() {
     setListError(null);
     try {
       await apiDeleteUserLearningPath(pathToDeleteId);
-      setUserPaths(currentPaths => currentPaths.filter(p => p.learning_path_id !== pathToDeleteId));
+      setUserPaths(currentPaths => currentPaths.filter(p => p.id !== pathToDeleteId));
       if (selectedPathId === pathToDeleteId) {
         setSelectedPathId(null);
         setLearningPathData(null);
@@ -549,14 +548,31 @@ export default function MyLearningPathsPage() {
    }, [completionInfo, learningPathData, sectionCardsCache, toggleExpand]); // Added toggleExpand dependency
 
   // --- Helper for Path List Item Status (Simplified from original my-paths) ---
-  const getPathDisplayStatus = useCallback((pathItem: UserLearningPathResponseItem): { text: string; className: string } => {
-    if (pathItem.completed_at) {
-      return { text: 'Completed', className: styles.statusCompleted };
+  const getPathDisplayStatus = useCallback((pathItem: LearningPathBasicInfo): { text: string; className: string } => {
+    // Define a default 'Ready' style class name (you'll add this to CSS)
+    const readyStyle = styles.statusReady; // Example: using a new style
+    const unknownStyle = styles.statusUnknown;
+    const publishedStyle = styles.statusPublished;
+    const draftStyle = styles.statusDraft;
+
+    switch (pathItem.state?.toLowerCase()) {
+      case 'published':
+        return { text: 'Published', className: publishedStyle };
+      case 'draft':
+        return { text: 'Draft', className: draftStyle };
+      // Add other specific states you might expect from the API here
+      // case 'generating':
+      //   return { text: 'Generating...', className: styles.statusRunning }; // Example
+      default:
+        if (!pathItem.state) {
+          // If state is null, undefined, or empty string, display 'Ready'
+          return { text: 'Ready', className: readyStyle };
+        } else {
+          // If state has a value but isn't recognized, display it capitalized
+          const unknownText = pathItem.state.charAt(0).toUpperCase() + pathItem.state.slice(1);
+          return { text: unknownText, className: unknownStyle };
+        }
     }
-    if (pathItem.progress > 0) {
-      return { text: `In Progress (${Math.round(pathItem.progress * 100)}%)`, className: styles.statusInProgress };
-    }
-    return { text: 'Ready to Start', className: styles.statusReady };
   }, []);
 
   // --- Main Render ---
@@ -583,18 +599,18 @@ export default function MyLearningPathsPage() {
 {!isLoadingList && !listError && userPaths.length > 0 && (
           <ul className={styles.pathList}>
             {userPaths.map(pathItem => {
-              const displayStatus = getPathDisplayStatus(pathItem);
-              const pathDetailId = pathItem.learning_path_id;
+              const pathDetailId = pathItem.id;
               const listItemKey = pathItem.id;
               const isDeleting = deletingPathId === pathDetailId;
               const isSelected = selectedPathId === pathDetailId;
+              // Determine the best title to display
+              const displayTitle = pathItem.title || pathItem.name || 'Untitled Path';
               return (
                 <li key={listItemKey} className={`${styles.pathListItem} ${isDeleting ? styles.deleting : ''} ${isSelected ? styles.selected : ''}`}>
-                  <button className={styles.pathSelectButton} onClick={() => handlePathSelect(pathDetailId)} disabled={isDeleting || isLoadingList} title={pathItem.learning_path.title || 'Untitled Path'}>
+                  <button className={styles.pathSelectButton} onClick={() => handlePathSelect(pathDetailId)} disabled={isDeleting || isLoadingList} title={displayTitle}>
                     <div className={styles.pathInfo}>
-                      <h2 className={styles.pathTitleSmall}>{pathItem.learning_path.title || 'Untitled Path'}</h2>
-                      <p className={styles.pathDescriptionSmall}>{pathItem.learning_path.description || 'No description.'}</p>
-                      <span className={`${styles.statusBadgeSmall} ${displayStatus.className}`}>{displayStatus.text}</span>
+                      <h2 className={styles.pathTitleSmall}>{displayTitle}</h2>
+                      <p className={styles.pathDescriptionSmall}>{pathItem.description || 'No description.'}</p>
                     </div>
                   </button>
                 </li>
