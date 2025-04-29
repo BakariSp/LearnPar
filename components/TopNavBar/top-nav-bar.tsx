@@ -1,5 +1,5 @@
 'use client';
-
+import { useIsClient } from '@/hooks/useIsClient';
 import Link from 'next/link';
 import { useAuth } from '../../context/AuthContext'; // Adjust path as necessary
 import styles from '../../app/[locale]/landing-page/landing-page.module.css'; // Import styles
@@ -12,6 +12,7 @@ interface TopNavBarProps {
 
 export function TopNavBar({ locale }: TopNavBarProps) {
   const { user } = useAuth();
+  const isClient = useIsClient();
   const { t } = useTranslation('common');
   return (
     <nav className={styles.navbar}>
@@ -45,12 +46,11 @@ export function TopNavBar({ locale }: TopNavBarProps) {
             </span>
           </Link>
         ) : (
-          <Link
-            href={`/${locale}/login`}
-            className={styles.loginButton}
-          >
-            {t('login.button')}
-          </Link>
+          isClient && (
+            <Link href={`/${locale}/login`} className={styles.loginButton}>
+              {t('login.button')}
+            </Link>
+          )
         )}
       </div>
     </nav>

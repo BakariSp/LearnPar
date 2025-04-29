@@ -6,7 +6,7 @@ import "./globals.css";
 import { AuthProvider } from '../../context/AuthContext';
 import { LayoutClientWrapper } from '../../components/LayoutClientWrapper';
 import { NotificationProvider } from '@/context/NotificationContext';
-
+import I18nInitializer from '../../components/I18nInitializer';
 export const metadata: Metadata = {
   title: "Learning Platform",
   description: "Your personalized learning journey",
@@ -23,6 +23,7 @@ export default function RootLayout({
         className={`${GeistSans.variable} ${GeistMono.variable} antialiased flex h-screen overflow-hidden bg-gray-100`}
         suppressHydrationWarning
       >
+        <I18nInitializer />
         <AuthProvider>
           <NotificationProvider>
             <LayoutClientWrapper>

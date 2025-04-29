@@ -1,7 +1,7 @@
 'use client';
 import { useTranslation } from 'react-i18next';
 import { useParams } from 'next/navigation';
-
+import { useIsClient } from '@/hooks/useIsClient';
 import React, { useState, useEffect, useCallback, useRef, JSX } from 'react';
 import { useRouter } from 'next/navigation'; // Keep if needed elsewhere, remove if not
 import Link from 'next/link';
@@ -32,6 +32,7 @@ import { PathDetailView } from './PathDetailView';
 const POLLING_INTERVAL = 5000; // Check status every 5 seconds
 
 export default function MyLearningPathsPage() {
+  const isClient = useIsClient();
   const { t } = useTranslation('common');
   const params = useParams();
   const locale = Array.isArray(params.locale) ? params.locale[0] : params.locale;
@@ -571,18 +572,18 @@ export default function MyLearningPathsPage() {
       {/* Left Pane: Path List */}
       <aside className={styles.pathListPane}>
       <h1 className={styles.listTitle}>
-        {t('my_paths.title')} {userPaths.length > 0 && `(${userPaths.length})`}
+        {isClient && t('my_paths.title')} {userPaths.length > 0 && `(${userPaths.length})`}
       </h1>
-        {isLoadingList && <div className={styles.listLoading}>{t('my_paths.loading')}</div>}
+        {isLoadingList && <div className={styles.listLoading}>{isClient && t('my_paths.loading')}</div>}
         {listError && !isLoadingList && (
           <div className={styles.listErrorBox}>
-            <p>{t('my_paths.error')}: {listError}</p>
-            <button onClick={fetchUserPaths} className={styles.retryButton}>{t('common.retry')}</button>
+            <p>{isClient && t('my_paths.error')}: {listError}</p>
+            <button onClick={fetchUserPaths} className={styles.retryButton}>{isClient && t('common.retry')}</button>
           </div>
         )}
         {!isLoadingList && !listError && userPaths.length === 0 && (
           <div className={styles.emptyState}>
-            <p>{t('my_paths.no_paths')}</p>
+            <p>{isClient && t('my_paths.no_paths')}</p>
           </div>
         )}
 {!isLoadingList && !listError && userPaths.length > 0 && (

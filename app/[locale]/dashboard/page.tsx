@@ -10,7 +10,8 @@ export default function DashboardPage() {
   const { user, isLoading, logout: contextLogout } = useAuth();
   const router = useRouter();
   const params = useParams();
-  const locale = Array.isArray(params.locale) ? params.locale[0] : params.locale;
+  const locale = Array.isArray(params.locale) ? params.locale[0] : params.locale || 'en'; // 👈 加默认值 en
+  
   const { t } = useTranslation('common');
 
   useEffect(() => {
@@ -21,6 +22,7 @@ export default function DashboardPage() {
 
   const handleLogout = () => {
     contextLogout();
+    router.push(`/${locale}/login`);
   };
 
   if (isLoading) {

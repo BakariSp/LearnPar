@@ -1,6 +1,7 @@
 'use client';
 
 import '../i18n/client.ts';
+
 import { useState, ReactNode } from 'react';
 import { Sidebar } from "./Sidebar/Sidebar";
 import { LoginModal } from './LoginModal';
