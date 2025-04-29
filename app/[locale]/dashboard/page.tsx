@@ -10,8 +10,7 @@ export default function DashboardPage() {
   const { user, isLoading, logout: contextLogout } = useAuth();
   const router = useRouter();
   const params = useParams();
-  const locale = Array.isArray(params.locale) ? params.locale[0] : params.locale || 'en'; // 👈 加默认值 en
-  
+  const locale = Array.isArray(params.locale) ? params.locale[0] : params.locale || 'en';
   const { t } = useTranslation('common');
 
   useEffect(() => {
@@ -22,7 +21,7 @@ export default function DashboardPage() {
 
   const handleLogout = () => {
     contextLogout();
-    router.push(`/${locale}/login`);
+    router.push(`/${locale}/logged-out`); // logout后去到 logged-out 页面
   };
 
   if (isLoading) {
@@ -50,11 +49,7 @@ export default function DashboardPage() {
       <div className={styles.userInfoCard}>
         <div className={styles.userProfile}>
           {user.profile_picture ? (
-            <img 
-              src={user.profile_picture} 
-              alt={user.username} 
-              className={styles.profilePicture} 
-            />
+            <img src={user.profile_picture} alt={user.username} className={styles.profilePicture} />
           ) : (
             <div className={styles.profilePlaceholder}>
               {user.username.charAt(0).toUpperCase()}
@@ -64,9 +59,7 @@ export default function DashboardPage() {
             <h2>{user.full_name || user.username}</h2>
             <p className={styles.userEmail}>{user.email}</p>
             {user.oauth_provider && (
-              <span className={styles.oauthBadge}>
-                {user.oauth_provider}
-              </span>
+              <span className={styles.oauthBadge}>{user.oauth_provider}</span>
             )}
           </div>
         </div>
@@ -89,9 +82,7 @@ export default function DashboardPage() {
           {user.created_at && (
             <div className={styles.infoItem}>
               <span className={styles.infoLabel}>{t('dashboard.member_since')}</span>
-              <span className={styles.infoValue}>
-                {new Date(user.created_at).toLocaleDateString()}
-              </span>
+              <span className={styles.infoValue}>{new Date(user.created_at).toLocaleDateString()}</span>
             </div>
           )}
         </div>
