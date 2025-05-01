@@ -1,7 +1,8 @@
 'use client'; // Make this a client component to use hooks
 
 import { useAuth } from '../../context/AuthContext'; // Import useAuth
-import ZeroLandingPage, { RecommendationsResponse } from './home/home';
+import ZeroLandingPage from './home/page';
+import { ZeroLandingPageContent, RecommendationsResponse } from './home/home-content';
 import { useEffect, useState } from 'react';
 import LandingPage from './landing-page/landing-page'; // Import the new LandingPage component
 
@@ -9,11 +10,7 @@ import LandingPage from './landing-page/landing-page'; // Import the new Landing
 async function fetchRecommendations(): Promise<RecommendationsResponse | null> {
   try {
     // Use the full URL or environment variable for the API endpoint
-    const response = await fetch('/api/recommendations', {
-      // Optional: Add caching options if desired
-      // cache: 'no-store', // To prevent caching during development/testing
-      // next: { revalidate: 60 } // Revalidate every 60 seconds
-    });
+    const response = await fetch('/api/recommendations');
 
     if (!response.ok) {
       console.error(`Failed to fetch recommendations: ${response.status}`);
@@ -43,7 +40,7 @@ export default function Home() {
 
   // If user is logged in, show the main app page (home/dashboard)
   if (user) {
-    return <ZeroLandingPage initialRecommendations={recommendations} />;
+    return <ZeroLandingPageContent initialRecommendations={recommendations} />;
   }
 
   // If user is not logged in, show the static landing page component

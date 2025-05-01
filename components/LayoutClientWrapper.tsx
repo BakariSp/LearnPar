@@ -6,7 +6,6 @@ import { useState, ReactNode } from 'react';
 import { Sidebar } from "./Sidebar/Sidebar";
 import { LoginModal } from './LoginModal';
 import { useAuth } from '../context/AuthContext';
-import { TopNavBar } from './TopNavBar/top-nav-bar';
 import { useParams } from 'next/navigation';
 
 interface LayoutClientWrapperProps {
@@ -21,6 +20,7 @@ export function LayoutClientWrapper({ children }: LayoutClientWrapperProps) {
   const locale = Array.isArray(params.locale) ? params.locale[0] : params.locale;
 
   const toggleSidebar = () => {
+    console.log("Toggling sidebar, current state:", isSidebarCollapsed);
     setIsSidebarCollapsed(!isSidebarCollapsed);
   };
 
@@ -37,10 +37,12 @@ export function LayoutClientWrapper({ children }: LayoutClientWrapperProps) {
       {user && <Sidebar isCollapsed={isSidebarCollapsed} toggleSidebar={toggleSidebar} locale={locale as string} />}
 
       <div
-        className="flex flex-1 flex-col overflow-hidden bg-[var(--background-color)] dark:bg-[var(--background)] transition-all duration-300 ease-in-out"
-        style={{ marginLeft: getMarginLeft() }}
+        className="flex flex-1 flex-col overflow-hidden transition-all duration-300 ease-in-out"
+        style={{ 
+          marginLeft: getMarginLeft(),
+          backgroundColor: '#f5f5f5' 
+        }}
       >
-        <TopNavBar locale={locale as string} /> 
         <div className="flex-1 overflow-y-auto p-4 md:p-6">
           {children}
         </div>

@@ -8,7 +8,9 @@ import formStyles from '../../../components/Shared/InputForm.module.css';
 import { EditableLearningPath, Course as EditableCourseDefinition, Section as EditableSectionDefinition } from '../../../components/Course/EditableLearningPath';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 // Import the missing types along with existing ones
-import { FullLearningPathResponse, GeneratePathPayload, apiCreatePathFromStructure, CourseResponse, SectionResponse, CardResponse } from '@/services/api'; // Keep this type, Removed apiGenerateFullPath
+import { FullLearningPathResponse, GeneratePathPayload, apiCreatePathFromStructure, apiGetTaskStatus, TaskStatusResponse, CourseResponse, SectionResponse, CardResponse } from '@/services/api'; // Keep this type, Removed apiGenerateFullPath
+// Import subscription related functions
+import { checkDailyLimits } from '@/services/api/subscription';
 // Remove NotificationContext import if no longer needed anywhere else in this file
 // import { useNotificationContext } from '@/context/NotificationContext';
 
@@ -100,7 +102,7 @@ function ChatPageContent() {
         }
         return mergedPlan as LearningPlan;
      });
-  }, []);
+  }, [t]);
 
 
   // --- Re-introduce sendMessage function ---
@@ -237,7 +239,7 @@ function ChatPageContent() {
       setIsLoading(false);
     }
     // Pass handlePlanUpdateFromAI as dependency
-  }, [messages, currentPlan, handlePlanUpdateFromAI, locale, t]); // Added locale and t to dependencies
+  }, [messages, currentPlan, handlePlanUpdateFromAI, t]); // Removed unnecessary locale dependency
 
 
   // Handle initial prompt from URL query parameter
@@ -256,7 +258,7 @@ function ChatPageContent() {
       }
     }
     // Add sendMessage to dependency array
-  }, [searchParams, router, sendMessage]);
+  }, [searchParams, router, sendMessage, locale]);
 
 
   // --- Re-introduce handleSubmit for chat form ---
@@ -302,53 +304,280 @@ function ChatPageContent() {
 
   // --- Re-introduce Finalize Path Handler ---
    const handleFinalizePath = async () => {
-    if (!currentPlan || !currentPlan.courses || currentPlan.courses.length === 0 || isFinalizing || isLoading) {
-        setFinalizationError("Cannot finalize: Plan details are missing or an operation is in progress.");
-        return;
+    if (!currentPlan) {
+      setFinalizationError(t('chat.no_plan_to_finalize', 'There is no learning plan to finalize.'));
+      return;
     }
 
-    setFinalizationMessage(null); // Clear previous messages
+    setIsFinalizing(true);
+    setFinalizationMessage(t('chat.finalizing', 'Finalizing your learning path...'));
     setFinalizationError(null);
-    setError(null);
-    setIsFinalizing(true); // Start finalizing/loading state
-
-    // --- Show Initial Finalizing Message ---
-    setFinalizationMessage("Generating full path and content..."); // Optional: Initial message
-
-    const payload: GeneratePathPayload = {
-      prompt: initialPrompt || currentPlan.description || "User generated and finalized this learning path via chat.",
-      title: currentPlan.title || "Untitled Learning Path",
-      courses: currentPlan.courses.map(course => ({
-          title: course.title,
-          sections: course.sections?.map(section => ({ title: section.title })) || []
-      })),
-      difficulty_level: currentPlan.difficulty_level || 'Intermediate',
-      estimated_days: currentPlan.estimated_days || currentPlan.courses.length * 7
-    };
 
     try {
-        console.log('[ChatPage] Attempting apiCreatePathFromStructure...');
-        const result = await apiCreatePathFromStructure(payload);
-        console.log('[ChatPage] apiCreatePathFromStructure SUCCESS:', result);
+      // Ensure the plan has the required fields
+      const planToFinalize = {
+        ...currentPlan,
+        title: currentPlan.title || t('default_plan_title'),
+        description: currentPlan.description || '',
+        difficulty_level: currentPlan.difficulty_level || 'Intermediate',
+      };
 
-        // <<< --- UPDATE MESSAGE & REDIRECT --- >>>
-        setFinalizationMessage("Path created successfully! Redirecting to My Paths...");
+      // Log the payload
+      console.log('Plan being finalized:', JSON.stringify(planToFinalize, null, 2));
 
-        // Redirect immediately after setting the message
-        router.push('/my-paths');
-        // NOTE: We intentionally DON'T set isFinalizing=false here.
-        // The redirect will unmount the component. If the redirect fails
-        // or is slow, the "Redirecting..." message will persist.
+      // Check subscription limits before sending - added to prevent wasteful API calls
+      try {
+        const limits = await checkDailyLimits();
+        
+        if (!limits.canCreatePaths) {
+          throw new Error(limits.message || 'You have reached your subscription limit for learning paths. Please upgrade your subscription to add more learning paths.');
+        }
+        
+        setFinalizationMessage(prev => 
+          prev + '\n' + t('chat.checking_limits', 'Checking subscription limits... OK')
+        );
+      } catch (limitsError: any) {
+        // If error contains subscription messaging, handle it specially
+        if (limitsError.message && (
+          limitsError.message.includes('subscription limit') || 
+          limitsError.message.includes('upgrade your subscription')
+        )) {
+          console.warn('Subscription limit check failed:', limitsError.message);
+          setFinalizationError(limitsError.message);
+          
+          // Show subscription upgrade message
+          setFinalizationMessage(prev => 
+            prev + '\n' + t('chat.subscription_limit', 'Subscription limit reached. Redirecting to dashboard for upgrade options...')
+          );
+          
+          // Wait 3 seconds then redirect to dashboard
+          setTimeout(() => {
+            router.push(`/${locale}/dashboard?show_upgrade=true`);
+          }, 3000);
+          
+          return; // Exit early
+        }
+        
+        // For other limit check errors, just log warning but proceed with attempt
+        console.warn('Error checking limits, will attempt creation anyway:', limitsError);
+        setFinalizationMessage(prev => 
+          prev + '\n' + t('chat.limits_check_warning', 'Warning: Could not verify subscription limits, proceeding anyway...')
+        );
+      }
 
-    } catch (err: any) {
-        const errorMsg = err.response?.data?.detail || err.message || "Failed to finalize learning path.";
-        console.error("[ChatPage] Finalization API error:", err);
-        setFinalizationError(errorMsg);
-        // Set finalizing false only on error, so the button becomes active again
-        setIsFinalizing(false);
+      try {
+        // Create the learning path on the server - this returns a task
+        setFinalizationMessage(prev => 
+          prev + '\n' + t('chat.sending_plan', 'Sending learning path to server...')
+        );
+        
+        const createResponse = await apiCreatePathFromStructure(planToFinalize);
+        let learningPathId: number | null = null;
+        
+        if (createResponse && createResponse.task_id) {
+          setFinalizationMessage(prev => 
+            prev + '\n' + t('chat.task_created', 'Task created: {{task_id}}', { task_id: createResponse.task_id })
+          );
+          
+          // Poll for task completion to get the learning path ID
+          let taskStatus: TaskStatusResponse;
+          let pollCount = 0;
+          const maxPolls = 15; // Increased from 10 to 15
+          let hasSubscriptionError = false;
+          
+          // Poll until we get a learning path ID or reach max polls
+          while (pollCount < maxPolls) {
+            // Calculate wait time based on poll count
+            const pollWaitTime = Math.min(1000 * (pollCount + 1), 5000); // Start at 1s, increase to max 5s
+            
+            await new Promise(resolve => setTimeout(resolve, pollWaitTime));
+            
+            try {
+              // Try to get the task status
+              taskStatus = await apiGetTaskStatus(createResponse.task_id);
+              console.log(`Poll ${pollCount + 1}: Task status:`, JSON.stringify(taskStatus, null, 2));
+              
+              // If the task has a learning path ID, use it
+              if (taskStatus.learning_path_id) {
+                learningPathId = taskStatus.learning_path_id;
+                console.log(`Learning path ID found: ${learningPathId}`);
+                break;
+              }
+              
+              // Check for task completion without a learning path ID
+              if (taskStatus.status === 'completed' && !taskStatus.learning_path_id) {
+                // This is unusual - log it but continue polling for one more attempt
+                console.warn('Task completed but no learning_path_id provided in response');
+                setFinalizationMessage(prev => 
+                  prev + '\n' + t('chat.completed_no_id', 'Task completed but waiting for learning path ID...')
+                );
+              }
+              
+              // Check specifically for subscription limit errors
+              if (taskStatus.status === 'failed' && taskStatus.result_message && 
+                  (taskStatus.result_message.includes('subscription limit') || 
+                   taskStatus.result_message.includes('upgrade your subscription') ||
+                   taskStatus.result_message.includes('403:'))) {
+                hasSubscriptionError = true;
+                const errorMsg = typeof taskStatus.result_message === 'string' ? 
+                  taskStatus.result_message : 'Subscription limit reached. Please upgrade.';
+                  
+                throw new Error(errorMsg);
+              }
+              
+              // If the task failed for other reasons, throw a more detailed error
+              if (taskStatus.status === 'failed' || taskStatus.status === 'timeout') {
+                // Try to get detailed error information
+                const errorDetails = taskStatus.result_message || 
+                                    (taskStatus.errors && taskStatus.errors.length > 0 ? taskStatus.errors.join(', ') : '') || 
+                                    (taskStatus.error_details || 'Unknown error');
+                console.error('Task failed:', taskStatus);
+                throw new Error(t('chat.task_failed', 'Learning path creation failed: {{message}}', { 
+                  message: errorDetails 
+                }));
+              }
+              
+              // Update status message - show more details for better debugging
+              setFinalizationMessage(prev => 
+                prev + '\n' + t('chat.task_status', 'Status: {{status}}, Progress: {{progress}}%', { 
+                  status: taskStatus.status,
+                  progress: taskStatus.progress || 0
+                }) + (taskStatus.result_message ? ` - ${taskStatus.result_message}` : '') +
+                (taskStatus.stage ? ` (${taskStatus.stage})` : '')
+              );
+              
+              // Check if the task is still processing
+              if (taskStatus.status !== 'running' && 
+                  taskStatus.status !== 'pending' && 
+                  taskStatus.status !== 'starting' && 
+                  taskStatus.status !== 'queued') {
+                
+                console.warn('Task in potentially unexpected state:', taskStatus.status);
+                
+                // For any unexpected status, show a warning but continue polling
+                setFinalizationMessage(prev => 
+                  prev + '\n' + t('chat.unusual_status', 'Note: Task in {{status}} state.', { 
+                    status: taskStatus.status 
+                  })
+                );
+              }
+              
+              pollCount++;
+            } catch (error: any) {
+              console.error('Error polling task status:', error);
+              
+              // Try to capture all useful information about the error
+              const errorMessage = error.message || 'Unknown error';
+              
+              // If this is a subscription limit error, stop polling and show proper message
+              if (hasSubscriptionError || (errorMessage && (
+                  errorMessage.includes('subscription limit') || 
+                  errorMessage.includes('upgrade your subscription') ||
+                  errorMessage.includes('403:')))) {
+                
+                // Clean up the error message for display
+                const cleanErrorMessage = errorMessage
+                  .replace('Learning path creation failed: Error during saving_structure: 403:', '')
+                  .replace('403:', '')
+                  .trim();
+                
+                setFinalizationError(cleanErrorMessage || t('chat.subscription_limit_reached', 
+                  'You have reached your subscription limit for learning paths. Please upgrade your subscription.'));
+                  
+                // Update the finalization message
+                setFinalizationMessage(prev => 
+                  prev + '\n' + t('chat.redirecting_to_upgrade', 'Redirecting to dashboard for subscription options...')
+                );
+                
+                // Redirect to dashboard to show subscription options
+                setTimeout(() => {
+                  router.push(`/${locale}/dashboard?show_upgrade=true`);
+                }, 3000); // Give user time to read the message before redirecting
+                
+                return; // Exit the function early
+              }
+              
+              // If we're on the last poll attempt, throw the error to show proper message
+              if (pollCount >= maxPolls - 1) {
+                throw new Error(errorMessage);
+              }
+              
+              // Show warning in status message but continue polling
+              setFinalizationMessage(prev => 
+                prev + '\n' + t('chat.polling_error', 'Warning: Error checking status - {{error}}', {
+                  error: errorMessage
+                })
+              );
+              
+              pollCount++;
+              // Continue polling despite other errors
+            }
+          }
+          
+          // If we have a subscription error, don't continue
+          if (hasSubscriptionError) {
+            return;
+          }
+          
+          // If we couldn't get a learning path ID, try one more approach - fetch user learning paths
+          if (!learningPathId) {
+            try {
+              // If we reached max polls but task status was 'completed', try to get the learning path ID from the user's learning paths
+              setFinalizationMessage(prev => 
+                prev + '\n' + t('chat.finding_path', 'Looking for your newly created learning path...')
+              );
+              
+              // Attempt to fetch the user's learning paths
+              const response = await fetch('/api/users/me/learning-paths', {
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+                }
+              });
+
+              if (!response.ok) {
+                throw new Error(`API Error: ${response.status}`);
+              }
+
+              const data = await response.json();
+
+              if (data.learning_paths && data.learning_paths.length > 0) {
+                learningPathId = data.learning_paths[0].id;
+                console.log(`Learning path ID found: ${learningPathId}`);
+              }
+            } catch (error: any) {
+              console.error('Error finding learning path:', error);
+              setFinalizationError(error.message || t('chat.error_finding_path', 'Error finding your learning path. Please try again later.'));
+              return;
+            }
+          }
+        }
+
+        if (learningPathId) {
+          // Update message to indicate redirection
+          setFinalizationMessage(prev => 
+            prev + '\n' + t('chat.path_created_redirecting', 'Learning path created successfully! Redirecting...')
+          );
+          
+          // Redirect after a short delay
+          setTimeout(() => {
+            router.push(`/${locale}/learning-paths/${learningPathId}`);
+          }, 1500); // 1.5 second delay
+
+        } else {
+          setFinalizationError(t('chat.error_creating_path', 'Error creating learning path. Please try again later.'));
+        }
+      } catch (error: any) {
+        console.error('Error finalizing path:', error);
+        setFinalizationError(error.message || t('chat.error_finalizing_path', 'Error finalizing learning path. Please try again later.'));
+      }
+    } catch (error: any) {
+      console.error('Error finalizing path:', error);
+      setFinalizationError(error.message || t('chat.error_finalizing_path', 'Error finalizing learning path. Please try again later.'));
+    } finally {
+      setIsFinalizing(false);
     }
   };
-
 
   return (
     // Use the new two-column layout container
@@ -460,28 +689,4 @@ function ChatPageContent() {
   );
 }
 
-// --- New default export component wrapping the content in Suspense ---
-function ChatFallback() {
-  const { t } = useTranslation('common');
-  return <div className={styles.loadingFallback}>{t('chat.loading')}</div>;
-}
-
-export default function ChatPage() {
-  return (
-    <Suspense fallback={<ChatFallback />}>
-      <ChatPageContent />
-    </Suspense>
-  );
-}
-
-// --- Optional: Add some basic styling for the fallback ---
-/* Add to learn-par/app/chat/chat.module.css:
-.loadingFallback {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 80vh; // Adjust as needed
-  font-size: 1.2rem;
-  color: #555;
-}
-*/
+export default ChatPageContent;

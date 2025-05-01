@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { AuthProvider } from '@/context/AuthContext'; // Adjust path if needed
+import { NotificationProvider } from '@/context/NotificationContext'; // Add NotificationProvider
 import { LayoutClientWrapper } from '@/components/LayoutClientWrapper'; // Adjust path if needed
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
@@ -19,9 +20,11 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     // Apply layout structure styles here (previously on body)
     <div className="flex h-screen overflow-hidden bg-gray-100">
       <AuthProvider>
-        <LayoutClientWrapper>
-          {children}
-        </LayoutClientWrapper>
+        <NotificationProvider>
+          <LayoutClientWrapper>
+            {children}
+          </LayoutClientWrapper>
+        </NotificationProvider>
       </AuthProvider>
     </div>
   );

@@ -14,6 +14,7 @@ import {
     // Make sure this type is defined/imported if needed
 } from '@/services/api'; // Import these from your central types file (adjust path if needed)
 import { LearningPathCourseItem } from '@/components/Course/LearningPathCourseItem'; // Import the new component
+import { useTranslation } from 'react-i18next';
 
 // Define the props the component will receive
 interface PathDetailViewProps {
@@ -80,6 +81,7 @@ export const PathDetailView: React.FC<PathDetailViewProps> = ({
     // Explicitly check and log the locale derived from params
     const locale = Array.isArray(params.locale) ? params.locale[0] : params.locale;
     console.log('[PathDetailView] Locale from params:', locale); // Add this log
+    const { t, ready } = useTranslation('common'); // Get the ready state
 
     // --- handleCardSelect Function ---
     const handleCardSelect = useCallback((card: CardResponse, sectionId: number, sectionCards: CardResponse[], autoSelect: boolean = false) => {
@@ -176,7 +178,9 @@ export const PathDetailView: React.FC<PathDetailViewProps> = ({
 
     if (isLoadingDetails) {
         return (
-            <div className={styles.detailLoading}>Loading Path Details...</div>
+            <div className={styles.detailLoading}>
+                Loading...
+            </div>
         );
     }
 

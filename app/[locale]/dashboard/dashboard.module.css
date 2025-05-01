@@ -153,11 +153,18 @@
   margin-bottom: 1rem;
 }
 
+.cardActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 1rem;
+}
+
 .actionButton {
-  background-color: var(--primary-color);
+  padding: 8px 16px;
+  background-color: #4f46e5;
   color: white;
   border: none;
-  padding: 0.5rem 1rem;
   border-radius: 4px;
   font-size: 0.9rem;
   cursor: pointer;
@@ -165,7 +172,12 @@
 }
 
 .actionButton:hover {
-  background-color: #3c99e6;
+  background-color: #4338ca;
+  transform: translateY(-1px);
+}
+
+.actionButton:active {
+  transform: translateY(0);
 }
 
 .loadingContainer {
@@ -216,4 +228,510 @@
     width: 100%;
     margin-bottom: 0.25rem;
   }
+}
+
+/* Subscription Section Styles */
+.subscriptionSection {
+  background-color: var(--card-background);
+  border-radius: 10px;
+  box-shadow: var(--shadow-sm);
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.subscriptionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.subscriptionHeader h3 {
+  font-size: 1.2rem;
+  color: var(--text-color);
+  margin: 0;
+}
+
+.currentSubscriptionBadge {
+  background-color: #f59e0b;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.subscriptionActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+
+.upgradeButton {
+  background-color: #f59e0b;
+  color: white;
+  border: none;
+  padding: 0.5rem 1.25rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.upgradeButton:hover {
+  background-color: #d97706;
+}
+
+.upgradeContainer {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e9ecef;
+}
+
+.planSelectionContainer h4, 
+.promoCodeContainer h4 {
+  font-size: 1rem;
+  color: var(--text-color);
+  margin-bottom: 1rem;
+}
+
+.planButtons {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.planButton {
+  padding: 0.75rem 1.25rem;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  background-color: white;
+  color: var(--text-color);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex: 1;
+}
+
+.planButton:hover {
+  border-color: var(--primary-color);
+  background-color: #f5f9ff;
+}
+
+.selectedPlan {
+  border-color: var(--primary-color);
+  background-color: #f5f9ff;
+  box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.2);
+}
+
+.promoCodeContainer {
+  background-color: #fffbeb;
+  border: 1px solid #fef3c7;
+  border-radius: 6px;
+  padding: 1.25rem;
+  margin-top: 1rem;
+}
+
+.promoCodeContainer h4 {
+  font-size: 1rem;
+  color: #92400e;
+  margin-bottom: 1rem;
+}
+
+.promoCodeForm {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.promoCodeInput {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  background-color: white;
+}
+
+.promoCodeInput:focus {
+  outline: none;
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.1);
+}
+
+.promoInfo {
+  font-size: 0.85rem;
+  color: #92400e;
+  margin-top: 0.75rem;
+}
+
+.error {
+  background-color: #fed7d7;
+  color: #c53030;
+  padding: 0.75rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.success {
+  background-color: #c6f6d5;
+  color: #2f855a;
+  padding: 0.75rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.unlimitedBadge {
+  display: inline-block;
+  padding: 4px 12px;
+  background: linear-gradient(90deg, #8b5cf6 0%, #6366f1 100%);
+  color: white;
+  border-radius: 9999px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  box-shadow: 0 2px 4px rgba(99, 102, 241, 0.3);
+  margin-right: 8px;
+}
+
+/* Usage Stats Styles */
+.usageStatsContainer {
+  margin-top: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.usageStatsTitle {
+  font-size: 1rem;
+  color: var(--text-color);
+  margin-bottom: 1rem;
+}
+
+.usageStatsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.usageStatItem {
+  background-color: #f8f9fa;
+  padding: 1rem;
+  border-radius: 6px;
+}
+
+.usageStatLabel {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.progressBarContainer {
+  position: relative;
+}
+
+.progressBar {
+  height: 8px;
+  background-color: #e9ecef;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.progressBarFill {
+  height: 100%;
+  background-color: #f59e0b; /* Amber color like in the screenshot */
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.progressBarFill.limit {
+  background-color: #e53e3e;
+}
+
+.progressBarText {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  text-align: right;
+}
+
+@media (max-width: 768px) {
+  .usageStatsGrid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .planButtons {
+    flex-direction: column;
+  }
+  
+  .promoCodeForm {
+    flex-direction: column;
+  }
+}
+
+.applyButton {
+  background-color: #f59e0b;
+  color: white;
+  border: none;
+  padding: 0.5rem 1.25rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.applyButton:hover {
+  background-color: #d97706;
+}
+
+.applyButton:disabled {
+  background-color: #a0aec0;
+  cursor: not-allowed;
+}
+
+.demoNote {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background-color: #e0f2fe;
+  border: 1px dashed #38bdf8;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  color: #0c4a6e;
+}
+
+.demoNote ul {
+  margin: 0.5rem 0 0 1.5rem;
+  padding: 0;
+}
+
+.demoNote li {
+  margin-bottom: 0.25rem;
+}
+
+.demoNote code {
+  background-color: #f1f5f9;
+  padding: 0.125rem 0.25rem;
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 0.85rem;
+}
+
+/* Add these styles to the bottom of the file or in the appropriate section */
+
+.featureTable {
+  margin-top: 2rem;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background-color: #fff;
+}
+
+.subscriptionTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.subscriptionTable th,
+.subscriptionTable td {
+  padding: 12px 16px;
+  text-align: center;
+  border-bottom: 1px solid #eaeaea;
+}
+
+.subscriptionTable th {
+  background-color: #f7f7f7;
+  font-weight: 600;
+  color: #333;
+}
+
+.subscriptionTable tr:last-child td {
+  border-bottom: none;
+}
+
+.subscriptionTable td:first-child {
+  text-align: left;
+  font-weight: 500;
+}
+
+.remainingIndicator {
+  font-size: 0.8rem;
+  color: #666;
+  margin-left: 8px;
+}
+
+.dailyLimitInfo {
+  font-size: 0.85rem;
+  color: #666;
+  margin-top: 1rem;
+  font-style: italic;
+}
+
+.unlimitedBadge {
+  display: inline-block;
+  padding: 4px 12px;
+  background: linear-gradient(90deg, #8b5cf6 0%, #6366f1 100%);
+  color: white;
+  border-radius: 9999px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  box-shadow: 0 2px 4px rgba(99, 102, 241, 0.3);
+  margin-right: 8px;
+}
+
+/* Style updates for existing components */
+.usageStatsContainer {
+  margin-bottom: 1.5rem;
+  padding: 1.25rem;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+}
+
+.usageStatsTitle {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+  color: #333;
+}
+
+/* Progress bar colors */
+.progressBarFill.limit {
+  background-color: #e74c3c;
+}
+
+/* Add these styles for the limit warnings */
+
+.limitWarningsContainer {
+  margin-bottom: 1rem;
+}
+
+.limitAlert,
+.limitWarning {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+  padding: 12px 16px;
+  border-radius: 6px;
+}
+
+.limitAlert {
+  background-color: #fee2e2;
+  border: 1px solid #ef4444;
+  border-radius: var(--border-radius);
+  margin-bottom: 16px;
+  transition: all 0.3s ease;
+}
+
+.limitWarning {
+  background-color: #fff7ed;
+  border: 1px solid #f97316;
+}
+
+.alertIcon,
+.warningIcon {
+  margin-right: 12px;
+  font-size: 1.25rem;
+}
+
+.alertText,
+.warningText {
+  flex: 1;
+}
+
+.alertText strong,
+.warningText strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 1rem;
+}
+
+.alertText p,
+.warningText p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #4b5563;
+}
+
+.upgradePromptButton {
+  margin-top: 8px;
+  padding: 6px 12px;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.upgradePromptButton:hover {
+  background-color: #2563eb;
+}
+
+.fallbackSubscriptionInfo {
+  margin-top: 1.5rem;
+  padding: 1.2rem;
+  background-color: #f8fafc;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+}
+
+.fallbackSubscriptionInfo h4 {
+  font-size: 1.1rem;
+  margin-bottom: 0.75rem;
+  color: var(--text-color);
+}
+
+.fallbackSubscriptionInfo ul {
+  margin-top: 0.5rem;
+  margin-bottom: 1rem;
+  padding-left: 1.5rem;
+}
+
+.fallbackSubscriptionInfo li {
+  margin-bottom: 0.5rem;
+}
+
+.fallbackSubscriptionInfo p {
+  margin-bottom: 0.75rem;
+  color: #555;
+}
+
+/* New highlighted alert style for subscription redirects */
+.highlightedAlert {
+  border: 2px solid #ff5722;
+  box-shadow: 0 4px 12px rgba(255, 87, 34, 0.2);
+  animation: pulseBorder 2s infinite;
+  background-color: rgba(255, 87, 34, 0.05);
+}
+
+@keyframes pulseBorder {
+  0% {
+    border-color: #ff5722;
+    box-shadow: 0 4px 12px rgba(255, 87, 34, 0.2);
+  }
+  50% {
+    border-color: #ff9800;
+    box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
+  }
+  100% {
+    border-color: #ff5722;
+    box-shadow: 0 4px 12px rgba(255, 87, 34, 0.2);
+  }
+}
+
+.upgradeOptions {
+  margin: 8px 0;
+  padding-left: 20px;
+  color: #555;
+  font-size: 0.9em;
+}
+
+.upgradeOptions li {
+  margin-bottom: 4px;
+}
+
+.upgradeOptions strong {
+  color: #333;
+  font-weight: 600;
 } 

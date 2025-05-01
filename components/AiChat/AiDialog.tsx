@@ -10,14 +10,14 @@ interface AiDialogProps {
   onQuerySubmit: (submittedQuery: string) => void;
 }
 
-// Define suggestion keywords
+// Define suggestion keywords with a mix of short and longer options
 const suggestions = [
-  { text: 'Learn Python', icon: '🐍' },
-  { text: 'Start Knitting', icon: '🧶' },
-  { text: 'Understand AI', icon: '🤖' },
-  { text: 'History of Jazz', icon: '🎷' },
-  { text: 'Bake Sourdough', icon: '🍞' },
-  { text: 'Photography Basics', icon: '📷' },
+  { text: 'quantum physics', icon: '⚛️' },
+  { text: 'improve critical thinking', icon: '🧠' },
+  { text: 'dinosaur facts', icon: '🦖' },
+  { text: 'public speaking tips', icon: '🎤' },
+  { text: 'machine learning roadmap', icon: '🤖' },
+  { text: 'design thinking', icon: '💡' },
 ];
 
 export function AiDialog({ query, setQuery, onQuerySubmit }: AiDialogProps) {
@@ -98,13 +98,13 @@ export function AiDialog({ query, setQuery, onQuerySubmit }: AiDialogProps) {
 
       {/* Suggestions Area */}
       <div className={styles.suggestions}>
-        {suggestions.map((suggestion) => (
+        {suggestions.map((suggestion, index) => (
           <button
-            key={suggestion.text}
-            type="button" // Important: prevent form submission
+            key={index}
+            type="button"
             className={styles.suggestionButton}
             onClick={() => handleSuggestionClick(suggestion.text)}
-            disabled={isSubmitting} // Disable suggestions while submitting
+            disabled={isSubmitting}
           >
             <span className={styles.suggestionButtonIcon}>{suggestion.icon}</span>
             {suggestion.text}

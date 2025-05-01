@@ -25,11 +25,13 @@
     "explore": "Explore",
     "my_paths": "My Paths",
     "knowledge_map": "Knowledge Map",
+    "calendar": "Study Calendar",
     "dashboard": "Dashboard",
     "login": "Login",
     "logout": "Logout",
     "expand": "Expand Sidebar",
-    "collapse": "Collapse Sidebar"
+    "collapse": "Collapse Sidebar",
+    "subscription": "Subscription"
   },
   "login": {
     "title": "Log In",
@@ -42,10 +44,16 @@
     "logging_in": "Logging in...",
     "no_account": "Don't have an account?",
     "register": "Register",
-    "error": "Invalid username or password. Please try again."
+    "error": "Invalid username or password. Please try again.",
+    "oauth_error": "Authentication failed"
   },
   "oauth": {
-    "processing": "Processing your login... Please wait."
+    "processing": "Processing your login... Please wait.",
+    "error_title": "Authentication Error",
+    "csrf_error": "Security validation failed. Please try logging in again.",
+    "unknown_error": "An unknown error occurred during authentication.",
+    "redirect_message": "You will be redirected to the login page shortly.",
+    "try_again": "Please try again or use a different login method."
   },
   "dashboard": {
     "welcome": "Welcome to Your Dashboard",
@@ -103,5 +111,68 @@
     "ready_to_start": "Ready to Start",
     "delete_path_confirm": "Are you sure you want to delete this learning path? This action cannot be undone.",
     "error_deleting_path": "Failed to delete the learning path. Please try again."
+  },
+  "calendar": {
+    "title": "Study Calendar",
+    "description": "Manage your study schedule and tasks",
+    "no_tasks": "No tasks scheduled",
+    "upcoming_tasks": "Upcoming Tasks",
+    "previous": "Previous",
+    "next": "Next",
+    "today": "Today",
+    "day": "Day",
+    "week": "Week",
+    "month": "Month",
+    "all_day": "All day",
+    "task_details": "Task Details",
+    "close": "Close",
+    "status": {
+      "label": "Status",
+      "todo": "To Do",
+      "done": "Completed",
+      "skipped": "Skipped"
+    },
+    "scheduled_for": "Scheduled for",
+    "edit": "Edit",
+    "cancel": "Cancel",
+    "date": "Date",
+    "start_time": "Start Time",
+    "end_time": "End Time",
+    "save_changes": "Save Changes",
+    "notes": "Notes",
+    "add_note": "Add a note...",
+    "save_note": "Save Note",
+    "no_notes": "No notes added",
+    "card_id": "Card ID",
+    "section_id": "Section ID",
+    "course_id": "Course ID",
+    "mark_complete": "Mark as complete",
+    "mark_incomplete": "Mark as incomplete"
+  },
+  "Subscription": {
+    "subscriptionPlans": "Subscription Plans",
+    "currentUsage": "Current Usage",
+    "freeTier": "Free Tier",
+    "standardTier": "Standard Tier",
+    "premiumTier": "Premium Tier",
+    "free": "Free",
+    "month": "month",
+    "learningPaths": "Learning Paths",
+    "flashcards": "Flashcards",
+    "customSections": "Custom Sections",
+    "aiAssistant": "AI Learning Assistant",
+    "prioritySupport": "Priority Support",
+    "advancedAnalytics": "Advanced Analytics",
+    "currentPlan": "Current Plan",
+    "upgrade": "Upgrade",
+    "downgrade": "Downgrade",
+    "promoCodeTitle": "Have a Promotion Code?",
+    "enterPromoCode": "Enter promotion code",
+    "applyAndUpgrade": "Apply and Upgrade",
+    "processing": "Processing...",
+    "promoCodeInfo": "Standard tier promotion code: zeroai#0430. Premium tier promotion code: zeroultra#2025",
+    "needHelp": "Need Help?",
+    "contactSupport": "Contact support",
+    "loading": "Loading subscription information..."
   }
 }

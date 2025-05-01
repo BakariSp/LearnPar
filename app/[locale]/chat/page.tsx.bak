@@ -1,0 +1,586 @@
+'use client';
+import { useTranslation } from 'react-i18next'; 
+import React, { useState, useRef, useEffect, useCallback, Suspense } from 'react';
+// Removed axios import as fetch is used
+import styles from './chat.module.css';
+import formStyles from '../../../components/Shared/InputForm.module.css';
+// Ensure type names don't clash if reused locally
+import { EditableLearningPath, Course as EditableCourseDefinition, Section as EditableSectionDefinition } from '../../../components/Course/EditableLearningPath';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
+// Import the missing types along with existing ones
+import { FullLearningPathResponse, GeneratePathPayload, apiCreatePathFromStructure, apiGetTaskStatus, TaskStatusResponse, CourseResponse, SectionResponse, CardResponse } from '@/services/api'; // Keep this type, Removed apiGenerateFullPath
+// Import subscription related functions
+import { checkDailyLimits } from '@/services/api/subscription';
+// Remove NotificationContext import if no longer needed anywhere else in this file
+// import { useNotificationContext } from '@/context/NotificationContext';
+
+// --- Define Dialogue types here ---
+interface DialogueMessage {
+  role: 'user' | 'ai' | 'error'; // Add error role for display
+  content: string;
+}
+
+interface DialogueRequestPayload {
+  user_input: string;
+  current_plan?: object | null;
+  chat_history?: string[];
+}
+
+// Define expected structure from /api/ai/dialogue response
+interface DialogueResponseData {
+    status: {
+        has_learning_path: boolean;
+        has_courses: boolean;
+        has_sections?: boolean; // Optional
+        has_cards?: boolean; // Optional
+    };
+    result: {
+        learning_path?: Partial<FullLearningPathResponse>;
+        courses?: any[]; // Use specific type if available e.g., EditableCourseDefinition[]
+        sections?: any[]; // Use specific type if available
+        cards?: any[]; // Use specific type if available
+    };
+    ai_reply: string;
+}
+// --- End Dialogue Types ---
+
+// Keep the LearningPlan type alias
+type LearningPlan = FullLearningPathResponse | null;
+
+// --- Rename the original component ---
+function ChatPageContent() {
+  const { t } = useTranslation('common');
+  const params = useParams();
+  const locale = Array.isArray(params.locale) ? params.locale[0] : params.locale;
+
+  // --- Re-introduce chat-specific state ---
+  const [userInput, setUserInput] = useState('');
+  const [messages, setMessages] = useState<DialogueMessage[]>([]);
+  const [isLoading, setIsLoading] = useState(false); // Loading state for chat
+  const [error, setError] = useState<string | null>(null); // Chat errors
+
+  const [currentPlan, setCurrentPlan] = useState<LearningPlan>(null); // State for the plan remains
+  const [initialPrompt, setInitialPrompt] = useState<string | null>(null); // State to hold initial prompt
+
+  // --- Re-introduce Finalization State ---
+  const [isFinalizing, setIsFinalizing] = useState(false);
+  const [finalizationMessage, setFinalizationMessage] = useState<string | null>(null);
+  const [finalizationError, setFinalizationError] = useState<string | null>(null);
+
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialPromptProcessed = useRef(false);
+  const chatEndRef = useRef<HTMLDivElement>(null); // Chat scroll ref
+  // Remove if NotificationContext is not used elsewhere in this file
+  // const { setHasNewPaths } = useNotificationContext();
+
+  // --- Re-introduce chat scroll effect ---
+  useEffect(() => {
+     // Only scroll if there are messages
+     if (messages.length > 0) {
+        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+     }
+  }, [messages]);
+
+  // Handler to update plan based on AI response or direct manipulation
+   const handlePlanUpdateFromAI = useCallback((updatedPlanData: Partial<LearningPlan>) => {
+     setCurrentPlan(prevPlan => {
+        // Simple merge: Overwrites existing top-level keys, replaces courses array entirely if present
+        const mergedPlan = {
+            ...(prevPlan || {}), // Start with previous plan or empty object
+            ...updatedPlanData   // Apply updates from AI
+        };
+        // Ensure courses array exists if plan is not null
+        if (mergedPlan && !mergedPlan.courses) {
+            mergedPlan.courses = [];
+        }
+        // Ensure essential fields exist if creating a new plan
+        if (!prevPlan && mergedPlan) {
+            mergedPlan.title = mergedPlan.title || t('default_plan_title'); 
+            mergedPlan.difficulty_level = mergedPlan.difficulty_level || "Intermediate";
+            // Add other defaults if needed
+        }
+        return mergedPlan as LearningPlan;
+     });
+  }, [t]);
+
+
+  // --- Re-introduce sendMessage function ---
+  const sendMessage = useCallback(async (input: string, planOverride?: LearningPlan | null, history?: DialogueMessage[]) => {
+    if (!input.trim() && !planOverride) return; // Don't send empty messages unless it's an initial plan generation
+
+    const currentHistory = history || messages;
+    let updatedMessages = [...currentHistory];
+
+    // Add user message only if input is not empty (initial prompt might not have user input text)
+    if (input.trim()) {
+        const userMessage: DialogueMessage = { role: 'user', content: input };
+        updatedMessages = [...updatedMessages, userMessage];
+        setMessages(updatedMessages);
+        setUserInput(''); // Clear input field
+    }
+
+    setIsLoading(true);
+    setError(null);
+    setFinalizationError(null); // Clear finalization errors on new message
+    setFinalizationMessage(null); // Clear finalization messages
+
+    // Prepare chat history for API
+    const apiChatHistory = updatedMessages
+        .filter(msg => msg.role !== 'error') // Don't send error messages back
+        .slice(-10) // Keep history limit
+        .map(msg => `${msg.role}: ${msg.content}`);
+
+    // Use planOverride if provided (e.g., for initial prompt), otherwise use current plan state
+    const planToSend = planOverride !== undefined ? planOverride : currentPlan;
+
+    const payload: DialogueRequestPayload = {
+      user_input: input,
+      // Ensure current_plan is null or a valid object, not undefined
+      current_plan: planToSend ? { ...planToSend } : null,
+      chat_history: apiChatHistory,
+    };
+
+    try {
+      const response = await fetch(`/api/ai/dialogue`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        let errorDetail = `API Error: ${response.status}`; // Default message with status
+        // Clone the response here so we can potentially read the body twice
+        const responseForErrorHandling = response.clone();
+
+        try {
+          // Try to parse JSON from the original response
+          const errorData = await response.json();
+          // Use the 'detail' field if available, otherwise stringify the whole object for context
+          errorDetail = errorData.detail || JSON.stringify(errorData);
+        } catch (jsonError) {
+          // If JSON parsing fails, the response body might be text or HTML
+          console.warn("API error response was not valid JSON. Trying to read as text.", jsonError);
+          try {
+            // Use the cloned response to read as text
+            const errorText = await responseForErrorHandling.text();
+            // Use the text if available, otherwise stick with the status code message
+            if (errorText) {
+              // Limit length to avoid overly long messages in UI
+              errorDetail = `API Error ${response.status}: ${errorText.substring(0, 150)}${errorText.length > 150 ? '...' : ''}`;
+            }
+          } catch (textError) {
+            // If reading as text also fails, log it but stick with the status code message
+            console.error("Failed to read API error response body as text:", textError);
+          }
+        }
+        // Throw the error with the best detail we could get
+        throw new Error(errorDetail);
+      }
+
+      // If response.ok is true, read the JSON body from the original response
+      const data: DialogueResponseData = await response.json();
+
+      // Add AI reply to messages
+      if (data.ai_reply) {
+          setMessages(prev => [...prev, { role: 'ai', content: data.ai_reply }]);
+      }
+
+      // --- Logic to build updated plan data and notify parent (self) ---
+      let planUpdates: Partial<LearningPlan> = {};
+      let planChanged = false;
+
+      // Check for learning path top-level updates (title, difficulty etc.)
+      if (data.status.has_learning_path && data.result.learning_path) {
+          planUpdates = { ...planUpdates, ...data.result.learning_path };
+          planChanged = true;
+      }
+      // Check for course list updates
+      if (data.status.has_courses && data.result.courses) {
+          // Ensure courses have a structure compatible with LearningPlan (CourseResponse[])
+          const formattedCourses: CourseResponse[] = data.result.courses.map((course, index) => ({
+              // --- CourseResponse Fields ---
+              id: course.id, // Rely on API ID
+              title: course.title || `${t('default_course_title')} ${index + 1}`,
+              description: course.description || "", // Default description
+              estimated_days: course.estimated_days || 0, // Default estimated_days
+              created_at: course.created_at, // Rely on API timestamp
+              updated_at: course.updated_at, // Rely on API timestamp
+              // --- Map Sections to SectionResponse ---
+              sections: course.sections?.map((section: any, sIndex: number): SectionResponse => ({
+                  id: section.id, // Rely on API ID
+                  title: section.title || `${t('default_section_title')} ${sIndex + 1}`,
+                  description: section.description || "", // Default description
+                  order_index: section.order_index ?? sIndex, // Keep order_index for sections
+                  estimated_days: section.estimated_days || 0, // Default estimated_days
+                  cards: section.cards || [], // Default to empty cards array
+                  created_at: section.created_at, // Rely on API timestamp
+                  updated_at: section.updated_at, // Rely on API timestamp
+              })) || [],
+          }));
+          planUpdates = { ...planUpdates, courses: formattedCourses };
+          planChanged = true;
+      }
+      // Add logic for sections/cards if the API provides them separately and needs merging
+
+      // If the plan structure was updated, call the state update handler
+      if (planChanged && planUpdates && Object.keys(planUpdates).length > 0) {
+          handlePlanUpdateFromAI(planUpdates);
+      }
+      // --- End notification logic ---
+
+    } catch (err: any) {
+      console.error('Dialogue API error:', err);
+      const errorMessage = err.message || t('error_default');
+      setError(errorMessage); // Set chat error state
+      // Add an error message to the chat display
+      setMessages(prev => [...prev, { role: 'error', content: errorMessage }]);
+    } finally {
+      setIsLoading(false);
+    }
+    // Pass handlePlanUpdateFromAI as dependency
+  }, [messages, currentPlan, handlePlanUpdateFromAI, t]); // Removed unnecessary locale dependency
+
+
+  // Handle initial prompt from URL query parameter
+  useEffect(() => {
+    if (!initialPromptProcessed.current) {
+      const queryPrompt = searchParams.get('prompt');
+      if (queryPrompt) {
+        initialPromptProcessed.current = true;
+        const decodedPrompt = decodeURIComponent(queryPrompt);
+        setInitialPrompt(decodedPrompt); // Keep track of the initial prompt text
+        // Send the initial prompt via the sendMessage function
+        // Pass null for planOverride initially, API should generate from scratch
+        sendMessage(decodedPrompt, null, []);
+        // Clean the URL
+        router.replace(`/${locale}/chat`);
+      }
+    }
+    // Add sendMessage to dependency array
+  }, [searchParams, router, sendMessage, locale]);
+
+
+  // --- Re-introduce handleSubmit for chat form ---
+  const handleSubmit = (e: React.FormEvent) => {
+     e.preventDefault();
+     sendMessage(userInput); // Send current user input using the local sendMessage
+  };
+
+  // --- Handlers for EditableLearningPath (modified - removed sendMessage calls) ---
+  const handleDeleteCourse = (courseId: string | number) => {
+    if (!currentPlan || !currentPlan.courses) return;
+    // Filter using the correct course ID
+    const updatedCourses = currentPlan.courses.filter(course => course.id !== courseId);
+    // Remove the renumbering step that added order_index back
+    // Ensure updatedPlan.courses matches the expected CourseResponse[] structure
+    const updatedPlan = { ...currentPlan, courses: updatedCourses };
+    setCurrentPlan(updatedPlan);
+    // Optionally: Inform AI about the deletion?
+    sendMessage(`I have deleted the course titled "${currentPlan.courses.find(c => c.id === courseId)?.title}". Please acknowledge.`, updatedPlan);
+  };
+
+  const handleReorderCourses = (reorderedCourses: EditableCourseDefinition[]) => {
+    if (!currentPlan) return;
+    // Map reordered courses back to the expected structure (e.g., CourseResponse)
+    // Assuming CourseResponse doesn't have order_index, remove it.
+    // Adjust this mapping if CourseResponse structure differs significantly.
+    const coursesForState = reorderedCourses.map(({ order_index, ...rest }) => rest);
+
+    const updatedPlan = { ...currentPlan, courses: coursesForState as any }; // Use 'as any' for now to bypass strict type check, review needed
+    setCurrentPlan(updatedPlan);
+     // Optionally: Inform AI about the reorder?
+    sendMessage(`I have reordered the courses. Please acknowledge.`, updatedPlan);
+  };
+
+  const handleDifficultyChange = (difficulty: string) => {
+    if (!currentPlan) return;
+    const updatedPlan = { ...currentPlan, difficulty_level: difficulty };
+    setCurrentPlan(updatedPlan);
+    // Optionally: Inform AI about the difficulty change?
+    sendMessage(`I have changed the difficulty to ${difficulty}. Please update the plan if necessary.`, updatedPlan);
+  };
+
+
+  // --- Re-introduce Finalize Path Handler ---
+   const handleFinalizePath = async () => {
+    if (!currentPlan) {
+      setFinalizationError(t('chat.no_plan_to_finalize', 'There is no learning plan to finalize.'));
+      return;
+    }
+
+    setIsFinalizing(true);
+    setFinalizationMessage(t('chat.finalizing', 'Finalizing your learning path...'));
+    setFinalizationError(null);
+
+    try {
+      // Ensure the plan has the required fields
+      const planToFinalize = {
+        ...currentPlan,
+        title: currentPlan.title || t('default_plan_title'),
+        description: currentPlan.description || '',
+        difficulty_level: currentPlan.difficulty_level || 'Intermediate',
+      };
+
+      // Log the payload
+      console.log('Plan being finalized:', JSON.stringify(planToFinalize, null, 2));
+
+      // Check subscription limits before sending - added to prevent wasteful API calls
+      try {
+        const limits = await checkDailyLimits();
+        
+        if (!limits.canCreatePaths) {
+          throw new Error(limits.message || 'You have reached your subscription limit for learning paths. Please upgrade your subscription to add more learning paths.');
+        }
+        
+        setFinalizationMessage(prev => 
+          prev + '\n' + t('chat.checking_limits', 'Checking subscription limits... OK')
+        );
+      } catch (limitsError: any) {
+        // If error contains subscription messaging, handle it specially
+        if (limitsError.message && (
+          limitsError.message.includes('subscription limit') || 
+          limitsError.message.includes('upgrade your subscription')
+        )) {
+          console.warn('Subscription limit check failed:', limitsError.message);
+          setFinalizationError(limitsError.message);
+          
+          // Show subscription upgrade message
+          setFinalizationMessage(prev => 
+            prev + '\n' + t('chat.subscription_limit', 'Subscription limit reached. Redirecting to dashboard for upgrade options...')
+          );
+          
+          // Wait 3 seconds then redirect to dashboard
+          setTimeout(() => {
+            router.push(`/${locale}/dashboard?show_upgrade=true`);
+          }, 3000);
+          
+          return; // Exit early
+        }
+        
+        // For other limit check errors, just log warning but proceed with attempt
+        console.warn('Error checking limits, will attempt creation anyway:', limitsError);
+        setFinalizationMessage(prev => 
+          prev + '\n' + t('chat.limits_check_warning', 'Warning: Could not verify subscription limits, proceeding anyway...')
+        );
+      }
+
+      try {
+        // Create the learning path on the server - this returns a task
+        setFinalizationMessage(prev => 
+          prev + '\n' + t('chat.sending_plan', 'Sending learning path to server...')
+        );
+        
+        const createResponse = await apiCreatePathFromStructure(planToFinalize);
+        
+        if (createResponse && createResponse.task_id) {
+          setFinalizationMessage(prev => 
+            prev + '\n' + t('chat.task_created', 'Task created: {{task_id}}', { task_id: createResponse.task_id })
+          );
+          
+          // Poll for task completion to get the learning path ID
+          let taskStatus: TaskStatusResponse;
+          let pollCount = 0;
+          const maxPolls = 15; // Increased from 10 to 15
+          let learningPathId: number | null = null;
+          let hasSubscriptionError = false;
+          
+          // Poll until we get a learning path ID or reach max polls
+          while (pollCount < maxPolls) {
+            // Increase the wait time between polls
+            const waitTime = 2000; // 2 seconds
+            setFinalizationMessage(prev => 
+              prev + '\n' + t('chat.polling', 'Checking task status (attempt {{count}}/{{max}})...', 
+                { count: pollCount + 1, max: maxPolls })
+            );
+            
+            await new Promise(resolve => setTimeout(resolve, waitTime));
+            
+            try {
+              // Try to get the task status
+              taskStatus = await apiGetTaskStatus(createResponse.task_id);
+              console.log(`Poll ${pollCount + 1}: Task status:`, JSON.stringify(taskStatus, null, 2));
+              
+              // If the task has a learning path ID, use it
+              if (taskStatus.learning_path_id) {
+                learningPathId = taskStatus.learning_path_id;
+                console.log(`Learning path ID found: ${learningPathId}`);
+                break;
+              }
+              
+              // Check for task completion without a learning path ID
+              if (taskStatus.status === 'completed' && !taskStatus.learning_path_id) {
+                // This is unusual - log it but continue polling for one more attempt
+                console.warn('Task completed but no learning_path_id provided in response');
+                setFinalizationMessage(prev => 
+                  prev + '\n' + t('chat.completed_no_id', 'Task completed but waiting for learning path ID...')
+                );
+              }
+              
+              // Check specifically for subscription limit errors
+              if (taskStatus.status === 'failed' && taskStatus.result_message && 
+                  (taskStatus.result_message.includes('subscription limit') || 
+                   taskStatus.result_message.includes('upgrade your subscription') ||
+                   taskStatus.result_message.includes('403:'))) {
+                hasSubscriptionError = true;
+                const errorMsg = typeof taskStatus.result_message === 'string' ? 
+                  taskStatus.result_message : 'Subscription limit reached. Please upgrade.';
+                  
+                throw new Error(errorMsg);
+              }
+              
+              // If the task failed for other reasons, throw a more detailed error
+              if (taskStatus.status === 'failed' || taskStatus.status === 'timeout') {
+                // Try to get detailed error information
+                const errorDetails = taskStatus.result_message || 
+                                    (taskStatus.errors && taskStatus.errors.length > 0 ? taskStatus.errors.join(', ') : '') || 
+                                    (taskStatus.error_details || 'Unknown error');
+                console.error('Task failed:', taskStatus);
+                throw new Error(t('chat.task_failed', 'Learning path creation failed: {{message}}', { 
+                  message: errorDetails 
+                }));
+              }
+              
+              // Update status message - show more details for better debugging
+              setFinalizationMessage(prev => 
+                prev + '\n' + t('chat.task_status', 'Status: {{status}}, Progress: {{progress}}%', { 
+                  status: taskStatus.status,
+                  progress: taskStatus.progress || 0
+                }) + (taskStatus.result_message ? ` - ${taskStatus.result_message}` : '') +
+                (taskStatus.stage ? ` (${taskStatus.stage})` : '')
+              );
+              
+              // Check if the task is still processing
+              if (taskStatus.status !== 'running' && 
+                  taskStatus.status !== 'pending' && 
+                  taskStatus.status !== 'starting' && 
+                  taskStatus.status !== 'queued') {
+                
+                console.warn('Task in potentially unexpected state:', taskStatus.status);
+                
+                // For any unexpected status, show a warning but continue polling
+                setFinalizationMessage(prev => 
+                  prev + '\n' + t('chat.unusual_status', 'Note: Task in {{status}} state.', { 
+                    status: taskStatus.status 
+                  })
+                );
+              }
+              
+              pollCount++;
+            } catch (error: any) {
+              console.error('Error polling task status:', error);
+              
+              // Try to capture all useful information about the error
+              let errorMessage = error.message || 'Unknown error';
+              
+              // If this is a subscription limit error, stop polling and show proper message
+              if (hasSubscriptionError || (errorMessage && (
+                  errorMessage.includes('subscription limit') || 
+                  errorMessage.includes('upgrade your subscription') ||
+                  errorMessage.includes('403:')))) {
+                
+                // Clean up the error message for display
+                const cleanErrorMessage = errorMessage
+                  .replace('Learning path creation failed: Error during saving_structure: 403:', '')
+                  .replace('403:', '')
+                  .trim();
+                
+                setFinalizationError(cleanErrorMessage || t('chat.subscription_limit_reached', 
+                  'You have reached your subscription limit for learning paths. Please upgrade your subscription.'));
+                  
+                // Update the finalization message
+                setFinalizationMessage(prev => 
+                  prev + '\n' + t('chat.redirecting_to_upgrade', 'Redirecting to dashboard for subscription options...')
+                );
+                
+                // Redirect to dashboard to show subscription options
+                setTimeout(() => {
+                  router.push(`/${locale}/dashboard?show_upgrade=true`);
+                }, 3000); // Give user time to read the message before redirecting
+                
+                return; // Exit the function early
+              }
+              
+              // If we're on the last poll attempt, throw the error to show proper message
+              if (pollCount >= maxPolls - 1) {
+                throw new Error(errorMessage);
+              }
+              
+              // Show warning in status message but continue polling
+              setFinalizationMessage(prev => 
+                prev + '\n' + t('chat.polling_error', 'Warning: Error checking status - {{error}}', {
+                  error: errorMessage
+                })
+              );
+              
+              pollCount++;
+              // Continue polling despite other errors
+            }
+          }
+          
+          // If we have a subscription error, don't continue
+          if (hasSubscriptionError) {
+            return;
+          }
+          
+          // If we couldn't get a learning path ID, try one more approach - fetch user learning paths
+          if (!learningPathId) {
+            try {
+              // If we reached max polls but task status was 'completed', try to get the learning path ID from the user's learning paths
+              setFinalizationMessage(prev => 
+                prev + '\n' + t('chat.finding_path', 'Looking for your newly created learning path...')
+              );
+              
+              // Attempt to fetch the user's learning paths
+              const response = await fetch('/api/users/me/learning-paths', {
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+                }
+              });
+
+              if (!response.ok) {
+                throw new Error(`API Error: ${response.status}`);
+              }
+
+              const data = await response.json();
+
+              if (data.learning_paths && data.learning_paths.length > 0) {
+                learningPathId = data.learning_paths[0].id;
+                console.log(`Learning path ID found: ${learningPathId}`);
+              }
+            } catch (error: any) {
+              console.error('Error finding learning path:', error);
+              setFinalizationError(error.message || t('chat.error_finding_path', 'Error finding your learning path. Please try again later.'));
+              return;
+            }
+          }
+        }
+
+        if (learningPathId) {
+          setFinalizationMessage(prev => 
+            prev + '\n' + t('chat.path_created', 'Learning path created successfully!')
+          );
+        } else {
+          setFinalizationError(t('chat.error_creating_path', 'Error creating learning path. Please try again later.'));
+        }
+      } catch (error: any) {
+        console.error('Error finalizing path:', error);
+        setFinalizationError(error.message || t('chat.error_finalizing_path', 'Error finalizing learning path. Please try again later.'));
+      }
+    } catch (error: any) {
+      console.error('Error finalizing path:', error);
+      setFinalizationError(error.message || t('chat.error_finalizing_path', 'Error finalizing learning path. Please try again later.'));
+    } finally {
+      setIsFinalizing(false);
+    }
+  };
+
+  return (
+    <div className={styles.chatPage}>
+      {/* Rest of the component content */}
+    </div>
+  );
+}
+
+export default ChatPageContent;

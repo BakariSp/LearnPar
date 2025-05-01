@@ -1,7 +1,7 @@
 // import { LoginCredentials } from './auth'; // Assuming LoginCredentials is defined elsewhere or above
 
 const AUTH_TOKEN_KEY = 'auth_token';
-const API_BASE_URL = 'https://zero-ai-d9e8f5hgczgremge.westus-01.azurewebsites.net'; // Use HTTPS
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export interface LoginCredentials {
   username: string;
@@ -63,42 +63,103 @@ export const logout = () => {
 export const apiClient = async (url: string, options: RequestInit = {}) => {
   const token = getToken();
 
+  if (!token && !url.includes('/token')) { // Skip token check for login requests
+    console.warn(`API request to ${url} made without authentication token`);
+  }
+
+  // Initialize headers safely to prevent undefined errors
   const headers = {
-    ...options.headers,
     'Authorization': token ? `Bearer ${token}` : '',
-    // Keep Content-Type flexible, let caller override if needed (e.g., for form data)
-    // Default to JSON only if no Content-Type is provided in options
-    ...(!options.headers || !(options.headers as Record<string, string>)['Content-Type']) && {
-        'Content-Type': 'application/json'
-    },
+    // Default to application/json if no Content-Type specified
+    'Content-Type': 'application/json',
+    // Then add any existing headers from options, which will override defaults if present
+    ...(options.headers || {}),
   };
 
   // Use the relative URL directly, assuming it starts with /api/ or similar
   // Let the Next.js rewrite handle the destination
   const relativeUrl = url;
-  console.log(`Making API request to relative path: ${relativeUrl}`);
-
-  try {
-    // Fetch using the relative path
-    const response = await fetch(relativeUrl, {
-      ...options,
-      headers: headers as HeadersInit
-    });
-
-    if (response.status === 401) {
-      console.error('Unauthorized API request - logging out');
-      logout(); // Consider redirecting within logout or letting caller handle redirect
-      return null;
+  console.log(`Making API request to: ${relativeUrl} with method: ${options.method || 'GET'}`);
+  
+  // Log request body for debugging if it exists and isn't a file upload
+  if (options.body && typeof options.body === 'string' && 
+      !(headers['Content-Type']?.includes('multipart/form-data'))) {
+    try {
+      // Try to parse and log the body as JSON, but only if it's not too large
+      const bodyStr = options.body.length > 1000 ? 
+        `${options.body.substring(0, 1000)}... (truncated)` : options.body;
+      console.log(`Request body: ${bodyStr}`);
+    } catch (e) {
+      // If it's not valid JSON, just log it as is
+      console.log('Request has non-JSON body');
     }
-
-    return response;
-  } catch (error) {
-    console.error(`API request failed for ${relativeUrl}: ${error}`);
-    // Consider throwing the error or returning a specific error object
-    // instead of null to allow for better error handling upstream.
-    // For now, keeping return null for consistency with previous code.
-    return null;
   }
+
+  // Implement retry logic
+  const maxRetries = 2;
+  let retryCount = 0;
+  let lastError = null;
+
+  while (retryCount <= maxRetries) {
+    try {
+      // Fetch using the relative path
+      const response = await fetch(relativeUrl, {
+        ...options,
+        headers: headers as HeadersInit
+      });
+
+      // Log response information for debugging
+      console.log(`Response status: ${response.status} for ${relativeUrl}`);
+      
+      // Add special handling for common error codes
+      if (response.status === 401) {
+        console.error('Unauthorized API request - token may be invalid or expired');
+        // Only log out on the first 401 error to avoid endless redirects
+        if (retryCount === 0) {
+          logout(); // Consider redirecting within logout or letting caller handle redirect
+        }
+        return null;
+      } 
+      else if (response.status === 403) {
+        console.error('Forbidden: You lack permission to access this resource');
+      }
+      else if (response.status === 404) {
+        console.error(`Resource not found: ${relativeUrl}`);
+      }
+      else if (response.status === 500) {
+        console.error(`Server error on ${relativeUrl}`);
+        
+        // For server errors, retry the request
+        if (retryCount < maxRetries) {
+          retryCount++;
+          const retryDelay = 1000 * retryCount; // Exponential backoff: 1s, 2s
+          console.log(`Retrying in ${retryDelay}ms (attempt ${retryCount}/${maxRetries})...`);
+          await new Promise(resolve => setTimeout(resolve, retryDelay));
+          continue; // Skip to next retry iteration
+        }
+      }
+      
+      return response;
+    } catch (error) {
+      lastError = error;
+      console.error(`API request failed for ${relativeUrl}:`, error);
+      
+      // For network errors, retry the request
+      if (retryCount < maxRetries) {
+        retryCount++;
+        const retryDelay = 1000 * retryCount; // Exponential backoff: 1s, 2s
+        console.log(`Network error. Retrying in ${retryDelay}ms (attempt ${retryCount}/${maxRetries})...`);
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+      } else {
+        console.error(`All ${maxRetries} retry attempts failed for ${relativeUrl}`);
+        break; // Exit retry loop
+      }
+    }
+  }
+
+  // All retries failed or non-retryable error
+  console.error(`API request ultimately failed after retries: ${relativeUrl}`);
+  return null;
 };
 
 // Add this function to handle OAuth callback
@@ -118,6 +179,7 @@ export interface UserProfile {
   created_at?: string;
   interests?: string[];
   is_superuser?: boolean;
+  subscription_type?: 'free' | 'standard' | 'premium';
 }
 
 export const getCurrentUser = async (): Promise<UserProfile | null> => {

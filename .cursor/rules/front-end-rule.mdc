@@ -4,7 +4,7 @@ globs:
 ---
 # rules.md – AI Agent Frontend Code Generation Rules
 
-**Tech Stack**: React + Next.js + Tailwind CSS + TypeScript (TSX)  
+**Tech Stack**: React + Next.js + CSS(module) + TypeScript (TSX)  
 **Goal**: Help AI agents generate robust, maintainable, and scalable frontend code for production environments.
 
 ---

@@ -373,11 +373,6 @@
     gap: 0.5rem;
 }
 
-.chatInputForm {
-  margin-top: 1rem; /* Add space above input */
-  width: 100%; /* Make input take full width */
-}
-
 .planDisplayArea {
     margin-top: 2rem;
     width: 100%;
@@ -442,7 +437,7 @@
 .rightColumn {
   flex: 1.5; /* Takes up 1.5 parts of space (wider) */
   min-width: 450px; /* Minimum width */
-  max-width: 800px; /* Optional max width */
+  max-width: 600px; /* Optional max width */
   /* Make it take available height and structure for chat */
   height: calc(100vh - 80px - 4rem); /* Example: Full height minus header/padding */
   display: flex;
@@ -540,6 +535,7 @@
 .chatInputForm {
   margin-top: auto; /* Push input to bottom of right column */
   width: 100%;
+  max-width: none; /* Override max-width from composed styles */
   /* Uses shared styles from InputForm.module.css */
 }
 

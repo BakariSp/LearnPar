@@ -1,81 +1,84 @@
 .learningPathCard {
-  background-color: var(--card-background);
+  background-color: white;
   border-radius: 8px;
   padding: 24px;
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--border-color);
-  transition: box-shadow 0.2s ease-in-out;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  border: none;
+  transition: transform 0.2s ease-in-out;
   display: flex;
   flex-direction: column;
   height: 100%;
+  cursor: pointer;
 }
 
 .learningPathCard:hover {
-  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
 }
 
 .pathTitle {
   font-size: 1.1rem;
-  font-weight: 500;
-  margin-bottom: 8px;
-  color: var(--text-color);
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #333;
 }
 
 .pathDescription {
-  font-size: 0.9rem;
-  color: var(--text-secondary);
+  font-size: 0.875rem;
+  color: #666;
   margin-bottom: 16px;
   flex-grow: 1;
-  line-height: 1.6;
+  line-height: 1.5;
 }
 
 .pathMeta {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  flex-direction: row;
+  gap: 8px;
   margin-bottom: 16px;
-  background-color: transparent;
-  padding: 0;
-  border-radius: 0;
-  border-top: 1px solid var(--border-color);
-  padding-top: 12px;
 }
 
 .metaItem {
   display: flex;
   justify-content: space-between;
-  font-size: 0.85rem;
+  width: 100%;
+  align-items: center;
 }
 
-.metaLabel {
-  color: var(--text-secondary);
-  font-weight: 400;
-}
-
-.metaValue {
-  color: var(--text-color);
+.difficultyBadge {
+  font-size: 0.75rem;
   font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 4px;
 }
 
-.metaValue.beginner {
+.difficultyBadge[data-difficulty="beginner"] {
+  background-color: #e6f4ea;
   color: #1e8e3e;
 }
 
-.metaValue.intermediate {
+.difficultyBadge[data-difficulty="intermediate"] {
+  background-color: #fff7e5;
   color: #f9ab00;
 }
 
-.metaValue.advanced {
+.difficultyBadge[data-difficulty="advanced"] {
+  background-color: #fce8e6;
   color: #d93025;
 }
 
+.daysCounter {
+  font-size: 0.75rem;
+  color: #777;
+  font-weight: 400;
+}
+
 .startButton {
-  background-color: var(--primary-color);
+  background-color: #ff7a59;
   color: white;
   border: none;
   border-radius: 4px;
-  padding: 8px 16px;
-  font-size: 0.9rem;
+  padding: 10px 16px;
+  font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s;
@@ -84,7 +87,7 @@
 }
 
 .startButton:hover {
-  background-color: #1a73e8;
+  background-color: #ff6240;
 }
 
 .learningPathCardLink {

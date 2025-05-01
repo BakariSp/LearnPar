@@ -1,22 +1,354 @@
-/* Copy the sidebar-related styles from landing-page.module.css here */
+/* Sidebar styles */
 .sidebar {
   width: 250px;
   flex-shrink: 0;
   background-color: #f5f5f5;
-  padding: 20px;
-  border-right: 1px solid #e0e0e0;
   height: 100vh;
-  overflow-x: hidden; /* Crucial: Hide overflowing content */
+  overflow-x: hidden;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  transition: width 0.3s ease-in-out; /* Keep width transition */
+  transition: width 0.3s ease-in-out, padding 0.3s ease-in-out;
   position: fixed;
   left: 0;
   top: 0;
   z-index: 10;
+  padding: 16px;
 }
 
+.sidebarContent {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+}
+
+/* Logo Container */
+.logoContainer {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 5px;
+  transition: all 0.3s ease-in-out;
+  min-height: 32px;
+  padding: 12px 16px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  transition: all 0.3s ease-in-out;
+  position: relative;
+  width: 100%;
+}
+
+.logoIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease-in-out;
+  width: 24px;
+  height: 24px;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.logoCircle {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: #f7941d;
+  transition: all 0.3s ease-in-out;
+}
+
+.logoText {
+  margin-left: 10px;
+  font-size: 20px;
+  font-weight: 600;
+  color: #f7941d;
+  white-space: nowrap;
+  opacity: 1;
+  transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+}
+
+.toggleButtonContainer {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+  margin-bottom: 16px;
+  transition: all 0.3s ease-in-out;
+}
+
+.toggleButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  transition: all 0.3s ease-in-out;
+}
+
+.windowIconWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease-in-out;
+}
+
+/* Navigation */
+.navigation {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-grow: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  margin-top: 48px;
+  margin-bottom: 24px;
+  transition: padding 0.3s ease-in-out;
+}
+
+.navItem {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  color: #000;
+  text-decoration: none;
+  transition: all 0.3s ease-in-out;
+  border-radius: 8px;
+  font-weight: 500;
+  background-color: #fff;
+}
+
+.navItem:hover {
+  background-color: #f0f0f0;
+}
+
+.navItem.active {
+  background-color: #f7941d;
+  color: white;
+}
+
+.navItem.active img {
+  filter: brightness(0) invert(1);
+}
+
+.navText {
+  margin-left: 12px;
+  font-size: 16px;
+  white-space: nowrap;
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+}
+
+.notificationDot {
+  width: 8px;
+  height: 8px;
+  background-color: #f7941d;
+  border-radius: 50%;
+  position: absolute;
+  right: 16px;
+  transition: all 0.3s ease-in-out;
+}
+
+/* Admin Section */
+.adminSection {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: all 0.3s ease-in-out;
+}
+
+.adminProfile {
+  display: flex;
+  align-items: center;
+  position: relative;
+  padding: 12px 16px;
+  border-radius: 8px;
+  transition: all 0.3s ease-in-out;
+}
+
+.adminAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #f7941d;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 18px;
+  flex-shrink: 0;
+  transition: all 0.3s ease-in-out;
+}
+
+.adminInfo {
+  margin-left: 12px;
+  overflow: hidden;
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+}
+
+.adminTitle {
+  font-weight: 500;
+  font-size: 16px;
+}
+
+.adminEmail {
+  font-size: 14px;
+  color: #666;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.adminStatus {
+  width: 12px;
+  height: 12px;
+  background-color: #f7941d;
+  border-radius: 50%;
+  position: absolute;
+  right: 16px;
+  transition: all 0.3s ease-in-out;
+}
+
+.logoutButton {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.3s ease-in-out;
+  color: #000;
+  font-weight: 500;
+}
+
+.logoutButton:hover {
+  background-color: #f0f0f0;
+}
+
+.logoutIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease-in-out;
+}
+
+.logoutText {
+  margin-left: 12px;
+  font-size: 16px;
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+}
+
+/* Collapsed State */
+.sidebar.collapsed {
+  width: 80px;
+}
+
+.sidebar.collapsed .logoContainer {
+  justify-content: center;
+  padding: 12px 8px;
+}
+
+.sidebar.collapsed .logoIcon {
+  margin: 0 auto;
+}
+
+/* Fix for icon scaling in collapsed state */
+.sidebar.collapsed .logoCircle {
+  width: 24px;
+  height: 24px;
+  transform: none;
+}
+
+.sidebar.collapsed .toggleButtonContainer {
+  justify-content: center;
+}
+
+.sidebar.collapsed .logoText {
+  opacity: 0;
+  transform: translateX(-20px);
+  position: absolute;
+  width: 0;
+  overflow: hidden;
+}
+
+.sidebar.collapsed .navText {
+  opacity: 0;
+  transform: translateX(-20px);
+  position: absolute;
+  width: 0;
+  overflow: hidden;
+}
+
+.sidebar.collapsed .adminInfo,
+.sidebar.collapsed .adminStatus,
+.sidebar.collapsed .logoutText {
+  opacity: 0;
+  transform: translateX(-20px);
+  position: absolute;
+  width: 0;
+  overflow: hidden;
+}
+
+.sidebar.collapsed .navItem,
+.sidebar.collapsed .adminProfile,
+.sidebar.collapsed .logoutButton {
+  justify-content: center;
+  padding: 12px 8px;
+}
+
+.sidebar.collapsed .adminSection {
+  align-items: center;
+}
+
+/* Media Queries */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 100%;
+    position: fixed;
+    bottom: 0;
+    top: auto;
+    height: auto;
+    padding: 8px;
+  }
+  
+  .navigation {
+    flex-direction: row;
+    justify-content: space-between;
+    margin-bottom: 0;
+  }
+  
+  .navItem {
+    flex-direction: column;
+    flex: 1;
+    text-align: center;
+  }
+  
+  .navText {
+    margin-left: 0;
+    margin-top: 4px;
+    font-size: 12px;
+  }
+  
+  .logoContainer,
+  .toggleButtonContainer,
+  .adminSection {
+    display: none;
+  }
+}
+
+/* Copy the sidebar-related styles from landing-page.module.css here */
 .profileSection {
   display: flex;
   align-items: flex-start;
@@ -51,146 +383,10 @@
   white-space: nowrap; /* Prevent wrapping during slide */
 }
 
-.navigation {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  flex-grow: 1;
-  overflow-y: auto;
-  overflow-x: hidden; /* Hide horizontal overflow */
-}
-
-.navItem {
-  /* Ensure relative positioning if needed for absolute positioning of the dot */
-  position: relative;
-  display: flex;
-  align-items: center;
-  padding: 10px 15px;
-  color: var(--text-secondary); /* Darker default text color */
-  text-decoration: none;
-  transition: background-color 0.2s ease, color 0.2s ease; /* Added color transition */
-  border-radius: 4px;
-  margin-bottom: 5px; /* Add some space between items */
-}
-
-.navItem:hover {
-  background-color: #e9ecef; /* Slightly darker grey hover */
-  color: var(--text-color); /* Darker text on hover */
-}
-
-.navIcon {
-  margin-right: 12px;
-  font-size: 1.2rem;
-  flex-shrink: 0;
-  width: 24px;
-  text-align: center;
-  transition: margin 0.3s ease-in-out; /* Smooth margin change */
-}
-
-.navText {
-  margin-left: 15px; /* Space between icon and text */
-  flex-grow: 1; /* Allow text to take available space */
-  /* Add transition for transform and opacity */
-  transition: transform 0.3s ease-in-out, opacity 0.2s ease-in-out;
-  transform: translateX(0); /* Start position */
-  opacity: 1; /* Start opacity */
-  white-space: nowrap; /* Prevent wrapping during slide */
-}
-
-.notificationDot {
-  display: inline-block; /* Or block, depending on layout needs */
-  width: 8px;
-  height: 8px;
-  background-color: red;
-  border-radius: 50%;
-  margin-left: 8px; /* Space between text and dot */
-  /* Position it if needed, e.g., absolute positioning relative to .navItem */
-  /* position: absolute; */
-  /* top: 10px; */
-  /* right: 10px; */
-}
-
 /* Optional: Styles for the dot when collapsed */
 /* .notificationDotCollapsed { ... } */
 
-/* --- Collapsed State --- */
-.sidebar.collapsed {
-  width: 80px; /* Final collapsed width */
-  padding: 20px 0;
-  /* Remove alignment from the main sidebar container */
-  /* align-items: center; */
-}
-
-.sidebar.collapsed .profileSection {
-  /* Remove justify-content: center; */
-  /* justify-content: center; */
-  /* Maybe hide profile section entirely or just keep avatar */
-  /* Option 1: Keep avatar centered */
-   margin-bottom: 28px; /* Adjust as needed */
-  /* Option 2: Hide section (uncomment if desired) */
-  /* height: 0; */
-  padding: 0 15px; /* Add padding to match .navigation */
-  /* margin: 0; */
-  /* opacity: 0; */
-  /* transition: height 0.3s ease-in-out, padding 0.3s ease-in-out, margin 0.3s ease-in-out, opacity 0.3s ease-in-out; */
-}
-
-.sidebar.collapsed .profileSection h2 {
-  transform: translateX(-150%); /* Slide way off to the left */
-  opacity: 0;
-}
-
-.sidebar.collapsed .avatar {
-  margin-right: 0; /* Keep margin removed */
-}
-
-.sidebar.collapsed .navigation {
-  /* Remove alignment from the navigation container */
-  /* align-items: center; */
-  /* Adjust padding to center the content column */
-  padding: 0 15px; /* (80px width - 50px item width) / 2 = 15px */
-}
-
-.sidebar.collapsed .navItem {
-  /* Remove alignment from the item itself */
-  /* align-self: center; */
-  padding: 10px;
-  width: 50px; /* Keep fixed width */
-  height: 50px; /* Keep fixed height */
-  /* Items will now stack vertically, centered by the parent's padding */
-}
-
-.sidebar.collapsed .navIcon {
-  margin-right: 0; /* Icon is centered now */
-}
-
-.sidebar.collapsed .navText {
-  transform: translateX(-150%); /* Slide way off to the left */
-  opacity: 0;
-}
-
 /* --- Toggle Button --- */
-.toggleButton {
-  /* Remove bottom positioning */
-  /* margin-top: auto; */
-  /* border-top: 1px solid #e0e0e0; */
-
-  /* New styles for top position */
-  background: none;
-  
-  cursor: pointer;
-  color: #555;
-  transition: background-color 0.2s, border-color 0.2s, transform 0.3s ease-in-out; /* Add transform transition */
-  width: 100%;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  align-self: flex-start;
-  margin-bottom: 15px;
-  z-index: 5; /* Ensure it stays above sliding content */
-}
-
 .toggleButton .navIcon {
   margin: 0;
   font-size: 1.2rem;
@@ -221,25 +417,6 @@
   display: none;
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  /* Keep sidebar fixed or adjust as needed for mobile */
-  .sidebar {
-    /* Example: Keep it fixed but maybe thinner */
-     width: 200px;
-  }
-  .sidebar.collapsed {
-     width: 60px; /* Even thinner when collapsed on mobile */
-  }
-  /* Hide sidebar completely and use a burger menu instead? */
-  /* .sidebar { display: none; } */
-
-  .toggleButton {
-    /* Optional: Adjust button position/size for mobile */
-    margin-right: 5px;
-  }
-}
-
 /* Style for the active navigation item */
 .navItem.active {
   background-color: var(--primary-color); /* Use global primary color */
@@ -251,7 +428,6 @@
 @media (prefers-color-scheme: dark) {
   .sidebar {
     background-color: var(--card-background); /* Use card bg for sidebar */
-    border-right: 1px solid var(--border-color);
     color: var(--text-color);
   }
 

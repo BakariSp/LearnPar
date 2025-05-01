@@ -249,6 +249,26 @@
     border-radius: 50%;
 }
 
+.navCourseHeader {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+}
+
+.navCourseOrder {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #666; /* Darker gray for section text */
+  margin-bottom: 0.2rem;
+}
+
+.navCourseTitle {
+  font-weight: 600;
+  color: #333; /* Darker text for better contrast */
+  flex-grow: 1;
+}
+
 /* Course Item Card */
 .courseItem {
   flex-grow: 1; /* Take available space in the wrapper */
@@ -422,58 +442,91 @@
     font-size: 0.9rem;
 }
 
-/* --- Card Detail View (Flashcard Style) --- */
+/* --- Card Detail View with Assistant --- */
 .cardDetailView {
-  background-color: #FFFFFF; /* White background */
-  border-radius: 12px; /* Rounded corners */
-  padding: 24px; /* Generous padding */
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* Subtle box shadow */
-  /* border: 1px solid #e0e0e0; */ /* Remove border */
   display: flex;
-  flex-direction: column;
-  gap: 1.5rem; /* Space between title, content, navigation */
-  /* max-width: 800px; */ /* Removed max-width to fill pane */
-  /* margin: 1rem auto; */ /* Removed margin auto */
-  padding-bottom: 2rem; /* Add some padding at the bottom */
+  height: 100%;
+  gap: 1.5rem;
 }
 
+
+.cardMainContent::-webkit-scrollbar {
+  width: 6px;
+}
+
+.cardMainContent::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.cardMainContent::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 3px;
+}
+
+/* Add cardHeader styles */
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* Style for the cardTitle inside the header */
+.cardHeader .cardTitle {
+  margin: 0;
+}
+
+/* Style for the delete button */
+.cardDeleteButton {
+  background-color: transparent;
+  color: var(--danger-color, #d32f2f);
+  /* border: 1px solid var(--danger-color, #d32f2f); */
+  padding: 0.3rem 0.8rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+}
+
+.cardDeleteButton:hover {
+  background-color: var(--danger-color, #d32f2f);
+  color: white;
+}
+
+.assistantContainer {
+  flex: 2;
+  overflow-y: hidden;
+  position: relative;
+  border-radius: 12px;
+  max-width: 400px; /* Add max-width to limit assistant width */
+}
+
+/* Card Content Styles */
 .cardTitle {
-  font-size: 1.8rem; /* Large heading size */
-  font-weight: 700; /* Bold */
-  color: #4A5744; /* Dark green-gray */
-  margin: 0; /* Remove default margins */
-  text-align: center; /* Center title */
-  padding-bottom: 1rem; /* Space below title */
-  border-bottom: 1px solid #eee; /* Separator line */
-}
-
-.cardContent {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem; /* Space between Question/Answer/Explanation/Resources */
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--text-color, #212529);
+  margin-bottom: 1.5rem;
 }
 
 .cardSection {
-  /* No background needed, inherits from cardDetailView */
+  margin-bottom: 1.5rem;
 }
 
 .cardSection h3 {
-  font-size: 0.9rem; /* Smaller label style */
+  font-size: 1rem;
   font-weight: 600;
-  color: #4A5744; /* Dark green-gray */
-  text-transform: uppercase; /* Optional: Uppercase for distinction */
-  letter-spacing: 0.5px;
+  color: var(--text-color, #212529);
   margin-bottom: 0.5rem;
-  border-bottom: none; /* Remove previous border if any */
 }
 
-.cardSection p,
-.resourceList li, /* Target list items for consistent spacing */
-.noResources {
-  font-size: 1rem; /* 16px body text */
-  color: #6F736E; /* Medium gray */
+.cardSection p {
+  font-size: 1rem;
   line-height: 1.6;
-  margin: 0; /* Remove default paragraph margins */
+  color: var(--text-secondary, #6c757d);
+  margin: 0;
 }
 
 .resourceList {
@@ -482,129 +535,224 @@
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem; /* Space between resource links */
+  gap: 0.5rem;
 }
 
 .resourceList a {
-  color: #FFA336; /* Use primary accent for links */
+  color: var(--primary-color, #3b82f6);
   text-decoration: none;
   font-weight: 500;
 }
+
 .resourceList a:hover {
   text-decoration: underline;
 }
+
 .externalIcon {
-    display: inline-block;
-    margin-left: 4px;
-    font-size: 0.8em;
-    color: #6F736E; /* Secondary text color for icon */
+  display: inline-block;
+  margin-left: 4px;
+  font-size: 0.8em;
+  color: var(--text-secondary, #6c757d);
 }
 
 .noResources {
   font-style: italic;
-  color: #6F736E; /* Medium gray */
+  color: var(--text-secondary, #6c757d);
 }
 
-/* --- Card Navigation (Flashcard Style) --- */
+/* Card Navigation */
 .cardNavigation {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-top: 1.5rem; /* Space above navigation */
-  border-top: 1px solid #eee; /* Separator line */
-  margin-top: auto; /* Push navigation towards the bottom if card grows */
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color, #e9ecef);
 }
 
-.navButton { /* Base style for both buttons */
-  padding: 10px 20px;
-  border-radius: 9999px; /* Fully rounded corners */
-  font-weight: 600;
-  font-size: 0.9rem;
+.navButton {
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
   cursor: pointer;
-  border: 1px solid #FFA336; /* Orange border */
-  background-color: transparent; /* Default transparent background */
-  color: #FFA336; /* Orange text */
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition: all 0.2s;
+  background-color: var(--background-color, #f8f9fa);
+  color: var(--text-color, #212529);
+  border: 1px solid var(--border-color, #e9ecef);
 }
 
 .navButton:hover:not(:disabled) {
-  background-color: #fff7ed; /* Very light orange on hover */
+  background-color: var(--background-color-hover, #e9ecef);
 }
 
 .navButton:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  border-color: #6F736E; /* Gray border when disabled */
-  color: #6F736E; /* Gray text when disabled */
-  background-color: transparent;
 }
 
-.nextAction { /* Primary button style */
-  background-color: #FFA336; /* Orange background */
-  color: #FFFFFF; /* White text */
-  border-color: #FFA336; /* Ensure border matches */
+.nextAction {
+  background-color: var(--primary-color, #3b82f6);
+  color: white;
+  border-color: var(--primary-color, #3b82f6);
 }
 
 .nextAction:hover:not(:disabled) {
-  background-color: #f3921b; /* Darker orange on hover */
-  border-color: #f3921b;
+  background-color: var(--primary-color-dark, #2563eb);
+}
+
+.prevButton {
+  background-color: transparent;
 }
 
 .cardCounter {
-  font-size: 0.9rem;
-  color: #6F736E; /* Medium gray */
-  font-weight: 500;
+  font-size: 0.875rem;
+  color: var(--text-secondary, #6c757d);
+}
+
+/* Responsive adjustments */
+@media (max-width: 992px) {
+  .cardDetailView {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 400px;
+  }
+  
+  .cardMainContent {
+    padding-right: 0;
+    padding-bottom: 16px;
+  }
+  
+  .assistantContainer {
+    border-left: none;
+    border-top: 1px solid var(--border-color, #e9ecef);
+  }
+}
+
+@media (max-width: 768px) {
+  .cardDetailView {
+    grid-template-rows: auto 350px;
+  }
+  
+  .cardNavigation {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  
+  .cardCounter {
+    order: 3;
+    width: 100%;
+    text-align: center;
+    margin-top: 0.5rem;
+  }
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .cardMainContent::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .assistantContainer {
+    border-color: var(--border-color-dark, #2c2c2c);
+  }
+  
+  .navButton {
+    background-color: var(--background-color-dark, #2c2c2c);
+    color: var(--text-color-dark, #e9ecef);
+    border-color: var(--border-color-dark, #3c3c3c);
+  }
+  
+  .navButton:hover:not(:disabled) {
+    background-color: var(--background-color-dark-hover, #3c3c3c);
+  }
 }
 
 /* --- Completion View Styling (Consistent) --- */
 .completionView {
-  background-color: #FFFFFF;
+  background-color: var(--card-background, #ffffff);
   border-radius: 12px;
-  padding: 2rem 2.5rem;
+  padding: 2.5rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  /* border: 1px solid var(--border-color); */ /* Remove border */
   text-align: center;
-  max-width: 600px;
-  margin: 1rem auto; /* Center it */
+  max-width: 800px;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.5rem;
+  align-self: center; /* Center in the parent flex container */
+  width: 100%;
+}
+
+.completionContainer {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 70vh; /* Match card container height */
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem 0;
 }
 
 .completionView h2 {
-    font-size: 1.6rem;
-    color: #4A5744;
-    margin-bottom: 0.5rem;
+  font-size: 1.6rem;
+  color: var(--heading-color, #4A5744);
+  margin-bottom: 0.5rem;
 }
 
 .completionView p {
-    font-size: 1rem;
-    color: #6F736E;
-    margin-bottom: 1rem;
+  font-size: 1rem;
+  color: var(--text-secondary, #6F736E);
+  margin-bottom: 1rem;
 }
+
 .completionView p strong {
-    color: #4A5744;
-    font-weight: 600;
+  color: var(--heading-color, #4A5744);
+  font-weight: 600;
+}
+
+.completionActions {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
 }
 
 /* Apply button styles to completion view buttons */
 .completionView .navButton {
-    /* Inherits base .navButton styles */
-    /* Make primary action button orange */
+  min-width: 200px; /* Make buttons wider for better visibility */
 }
-.completionView button:first-of-type { /* Target the main action button */
-    background-color: #FFA336;
-    color: #FFFFFF;
-    border-color: #FFA336;
+
+.completionView button:first-of-type {
+  background-color: var(--primary-color, #FFA336);
+  color: white;
+  border-color: var(--primary-color, #FFA336);
 }
+
 .completionView button:first-of-type:hover:not(:disabled) {
-    background-color: #f3921b;
-    border-color: #f3921b;
+  background-color: var(--primary-color-dark, #f3921b);
+  border-color: var(--primary-color-dark, #f3921b);
 }
 
 .completionView .secondaryAction {
-    /* Inherits base .navButton styles (orange text/border) */
-    margin-top: 0.5rem; /* Add some space above the back button */
+  margin-top: 0.5rem;
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .completionView {
+    background-color: var(--dark-card-background, #1a1b26);
+  }
+  
+  .completionView h2, 
+  .completionView p strong {
+    color: var(--dark-heading-color, #e2e8f0);
+  }
+  
+  .completionView p {
+    color: var(--dark-text-secondary, #a0aec0);
+  }
 }
 
 /* --- Status Indicator Styles (Badges) --- */
@@ -706,325 +854,148 @@
 /* --- Add Two-Pane Layout Styles --- */
 .pageContainer {
   display: flex;
-  gap: 2rem; /* Space between panes */
-  max-width: 1400px; /* Adjust max-width if needed */
-  /* margin: 2rem auto; */
-  /* padding: 0 1rem; */
+  width: 100%;
   height: 100%;
-}
-
-.structureNavPane {
-  flex: 0 0 350px; /* Fixed width for nav pane */
-  height: 100%; /* Adjust based on header/footer height */
-  overflow-y: auto;
-  background-color: var(--background-secondary, #f8f9fa); /* Use a slightly different background */
-  /* border: 1px solid var(--border-color, #dee2e6); */ /* Remove full border */
-  border-right: 1px solid var(--border-color, #dee2e6); /* Keep only right border */
-  /* border-radius: var(--border-radius, 8px); */ /* Remove radius if only right border */
-  padding: 1.5rem; /* Consistent padding */
-  position: sticky; /* Make it sticky */
-  /* box-shadow: var(--shadow-sm); */ /* Remove shadow if removing border/radius */
-
-  /* Custom scrollbar */
-  scrollbar-width: thin;
-  scrollbar-color: var(--border-color) transparent;
-
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-  &::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  &::-webkit-scrollbar-thumb {
-    background-color: var(--border-color);
-    border-radius: 10px;
-    border: 2px solid transparent; /* Adjust if needed */
-  }
-}
-
-.detailPane {
-  flex: 1; /* Take remaining space */
-  min-width: 0; /* Prevent flex item from overflowing */
-  /* background-color: var(--card-background); */ /* Background likely inherited or set by page */
-  /* border: 1px solid var(--border-color); */ /* Remove border */
-  /* border-radius: var(--border-radius); */ /* Remove radius */
-  /* box-shadow: var(--shadow-sm); */ /* Remove shadow */
-  padding: 2rem; /* Add some padding for content spacing */
-}
-
-/* --- Styles for the Structure Navigation (Left Pane) --- */
-.navHeader { /* Optional: For title/back button */
-  padding-bottom: 1rem;
-  margin-bottom: 1rem;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.navPathTitle {
-  font-size: 1.3rem; /* Slightly smaller in nav */
-  font-weight: 600;
-  color: var(--text-color);
-  margin-bottom: 0.5rem;
-}
-
-.navPathDescription {
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  margin-bottom: 1rem;
-  line-height: 1.5;
-}
-
-.navStatusBadge { /* Reuse or adapt status badge styles */
-  /* Example: Copy styles from .statusBadge */
-  display: inline-block;
-  padding: 0.2rem 0.6rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  border-radius: 12px;
-  line-height: 1.2;
-  vertical-align: middle;
-}
-/* Add specific status styles if needed (e.g., .navStatusCompleted) */
-
-
-.navCourseList {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem; /* Reduced gap between courses */
-}
-
-.navCourseItem {
-  /* No border/background needed, contained within pane */
-  margin-bottom: 0.5rem; /* Add some space below each course item */
-}
-
-.navCourseHeaderButton {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  text-align: left;
-  background: var(--card-background); /* Use card background for contrast */
-  border: 1px solid var(--border-color); /* Use theme variable */
-  border-radius: 8px;
-  padding: 0.5rem 0.5rem; /* Adjust padding */
-  cursor: pointer;
-  color: var(--text-color);
-  font-weight: 500;
-  font-size: 1rem; /* Consistent font size */
-  transition: background-color 0.15s ease-in-out;
-}
-
-.navCourseHeaderButton:hover {
-  background-color: var(--hover-background-color, #e9ecef);
-}
-
-.navToggleIcon { /* Reuse or adapt toggle icon */
-  margin-right: 0.5rem;
-  transition: transform 0.2s ease-in-out;
-  display: inline-block; /* Ensure transform works */
-  width: 16px;
-  height: 16px;
-  color: var(--text-secondary);
-}
-
-.navToggleIcon.expanded {
-  transform: rotate(0deg); /* Point down when expanded */
-}
-
-.navCourseTitle {
-  flex-grow: 1;
-}
-
-.navSectionList { /* Similar to .sectionList but maybe different background/padding */
-  list-style: none;
-  padding: 0 0 0 1.75rem; /* Indent sections */
-  margin: 0.5rem 0 0 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem; /* Reduced gap */
-}
-
-.navSectionItem { /* Similar to .sectionItem */
-  /* No border/background */
-}
-
-.navSectionItem:last-child {
-  /* No special style */
-}
-
-.navSectionHeaderButton { /* Similar to .sectionHeaderButton */
-  display: flex;
-  align-items: center;
-  width: 100%;
-  text-align: left;
-  background: none;
-  border: none;
-  padding: 0.4rem 0.25rem; /* Slightly less padding than course */
-  cursor: pointer;
-  color: var(--text-color);
-  font-weight: 400; /* Normal weight for sections */
-  font-size: 0.9rem; /* Slightly smaller */
-  border-radius: var(--border-radius-sm);
-  transition: background-color 0.15s ease-in-out;
-}
-
-.navSectionHeaderButton:hover {
-  background-color: var(--hover-background-color, #e9ecef);
-}
-
-.navSectionTitle { /* Similar to .sectionTitle */
-  flex-grow: 1;
-  color: var(--text-color); /* Ensure text color */
-}
-
-.navCardCountInfo { /* Similar to .cardCountInfo */
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-  margin-left: 0.5rem;
-  white-space: nowrap;
-}
-
-.navCardCountInfo .loadingText {
-  /* Specific styles for loading text if needed */
-  font-style: italic;
-}
-
-.navCardList { /* Similar to .cardList */
-  list-style: none;
-  padding: 0.25rem 0 0.25rem 1.75rem; /* Further indent cards */
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem; /* Minimal gap */
-}
-
-.navCardItem { /* Similar to .cardItem */
-  /* No border/background */
-}
-
-.navCardLink { /* Similar to .cardLink */
-  display: block;
-  width: 100%;
-  text-align: left;
-  background: none;
-  border: none;
-  padding: 0.3rem 0.5rem; /* Card link padding */
-  cursor: pointer;
-  color: var(--text-secondary); /* Dimmer color for cards */
-  font-size: 0.85rem;
-  border-radius: var(--border-radius-sm);
-  transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out;
-  white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
+  padding: 1rem;
+  box-sizing: border-box; /* Ensure padding is included in width/height calculations */
+  margin: 0 auto; /* Center the container */
+  justify-content: space-between; /* Distribute space between components */
+  gap: 1.5rem;
 }
 
-.navCardLink:hover {
-  background-color: var(--hover-background-color, #e9ecef);
-  color: var(--text-color);
+/* --- Structure Navigation Pane --- */
+.structureNavPane {
+  width: 380px; /* Make the navigation pane wider */
+  flex-shrink: 0;
+  overflow-y: auto;
+  padding: 1.5rem;
+  background-color: var(--card-background, #ffffff);
+  border-radius: 12px;
+  scrollbar-width: thin; /* For Firefox */
+  scrollbar-color: transparent transparent; /* Initially transparent for Firefox */
 }
 
-.navCardLink.selectedCard { /* Style for the selected card in the nav */
-  background-color: var(--primary-color-light, #d0ebff); /* Light primary color */
-  color: var(--primary-color-dark, #0056b3); /* Darker primary color */
-  font-weight: 500;
+.structureNavPane:hover,
+.structureNavPane:focus,
+.structureNavPane:active {
+  scrollbar-color: var(--border-color) transparent; /* Show scrollbar on interaction for Firefox */
 }
 
-.navLoadingCards, .navNoCards { /* Similar to .loadingCards, .noCards */
-  padding: 0.3rem 0.5rem;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  font-style: italic;
+.structureNavPane::-webkit-scrollbar {
+  width: 6px;
 }
 
-/* --- Styles for the Detail Pane (Right Pane) --- */
-.detailPlaceholder {
+.structureNavPane::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.structureNavPane::-webkit-scrollbar-thumb {
+  background: transparent; /* Initially transparent */
+  border-radius: 3px;
+  transition: background 0.3s ease;
+}
+
+.structureNavPane:hover::-webkit-scrollbar-thumb,
+.structureNavPane:focus::-webkit-scrollbar-thumb,
+.structureNavPane:active::-webkit-scrollbar-thumb {
+  background: var(--border-color); /* Show scrollbar on interaction */
+}
+
+/* --- Main Content Area --- */
+.detailPane {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 300px; /* Adjust height */
-  text-align: center;
+  overflow: hidden;
+  align-items: center; /* Center horizontally */
+  justify-content: center; /* Center vertically */
+  max-width: calc(100% - 780px); /* Account for sidebar and assistant widths */
+}
+
+/* --- Card Main Content --- */
+.cardMainContent {
+  width: 100%;
+  max-width: 800px;
   padding: 2rem;
-  color: var(--text-secondary);
-  flex-grow: 1; /* Allow it to take space */
+  overflow-y: auto;
+  background-color: var(--card-background, white);
+  border-radius: 12px;
+  margin: 0 auto; /* Center the content */
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  margin-bottom: 1.5rem; /* Add space for buttons below */
 }
 
-.detailPlaceholder h2 {
-  font-size: 1.5rem;
-  font-weight: 500;
-  margin-bottom: 0.5rem;
-  color: var(--text-color);
+.assistantContainer {
+  width: 380px;
+  flex-shrink: 0;
+  overflow-y: hidden;
+  background-color: var(--card-background, white);
+  max-width: 400px; /* Add max-width to limit assistant width */
+  border-radius: 12px;
+  padding: 1rem;
 }
 
-/* --- Adjust Existing Detail Styles --- */
-/* Remove or adjust styles that define full-page width or large margins */
-.detailPageContainer { /* No longer needed for overall page */
-  /* Remove max-width, margin: auto, etc. */
-  padding: 0; /* Remove padding if handled by panes */
+/* --- Responsive Layout --- */
+@media (max-width: 1400px) {
+  .pageContainer {
+    flex-wrap: wrap;
+  }
+  
+  .structureNavPane {
+    width: 300px;
+  }
+  
+  .detailPane {
+    max-width: calc(100% - 700px);
+  }
+  
+  .assistantContainer {
+    width: 340px;
+  }
 }
 
-.detailHeader {
-  /* Remove margin-bottom if spacing is handled by pane padding */
-  /* Adjust padding if needed */
-  /* Ensure it doesn't have conflicting width/max-width */
-  border-radius: 0; /* Remove rounding if it's inside the pane */
-  border: none; /* Remove border if pane has it */
-  border-bottom: 1px solid var(--border-color); /* Add bottom border */
-  padding: 1.5rem 0; /* Adjust vertical padding, remove horizontal */
-  margin: 0 0 1.5rem 0; /* Add bottom margin */
-
+@media (max-width: 1200px) {
+  .pageContainer {
+    flex-wrap: wrap;
+  }
+  
+  .structureNavPane {
+    width: 280px;
+  }
+  
+  .detailPane {
+    max-width: calc(100% - 620px);
+  }
+  
+  .assistantContainer {
+    width: 320px;
+  }
 }
 
-.detailContent {
-  /* Remove background-color, border, border-radius, padding if handled by detailPane */
-  background-color: transparent;
-  border: none;
-  padding: 0;
-  min-height: auto; /* Remove fixed min-height */
-  /* display: block; Remove flex if not needed for centering */
+@media (max-width: 992px) {
+  .pageContainer {
+    flex-direction: column;
+  }
+  
+  .structureNavPane {
+    width: 100%;
+    max-height: 300px;
+  }
+  
+  .detailPane {
+    max-width: 100%;
+  }
+  
+  .assistantContainer {
+    width: 100%;
+    max-width: 100%;
+  }
 }
 
-.structureView {
-  /* This class is now used for the left pane's content container */
-  /* Remove styles specific to it being the main content */
-  padding-left: 0; /* Remove specific padding */
-  position: static; /* Remove relative positioning */
-}
-.structureView::before {
-  /* Remove the vertical line */
-  display: none;
-}
-
-/* Ensure cardDetailView and completionView fit well */
-.cardDetailView {
-  /* Remove max-width and margin: auto to allow it to fill the pane */
-  /* max-width: 800px; */
-  /* margin: 0 auto; */
-  padding-bottom: 2rem; /* Add some padding at the bottom */
-}
-
-.completionView {
-  /* Max-width might be useful here */
-  max-width: 600px;
-  margin: 1rem auto; /* Center */
-  padding: 2rem;
-  text-align: center;
-  background-color: var(--card-background);
-  /* border: 1px solid var(--border-color); */ /* Remove border */
-  border-radius: var(--border-radius);
-  box-shadow: var(--shadow-sm);
-}
-
-/* Hide the old course/section/card rendering if it was outside structureView */
-/* e.g., .courseItem, .sectionItem, .cardItem if they were top-level */
-
-/* --- Remove Redundant Styles --- */
-/* Comment out or delete styles like .courseWrapper, .timeIndicator if not used */
-
-/* Dark mode overrides */
+/* Dark mode adjustments */
 @media (prefers-color-scheme: dark) {
   .structureNavPane {
     background-color: var(--card-background); /* Use dark card background */
@@ -1076,8 +1047,7 @@
 
   /* Other elements that might need dark overrides: */
   .navCourseHeaderButton {
-      background: var(--card-background);
-      border: 1px solid var(--border-color);
+      background: var(--background-color);
       color: var(--text-color);
   }
   .navSectionHeaderButton {
@@ -1112,4 +1082,542 @@
    .completionView p {
        color: var(--text-secondary);
    }
+}
+
+/* --- Navigation Styles --- */
+.navHeader { 
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.navPathTitle {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 0.5rem;
+}
+
+.navPathDescription {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
+.navCourseList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.navCourseItem {
+  margin-bottom: 0.5rem;
+  background-color: var(--background-color);
+}
+
+.navCourseHeaderButton {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+  background: #f5f5f5; /* Light gray background */
+  border-radius: 12px; /* Slightly more rounded corners */
+  padding: 0.75rem 1rem; /* More padding */
+  cursor: pointer;
+  color: var(--text-color);
+  font-weight: 500;
+  font-size: 1rem;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.navCourseHeaderButton:hover {
+  background-color: #ebebeb; /* Slightly darker on hover */
+}
+
+.navToggleIcon {
+  margin-right: 0.75rem;
+  transition: transform 0.2s ease-in-out;
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  color: #666; /* Darker color for the toggle icon */
+  font-size: 0.8rem;
+}
+
+.navToggleIcon.expanded {
+  transform: rotate(0deg);
+}
+
+.navCourseHeader {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+}
+
+.navCourseOrder {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #666; /* Darker gray for section text */
+  margin-bottom: 0.2rem;
+}
+
+.navCourseTitle {
+  font-weight: 600;
+  color: #333; /* Darker text for better contrast */
+  flex-grow: 1;
+}
+
+.navSectionList {
+  list-style: none;
+  padding: 0 0 0 1.75rem;
+  margin: 0.5rem 0 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.navSectionItem {
+  /* No specific style needed */
+}
+
+.navSectionItem:last-child {
+  margin-bottom: 12px;
+}
+
+.navSectionHeaderButton {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0.4rem 0.25rem;
+  cursor: pointer;
+  color: var(--text-color);
+  font-weight: 400;
+  font-size: 0.9rem;
+  border-radius: 4px;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.navSectionHeaderButton:hover {
+  background-color: var(--hover-background-color, #e9ecef);
+}
+
+.navSectionTitle {
+  flex-grow: 1;
+  color: var(--text-color);
+}
+
+.navCardCountInfo {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-left: 0.5rem;
+  white-space: nowrap;
+}
+
+.navCardCountInfo .loadingText {
+  font-style: italic;
+}
+
+.navCardList {
+  list-style: none;
+  padding: 0.25rem 0 0.25rem 1.75rem;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.navCardItem {
+  /* No specific style needed */
+}
+
+.navCardLink {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0.3rem 0.5rem;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  border-radius: 4px;
+  transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.navCardLink:hover {
+  background-color: var(--hover-background-color, #e9ecef);
+  color: var(--text-color);
+}
+
+.navCardLink.selectedCard {
+  background-color: var(--primary-color-light, #d0ebff);
+  color: var(--primary-color-dark, #0056b3);
+  font-weight: 500;
+}
+
+.navLoadingCards, 
+.navNoCards {
+  padding: 0.3rem 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.detailPlaceholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-secondary);
+  flex-grow: 1;
+}
+
+.detailPlaceholder h2 {
+  font-size: 1.5rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: var(--text-color);
+}
+
+/* --- Dark mode adjustments for navigation --- */
+@media (prefers-color-scheme: dark) {
+  .navCourseHeaderButton {
+    background-color: #2a2a2a; /* Dark gray for dark mode */
+    border-color: var(--border-color-dark, #444);
+  }
+  
+  .navCourseHeaderButton:hover {
+    background-color: #333; /* Slightly lighter on hover in dark mode */
+  }
+  
+  .navToggleIcon {
+    color: #aaa; /* Lighter color for dark mode */
+  }
+  
+  /* ... other dark mode styles ... */
+}
+
+/* --- Card Pagination Progress Indicator --- */
+.cardProgressIndicator {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 1rem;
+  width: 100%;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.progressTab {
+  height: 4px;
+  flex: 1;
+  background-color: var(--border-color, #e9ecef);
+  border-radius: 2px;
+  transition: background-color 0.2s ease;
+}
+
+.progressTab.active {
+  background-color: var(--primary-color, #f8971d);
+}
+
+.progressTab.completed {
+  background-color: var(--border-color, #e9ecef);
+}
+
+/* --- Card Main Content --- */
+.cardMainContent {
+  width: 100%;
+  max-width: 800px;
+  padding: 2rem;
+  overflow-y: auto;
+  background-color: var(--card-background, white);
+  border-radius: 12px;
+  margin: 0 auto; /* Center the content */
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  margin-bottom: 1.5rem; /* Add space for buttons below */
+}
+
+/* --- Card Navigation --- */
+.cardNavigation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.navButton {
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  background-color: var(--background-color, #f8f9fa);
+  color: var(--text-color, #212529);
+  border: 1px solid var(--border-color, #e9ecef);
+}
+
+.navButton:hover:not(:disabled) {
+  background-color: var(--background-color-hover, #e9ecef);
+}
+
+.navButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.nextAction {
+  background-color: var(--primary-color, #f8971d);
+  color: white;
+  border-color: var(--primary-color, #f8971d);
+}
+
+.nextAction:hover:not(:disabled) {
+  background-color: var(--primary-color-dark, #e67e00);
+}
+
+.prevButton {
+  background-color: transparent;
+}
+
+.cardCounter {
+  font-size: 0.875rem;
+  color: var(--text-secondary, #6c757d);
+}
+
+/* --- Card Content Styles --- */
+.cardTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #212529;
+  margin-bottom: 1.5rem;
+}
+
+.cardKeyword {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--primary-color, #f8971d);
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+}
+
+.cardQuestion {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #212529;
+  margin-bottom: 1.5rem;
+}
+
+.cardSection {
+  margin-bottom: 1.5rem;
+}
+
+.cardSection h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-color, #212529);
+  margin-bottom: 0.5rem;
+}
+
+.cardSection p {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--text-secondary, #6c757d);
+  margin: 0;
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .progressTab {
+    background-color: var(--border-color-dark, #2c2e3b);
+  }
+  
+  .progressTab.active {
+    background-color: var(--primary-color, #f8971d);
+  }
+  
+  .cardMainContent {
+    background-color: var(--dark-card-background, #1a1b26);
+  }
+  
+  .cardTitle, .cardQuestion {
+    color: var(--dark-text-color, #c9d1d9);
+  }
+  
+  .cardSection h3 {
+    color: var(--dark-text-color, #c9d1d9);
+  }
+  
+  .cardSection p {
+    color: var(--dark-text-secondary, #8b949e);
+  }
+  
+  .navButton {
+    background-color: var(--dark-background-color, #2c2e3b);
+    color: var(--dark-text-color, #c9d1d9);
+    border-color: var(--dark-border-color, #3c3c3c);
+  }
+  
+  .navButton:hover:not(:disabled) {
+    background-color: var(--dark-background-color-hover, #3c3c3c);
+  }
+  
+  .cardCounter {
+    color: var(--dark-text-secondary, #8b949e);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .cardProgressIndicator {
+    padding: 0 1rem;
+  }
+  
+  .cardMainContent {
+    border-radius: 0;
+    padding: 1.5rem;
+  }
+  
+  .cardNavigation {
+    padding: 0 1rem;
+    flex-wrap: wrap;
+  }
+  
+  .cardCounter {
+    order: 3;
+    width: 100%;
+    text-align: center;
+    margin-top: 0.5rem;
+  }
+}
+
+/* --- Card Detail Container --- */
+.cardDetailContainer {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  min-height: 70vh; /* Create stable vertical space */
+  padding: 2rem 0;
+  gap: 2rem; /* Consistent spacing between elements */
+}
+
+/* --- Card Progress Indicator --- */
+.cardProgressIndicator {
+  display: flex;
+  gap: 4px;
+  width: 100%;
+  padding: 0 1rem;
+}
+
+.progressTab {
+  height: 4px;
+  flex: 1;
+  background-color: var(--border-color, #e9ecef);
+  border-radius: 2px;
+  transition: background-color 0.2s ease;
+}
+
+.progressTab.active {
+  background-color: var(--primary-color, #f8971d);
+}
+
+.progressTab.completed {
+  background-color: var(--border-color, #e9ecef);
+}
+
+/* --- Card Main Content --- */
+.cardMainContent {
+  width: 100%;
+  padding: 2rem;
+  overflow-y: auto;
+  flex: 1; /* Take remaining space */
+  background-color: var(--card-background, white);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* --- Card Navigation --- */
+.cardNavigation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 0 1rem;
+}
+
+.navButton {
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  background-color: var(--background-color, #f8f9fa);
+  color: var(--text-color, #212529);
+  border: 1px solid var(--border-color, #e9ecef);
+  min-width: 100px; /* Ensure consistent button width */
+  text-align: center;
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .cardMainContent {
+    background-color: var(--dark-card-background, #1a1b26);
+  }
+  
+  .progressTab {
+    background-color: var(--border-color-dark, #2c2e3b);
+  }
+  
+  .progressTab.active {
+    background-color: var(--primary-color, #f8971d);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .cardDetailContainer {
+    padding: 1rem 0;
+    min-height: 80vh;
+    gap: 1.5rem;
+  }
+  
+  .cardMainContent {
+    padding: 1.5rem;
+  }
+  
+  .cardNavigation {
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: center;
+  }
+  
+  .cardCounter {
+    order: 3;
+    width: 100%;
+    text-align: center;
+  }
 }

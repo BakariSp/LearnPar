@@ -381,7 +381,7 @@ export default function MyLearningPathsPage() {
          }
      }
   // Dependencies: Include everything read or called inside
-  }, [expandedItems, sectionReadyStatus, sectionCardsCache, autoSelectFirstCardInSectionId, isFetchingSection, currentSectionIdForFetch, taskStatus, router, locale, selectedPathId]); // Added router, locale, selectedPathId dependencies
+  }, [expandedItems, sectionReadyStatus, sectionCardsCache, autoSelectFirstCardInSectionId, currentSectionIdForFetch, router, locale, selectedPathId]); // Removed isFetchingSection and taskStatus
 
   // --- Card Navigation Logic (wrapped in useCallback) ---
   const handleCardSelect = useCallback((card: CardResponse, sectionId: number, sectionCards: CardResponse[], autoSelect: boolean = false) => {
@@ -577,7 +577,7 @@ export default function MyLearningPathsPage() {
       {/* Left Pane: Path List */}
       <aside className={styles.pathListPane}>
       <h1 className={styles.listTitle}>
-        {isClient && t('my paths')} {userPaths.length > 0 && `(${userPaths.length})`}
+        {isClient && t('My Paths')} {userPaths.length > 0 && `(${userPaths.length})`}
       </h1>
         {isLoadingList && <div className={styles.listLoading}>{isClient && t('my_paths.loading')}</div>}
         {listError && !isLoadingList && (

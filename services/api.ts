@@ -95,6 +95,8 @@ export interface FullLearningPathResponse {
   sections: SectionResponse[]; // Included for backwards compatibility as noted in docs
   created_at: string;
   updated_at: string;
+  is_admin?: boolean; // Optional property to indicate if the current user is an admin
+  user_token?: string; // Optional property for the user's token
 }
 
 // --- Deprecated Interface (No longer returned by initial chat generation) ---
@@ -229,7 +231,7 @@ export const apiGetCourseById = async (id: number): Promise<Course | null> => {
 
 // Fetch the FULL learning path structure (Used after polling completes)
 export const apiGetFullLearningPath = async (id: number): Promise<FullLearningPathResponse | null> => {
-  const response = await apiClient(`/api/learning-paths/${id}/full`);
+  const response = await apiClient(`/api/learning-paths/${id}`);
   if (response && response.ok) {
     return response.json();
   }
@@ -270,6 +272,21 @@ export const apiGenerateLearningPathFromChat = async (payload: { prompt: string 
 // Function to initiate learning path creation from a predefined structure
 export const apiCreatePathFromStructure = async (payload: GeneratePathPayload): Promise<TaskCreationResponse> => {
   try {
+    console.log('Creating path from structure - payload:', JSON.stringify(payload, null, 2));
+    
+    // Validate payload before sending to avoid server errors
+    if (!payload.title || !payload.title.trim()) {
+      throw new Error('Learning path title cannot be empty');
+    }
+    
+    if (!payload.courses || !Array.isArray(payload.courses) || payload.courses.length === 0) {
+      throw new Error('Learning path must have at least one course');
+    }
+    
+    if (!payload.difficulty_level) {
+      throw new Error('Learning path must have a difficulty level');
+    }
+    
     // Path matches the structure doc: /api/learning-paths/create-from-structure
     const response = await apiClient('/api/learning-paths/create-from-structure', {
       method: 'POST',
@@ -280,17 +297,72 @@ export const apiCreatePathFromStructure = async (payload: GeneratePathPayload): 
       body: JSON.stringify(payload),
     });
 
-    if (!response || !response.ok) {
-      const errorData = response ? await response.json().catch(() => ({ detail: 'Unknown error occurred during structure creation request.' })) : { detail: 'Network error or invalid response during structure creation request.' };
-      console.error('Failed to initiate learning path creation from structure:', response?.status, errorData);
-      throw new Error(errorData.detail || `Failed to start creation from structure (status: ${response?.status})`);
+    // Detailed error handling
+    if (!response) {
+      console.error('No response received from API');
+      throw new Error('Network error: No response received from the server when creating learning path');
+    }
+    
+    if (!response.ok) {
+      let errorMessage = `API Error ${response.status}: Failed to create learning path`;
+      let errorDetail = 'Unknown error';
+      
+      try {
+        // Try to parse error response as JSON
+        const errorData = await response.json();
+        console.error('API Error Response:', errorData);
+        
+        if (errorData.detail) {
+          errorDetail = errorData.detail;
+        } else if (errorData.message) {
+          errorDetail = errorData.message;
+        } else if (typeof errorData === 'string') {
+          errorDetail = errorData;
+        } else {
+          // If we can't get a specific error message, log the entire object for debugging
+          errorDetail = JSON.stringify(errorData);
+        }
+      } catch (parseError) {
+        // If we can't parse JSON, try to get the response as text
+        try {
+          const errorText = await response.text();
+          if (errorText) {
+            errorDetail = errorText.substring(0, 200); // Limit length for UI
+          }
+        } catch (textError) {
+          console.error('Failed to get error response as text:', textError);
+        }
+      }
+      
+      // Build detailed error message
+      errorMessage = `${errorMessage}: ${errorDetail}`;
+      console.error('Failed to create learning path:', errorMessage);
+      throw new Error(errorMessage);
     }
 
-    // Returns TaskCreationResponse: { task_id: string, message: string }
-    return response.json();
+    // Parse successful response
+    try {
+      const data = await response.json();
+      console.log('Successfully created task for learning path:', data);
+      
+      // Basic validation of response data
+      if (!data.task_id) {
+        throw new Error('API returned success but no task_id was provided');
+      }
+      
+      return data;
+    } catch (parseError) {
+      console.error('Error parsing successful response:', parseError);
+      throw new Error('The server returned an invalid response after successfully creating the learning path task');
+    }
   } catch (error) {
     console.error("Error in apiCreatePathFromStructure:", error);
-    throw error; // Re-throw for the component to handle
+    // Include error details in the error message if available
+    const errorMessage = error instanceof Error 
+      ? error.message 
+      : 'Unknown error occurred during learning path creation';
+    
+    throw new Error(errorMessage);
   }
 };
 // --- END NEW FUNCTION ---
@@ -298,33 +370,179 @@ export const apiCreatePathFromStructure = async (payload: GeneratePathPayload): 
 // Function to get the status of a background task by Task ID
 export const apiGetTaskStatus = async (taskId: string): Promise<TaskStatusResponse> => {
   try {
+    if (!taskId) {
+      throw new Error('Task ID is required to check status');
+    }
+    
+    console.log(`Checking status for task ${taskId}`);
+    
     // Path matches the update doc: /api/tasks/{task_id}/status
     const response = await apiClient(`/api/tasks/${taskId}/status`);
 
-    if (!response || !response.ok) {
-       const errorData = response ? await response.json().catch(() => ({ detail: 'Unknown error occurred while fetching status.' })) : { detail: 'Network error or invalid response while fetching status.' };
-       console.error('Failed to get task status:', response?.status, errorData);
-       // Handle 404 specifically as per docs
-       if (response?.status === 404) {
-           throw new Error(errorData.detail || `Task with ID ${taskId} not found.`);
-       }
-       throw new Error(errorData.detail || `Failed to get task status (status: ${response?.status})`);
+    // Detailed error handling
+    if (!response) {
+      console.error(`No response received when checking status for task ${taskId}`);
+      throw new Error('Network error: No response received from the server when checking task status');
     }
 
-    // Returns TaskStatusResponse
-    return response.json();
+    if (!response.ok) {
+      let errorMessage = `API Error ${response.status}: Failed to get task status`;
+      let errorDetail = 'Unknown error';
+      
+      try {
+        // Try to parse error response as JSON
+        const errorData = await response.json();
+        console.error('Task Status API Error Response:', errorData);
+        
+        if (errorData.detail) {
+          errorDetail = errorData.detail;
+        } else if (errorData.message) {
+          errorDetail = errorData.message;
+        } else if (typeof errorData === 'string') {
+          errorDetail = errorData;
+        } else {
+          // If we can't get a specific error message, log the entire object for debugging
+          errorDetail = JSON.stringify(errorData);
+        }
+      } catch (parseError) {
+        // If we can't parse JSON, try to get the response as text
+        try {
+          const errorText = await response.text();
+          if (errorText) {
+            errorDetail = errorText.substring(0, 200); // Limit length for UI
+          }
+        } catch (textError) {
+          console.error('Failed to get error response as text:', textError);
+        }
+      }
+      
+      // Handle 404 specifically as per docs
+      if (response.status === 404) {
+        errorDetail = `Task with ID ${taskId} not found.`;
+      }
+      
+      // Build detailed error message
+      errorMessage = `${errorMessage}: ${errorDetail}`;
+      console.error(`Failed to get task status for ${taskId}:`, errorMessage);
+      throw new Error(errorMessage);
+    }
+
+    // Parse successful response
+    let responseText;
+    try {
+      // First store the response as text for debugging in case JSON parsing fails
+      responseText = await response.text();
+      
+      // Then parse the text as JSON
+      const data = JSON.parse(responseText) as TaskStatusResponse;
+      
+      // Log task status for debugging
+      console.log(`Task ${taskId} status:`, JSON.stringify(data, null, 2));
+      
+      // Create a default response structure if the API response is missing fields
+      const defaultResponse: TaskStatusResponse = {
+        task_id: taskId,
+        status: 'unknown',
+        stage: null,
+        progress: null,
+        learning_path_id: null,
+        errors: null,
+        error_details: null,
+        start_time: null,
+        end_time: null,
+        result_message: null
+      };
+      
+      // Merge the API response with the default to ensure all expected fields exist
+      const safeResponse = { ...defaultResponse, ...data };
+      
+      // Basic validation of response data
+      if (!safeResponse || typeof safeResponse !== 'object') {
+        throw new Error('API returned invalid task status data: not an object');
+      }
+      
+      // Ensure status is a valid value
+      if (!safeResponse.status || typeof safeResponse.status !== 'string') {
+        console.warn('Task status response missing or invalid status field:', safeResponse);
+        safeResponse.status = 'unknown';
+      }
+      
+      // Ensure result_message is a string if present
+      if (safeResponse.result_message && typeof safeResponse.result_message !== 'string') {
+        try {
+          safeResponse.result_message = String(safeResponse.result_message);
+        } catch (e) {
+          safeResponse.result_message = 'Error converting result message to string';
+        }
+      }
+      
+      // Ensure learning_path_id is a number if present
+      if (safeResponse.learning_path_id && typeof safeResponse.learning_path_id !== 'number') {
+        try {
+          const numericValue = Number(safeResponse.learning_path_id);
+          if (!isNaN(numericValue)) {
+            safeResponse.learning_path_id = numericValue;
+          }
+        } catch (e) {
+          console.warn('Could not convert learning_path_id to number:', safeResponse.learning_path_id);
+        }
+      }
+      
+      // If completed but no learning_path_id, check if we can extract it from the result_message
+      if (safeResponse.status === 'completed' && !safeResponse.learning_path_id && safeResponse.result_message) {
+        // Try to extract a path ID from the result message using regex
+        const idMatch = safeResponse.result_message.match(/learning\s*path\s*ID\s*:?\s*(\d+)/i);
+        if (idMatch && idMatch[1]) {
+          const extractedId = parseInt(idMatch[1], 10);
+          if (!isNaN(extractedId)) {
+            console.log(`Extracted learning path ID ${extractedId} from result message`);
+            safeResponse.learning_path_id = extractedId;
+          }
+        }
+      }
+      
+      return safeResponse;
+    } catch (parseError: unknown) {
+      console.error('Error parsing task status response:', parseError);
+      console.error('Raw response text:', responseText);
+      
+      const errorMessage = parseError instanceof Error ? 
+        parseError.message : 
+        'Invalid response format';
+        
+      throw new Error(`The server returned an invalid response for task status: ${errorMessage}`);
+    }
   } catch (error) {
-     console.error(`Error in apiGetTaskStatus for task ${taskId}:`, error);
-     // Re-throw for the component to handle.
-     throw error;
+    console.error(`Error in apiGetTaskStatus for task ${taskId}:`, error);
+    // Include error details in the error message if available
+    const errorMessage = error instanceof Error 
+      ? error.message 
+      : `Unknown error occurred while checking status for task ${taskId}`;
+    
+    // Create and return a basic task response with error information
+    // This prevents UI from breaking and allows the polling to continue
+    const errorResponse: TaskStatusResponse = {
+      task_id: taskId,
+      status: 'unknown',
+      stage: 'error',
+      progress: null,
+      learning_path_id: null,
+      errors: [errorMessage],
+      error_details: error instanceof Error ? error.stack : undefined,
+      start_time: null,
+      end_time: null,
+      result_message: errorMessage
+    };
+    
+    return errorResponse;
   }
 };
 
 // Function to get the *latest* task status associated with a Learning Path ID
 export const apiGetLatestTaskForLearningPath = async (learningPathId: number): Promise<TaskStatusResponse | null> => {
   try {
-    // Path matches the update doc: /tasks/learning-paths/{learning_path_id}
-    const response = await apiClient(`/api/tasks/learning-paths/${learningPathId}/latest`);
+    // Path needs to be updated to match the API documentation
+    const response = await apiClient(`/api/tasks/learning-paths/${learningPathId}`);
 
     if (!response || !response.ok) {
        // Handle 404 specifically - it might mean no task exists yet, which isn't necessarily an error here
@@ -435,4 +653,114 @@ export const apiGetSectionWithCards = async (sectionId: number): Promise<Section
 // apiGetCardsForSection(...)
 // apiGetCardsGeneral(...)
 // apiGetGenericRecommendations(...)
-// apiGetPersonalizedRecommendations(...) 
+// apiGetPersonalizedRecommendations(...)
+
+// --- Subscription Interfaces ---
+
+export interface SubscriptionInfo {
+  subscription_type: 'free' | 'standard' | 'premium';
+  // Backend format
+  limits: {
+    paths: number;
+    cards: number;
+  };
+  usage: {
+    paths: {
+      count: number;
+      limit_reached: boolean;
+      remaining: number;
+    };
+    cards: {
+      count: number;
+      limit_reached: boolean;
+      remaining: number;
+    };
+  };
+  // Frontend compatibility format
+  current_usage?: {
+    learning_paths: number;
+    cards: number;
+  };
+  has_reached_limit?: {
+    learning_paths: boolean;
+    cards: boolean;
+  };
+}
+
+export interface SubscriptionUpgradePayload {
+  subscription_type?: 'free' | 'standard' | 'premium';
+  promotion_code?: string;
+  user_id?: string; // Optional, only for superusers
+}
+
+export interface SubscriptionUpgradeResponse {
+  success: boolean;
+  message: string;
+  subscription_type: 'free' | 'standard' | 'premium';
+}
+
+// --- Subscription API Functions ---
+
+// Get user's current subscription information
+export const apiGetUserSubscription = async (): Promise<SubscriptionInfo | null> => {
+  try {
+    const response = await apiClient('/api/subscription');
+    
+    if (!response || !response.ok) {
+      console.error('Failed to fetch subscription info:', response?.status);
+      return null;
+    }
+    
+    const data = await response.json();
+    
+    // Transform the data to match our component's expected format
+    return {
+      subscription_type: data.subscription_type,
+      limits: data.limits,
+      usage: data.usage,
+      // Add properties for frontend component compatibility
+      current_usage: {
+        learning_paths: data.usage.paths.count,
+        cards: data.usage.cards.count
+      },
+      has_reached_limit: {
+        learning_paths: data.usage.paths.limit_reached,
+        cards: data.usage.cards.limit_reached
+      }
+    };
+  } catch (error) {
+    console.error("Error in apiGetUserSubscription:", error);
+    return null;
+  }
+};
+
+// Upgrade user subscription with optional promotion code
+export const apiUpgradeSubscription = async (payload: SubscriptionUpgradePayload): Promise<SubscriptionUpgradeResponse | null> => {
+  try {
+    const response = await apiClient('/api/subscription', {
+      method: 'PUT',
+      body: JSON.stringify(payload)
+    });
+    
+    if (!response) {
+      console.error('No response received when upgrading subscription');
+      return null;
+    }
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || 'Failed to upgrade subscription');
+    }
+    
+    // Transform the response to our expected format
+    const userData = await response.json();
+    return {
+      success: true,
+      message: `Successfully upgraded to ${userData.subscription_type} tier!`,
+      subscription_type: userData.subscription_type
+    };
+  } catch (error) {
+    console.error("Error in apiUpgradeSubscription:", error);
+    throw error;
+  }
+}; 

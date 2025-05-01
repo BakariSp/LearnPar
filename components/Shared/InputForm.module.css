@@ -3,73 +3,62 @@
 .inputForm {
   display: flex;
   width: 100%;
-  align-items: center; /* Vertically center items */
-  position: relative; /* Needed for absolute positioning of button if required */
-  /* background-color: #fff; */ /* White background for the form area */
-  background-color: var(--card-background);
-  border-radius: 30px; /* High border-radius for pill shape */
-  padding: 5px 10px; /* Padding inside the form container */
-  /* box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); */ /* Subtle shadow */
-  box-shadow: var(--shadow-md);
-  /* border: 1px solid #e0e0e0; */ /* Light border */
-  border: 1px solid var(--border-color);
+  max-width: 600px;
+  align-items: center;
+  position: relative;
+  background-color: white;
+  border-radius: 30px;
+  padding: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e0e0e0;
 }
 
 .input {
   flex-grow: 1;
-  padding: 10px 15px; /* Adjust padding */
-  border: none; /* Remove default border */
-  background-color: transparent; /* Blend with form background */
+  padding: 12px 20px;
+  border: none;
+  background-color: transparent;
   font-size: 1rem;
   outline: none;
-  color: var(--text-color); /* Ensure text color adapts */
-  /* Remove transition as border is gone */
+  color: #333;
 }
 
-/* Remove focus style as border is gone */
-/* .input:focus { ... } */
-
 .input::placeholder {
-  /* color: #adb5bd; */
-  color: var(--text-secondary);
+  color: #999;
 }
 
 .input:disabled {
-  background-color: transparent; /* Keep transparent when disabled */
+  background-color: transparent;
   cursor: not-allowed;
 }
 
 .submitButton {
-  padding: 0; /* Remove padding */
-  /* background-color: #343a40; */ /* Dark background like image */
-  background-color: var(--primary-color); /* Use primary color */
-  color: var(--card-background); /* Contrast text color */
+  padding: 0;
+  background-color: #f5f5f5;
+  color: #666;
   border: none;
-  border-radius: 50%; /* Make it circular */
-  font-size: 1.2rem; /* Adjust icon size */
-  font-weight: 500;
+  border-radius: 50%;
+  font-size: 1.2rem;
   cursor: pointer;
-  transition: background-color 0.2s, color 0.2s, opacity 0.2s;
+  transition: background-color 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px; /* Explicit width */
-  height: 40px; /* Explicit height */
-  min-width: 40px; /* Override previous min-width */
-  margin-left: 8px; /* Space between input and button */
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  margin-right: 6px;
 }
 
 .submitButton:hover:not(:disabled) {
-  /* background-color: #495057; */ /* Slightly lighter on hover */
-  background-color: var(--primary-color-dark); /* Use hover variant */
+  background-color: #e8e8e8;
 }
 
 .submitButton:disabled {
-  /* background-color: #adb5bd; */
-  background-color: var(--background-secondary);
-  color: var(--text-secondary);
+  background-color: #f0f0f0;
+  color: #bbb;
   cursor: not-allowed;
-  opacity: 0.7; /* Add opacity for disabled state */
+  opacity: 0.7;
 }
 
 /* Style for icons/content inside the button */
@@ -82,8 +71,7 @@
 /* Optional: Add styles for other potential buttons if needed later */
 .iconButton {
   background: none;
-  /* border: 1px solid #e0e0e0; */
-  border: 1px solid var(--border-color);
+  border: 1px solid #e0e0e0;
   border-radius: 50%;
   width: 36px;
   height: 36px;
@@ -91,13 +79,12 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  /* color: #6c757d; */
-  color: var(--text-secondary);
-  margin: 0 4px; /* Spacing between internal buttons */
-  transition: background-color 0.2s, color 0.2s;
+  color: #999;
+  margin: 0 4px;
+  transition: background-color 0.2s;
 }
+
 .iconButton:hover {
-  /* background-color: #f1f3f5; */
-  background-color: var(--hover-background-color);
-  color: var(--text-color);
+  background-color: #f5f5f5;
+  color: #666;
 } 

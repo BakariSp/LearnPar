@@ -1,0 +1,400 @@
+.calendarContainer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.calendarHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.calendarControls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.viewButtons {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.viewButton {
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  background-color: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.viewButtonActive {
+  background-color: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.navigationButtons {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.navButton {
+  padding: 0.375rem;
+  border-radius: 0.25rem;
+  background-color: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.navButton:hover, .viewButton:hover {
+  background-color: #e5e7eb;
+}
+
+.currentDateDisplay {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.calendarContent {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.mainView {
+  flex: 3;
+  overflow: auto;
+  padding: 1rem;
+}
+
+.timelineView {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.timelineHeader {
+  display: flex;
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 1rem;
+}
+
+.timelineHeaderCell {
+  min-width: 150px;
+  padding: 0.5rem;
+  text-align: center;
+  font-weight: 500;
+}
+
+.timelineDay {
+  display: flex;
+  margin-bottom: 1rem;
+}
+
+.timelineDayColumn {
+  min-width: 150px;
+  padding: 0.5rem;
+  border-right: 1px solid #e5e7eb;
+}
+
+.taskList {
+  flex: 1;
+  min-width: 300px;
+  max-width: 350px;
+  border-left: 1px solid #e5e7eb;
+  overflow-y: auto;
+}
+
+.taskListHeader {
+  padding: 1rem;
+  font-weight: 600;
+  border-bottom: 1px solid #e5e7eb;
+  background-color: #f9fafb;
+}
+
+.taskItem {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.taskItem:hover {
+  background-color: #f3f4f6;
+}
+
+.taskItemSelected {
+  background-color: #eff6ff;
+}
+
+.taskTitle {
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.taskTime {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.taskStatus {
+  display: inline-block;
+  padding: 0.125rem 0.375rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-top: 0.25rem;
+}
+
+.statusTodo {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.statusDone {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.statusSkipped {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.loadingIndicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.spinner {
+  width: 2rem;
+  height: 2rem;
+  border: 2px solid #3b82f6;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.learning-path {
+  border-left: 4px solid #4f46e5;
+  background-color: #f5f5ff;
+}
+
+.courseContainer {
+  margin-bottom: 1rem;
+  border-radius: 0.375rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e5e7eb;
+}
+
+.courseHeader {
+  padding: 0.75rem 1rem;
+  background-color: #f9fafb;
+  font-weight: 600;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.courseProgress {
+  height: 0.375rem;
+  width: 100%;
+  background-color: #e5e7eb;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.progressBar {
+  height: 100%;
+  background-color: #3b82f6;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.errorMessage {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  padding: 0.75rem;
+  border-radius: 0.375rem;
+  margin-bottom: 0.5rem;
+}
+
+.dismissButton {
+  margin-left: 0.5rem;
+  color: #ef4444;
+  cursor: pointer;
+}
+
+.dismissButton:hover {
+  color: #b91c1c;
+}
+
+.taskListTitle {
+  font-weight: 600;
+  font-size: 1.125rem;
+}
+
+.addTaskButton {
+  color: #3b82f6;
+  cursor: pointer;
+}
+
+.addTaskButton:hover {
+  color: #2563eb;
+}
+
+.taskListTabs {
+  display: flex;
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 1rem;
+}
+
+.taskTab {
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  color: #6b7280;
+}
+
+.taskTab:hover {
+  color: #4b5563;
+}
+
+.taskTabActive {
+  border-bottom: 2px solid #3b82f6;
+  font-weight: 500;
+  color: #3b82f6;
+}
+
+.addTaskForm {
+  margin-bottom: 1.5rem;
+  padding: 0.75rem;
+  background-color: #f9fafb;
+  border-radius: 0.375rem;
+}
+
+.formGroup {
+  margin-bottom: 0.75rem;
+}
+
+.formLabel {
+  display: block;
+  font-size: 0.875rem;
+  color: #4b5563;
+  margin-bottom: 0.25rem;
+}
+
+.required {
+  color: #ef4444;
+}
+
+.optional {
+  color: #9ca3af;
+}
+
+.formInput, .formTextarea {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.25rem;
+}
+
+.charCount {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 0.25rem;
+}
+
+.timeInputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.formActions {
+  margin-top: 1rem;
+}
+
+.submitButton {
+  width: 100%;
+  background-color: #3b82f6;
+  color: white;
+  padding: 0.5rem;
+  border-radius: 0.25rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.submitButton:hover {
+  background-color: #2563eb;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 2rem 0;
+  color: #6b7280;
+}
+
+.addTaskLink {
+  color: #3b82f6;
+  cursor: pointer;
+  margin-top: 0.5rem;
+  display: inline-block;
+}
+
+.addTaskLink:hover {
+  text-decoration: underline;
+}
+
+.taskItems {
+  display: flex;
+  flex-direction: column;
+}
+
+.dateGroup {
+  margin-bottom: 1rem;
+}
+
+.dateHeader {
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-bottom: 0.5rem;
+  padding: 0.25rem 0;
+}
+
+.taskCheckbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.checkbox {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  accent-color: #3b82f6;
+}
+
+.taskDone {
+  text-decoration: line-through;
+  color: #9ca3af;
+}
+
+.calendarViewContainer {
+  position: relative;
+  height: 100%;
+  width: 100%;
+} 

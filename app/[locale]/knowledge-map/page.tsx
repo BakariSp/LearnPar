@@ -33,6 +33,7 @@ const KnowledgeMapPage = () => {
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const router = useRouter();
   const fgRef = useRef<ForceGraphMethods<CustomNode, LinkObject> | undefined>(undefined);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
     const fetchLearningPaths = async () => {
@@ -163,14 +164,15 @@ const KnowledgeMapPage = () => {
   };
 
   return (
-    <div className="container mx-auto p-4 h-[calc(100vh-100px)] flex flex-col">
+    <div className={styles.knowledgeMapWrapper}>
+      <h1 className={styles.title}>{('knowledge Map (Beta)')}</h1>
       <div ref={containerRef} className={styles.container}>
-        {isLoading && <p className={styles.loadingOverlay}>Loading knowledge map...</p>}
-        {error && <p className={styles.errorOverlay}>Error: {error}</p>}
+        {isLoading && <div className={styles.loadingOverlay}>Loading knowledge map...</div>}
+        {error && <div className={styles.errorOverlay}>Error: {error}</div>}
         {!isLoading && !error && keywords.length === 0 && (
-          <p className={styles.loadingOverlay}>
+          <div className={styles.loadingOverlay}>
             No learning paths found to build the map.
-          </p>
+          </div>
         )}
         {!isLoading && !error && keywords.length > 0 && dimensions.width > 0 && (
           <ForceGraph2D
@@ -188,11 +190,21 @@ const KnowledgeMapPage = () => {
               ctx.fill();
             }}
             linkColor={(link: any) => link.source.color ? `${link.source.color.slice(0,-4)}0.3)`: 'rgba(0,0,0,0.1)'}
-            linkWidth={1}
+            linkWidth={1.5}
             enableZoomInteraction={true}
             enablePointerInteraction={true}
             dagMode={undefined}
             onNodeClick={handleNodeClick}
+            cooldownTicks={100}
+            onRenderFramePost={(ctx) => {
+              if (!canvasRef.current && ctx.canvas) {
+                canvasRef.current = ctx.canvas;
+                ctx.canvas.classList.add(styles.graphCanvas);
+              }
+            }}
+            linkDirectionalParticles={3}
+            linkDirectionalParticleSpeed={0.005}
+            backgroundColor={'#f9fafb'}
           />
         )}
       </div>

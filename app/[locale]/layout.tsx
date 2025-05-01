@@ -1,4 +1,3 @@
-
 import type { Metadata } from "next";
 import { GeistSans } from 'geist/font/sans';
 import { GeistMono } from 'geist/font/mono';
@@ -6,6 +5,7 @@ import "./globals.css";
 import { AuthProvider } from '../../context/AuthContext';
 import { LayoutClientWrapper } from '../../components/LayoutClientWrapper';
 import { NotificationProvider } from '@/context/NotificationContext';
+import { ToastProvider } from '@/context/ToastContext';
 import I18nInitializer from '../../components/I18nInitializer';
 export const metadata: Metadata = {
   title: "Learning Platform",
@@ -26,9 +26,11 @@ export default function RootLayout({
         <I18nInitializer />
         <AuthProvider>
           <NotificationProvider>
-            <LayoutClientWrapper>
-              {children}
-            </LayoutClientWrapper>
+            <ToastProvider>
+              <LayoutClientWrapper>
+                {children}
+              </LayoutClientWrapper>
+            </ToastProvider>
           </NotificationProvider>
         </AuthProvider>
       </body>
