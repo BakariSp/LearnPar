@@ -7,6 +7,8 @@ import { LayoutClientWrapper } from '../../components/LayoutClientWrapper';
 import { NotificationProvider } from '@/context/NotificationContext';
 import { ToastProvider } from '@/context/ToastContext';
 import I18nInitializer from '../../components/I18nInitializer';
+import { Analytics } from '@vercel/analytics/react';
+
 export const metadata: Metadata = {
   title: "Learning Platform",
   description: "Your personalized learning journey",
@@ -33,6 +35,7 @@ export default function RootLayout({
             </ToastProvider>
           </NotificationProvider>
         </AuthProvider>
+        <Analytics />
       </body>
     </html>
   );
