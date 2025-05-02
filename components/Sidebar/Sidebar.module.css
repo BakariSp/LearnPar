@@ -526,4 +526,79 @@
   top: 0 !important;
   left: 0 !important;
   object-fit: contain !important;
+}
+
+/* Add these styles for the utilities section */
+
+.utilsSection {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color, #e0e0e0);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Update the productInfoButton style to be simpler without the New badge */
+.productInfoButton {
+  position: relative;
+  border-radius: 8px;
+  background-color: rgba(255, 163, 54, 0.1);
+  border: 1px dashed var(--primary-color, #FFA336);
+  transition: all 0.2s ease-in-out;
+}
+
+.productInfoButton:hover {
+  background-color: rgba(255, 163, 54, 0.15);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Apply special styling to collapsed state too */
+.sidebar.collapsed .utilsSection {
+  padding-top: 16px;
+  margin-top: 24px;
+  border-top: 1px solid var(--border-color, #e0e0e0);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+/* Adjust for dark mode if needed */
+@media (prefers-color-scheme: dark) {
+  .utilsSection {
+    border-top-color: var(--border-color, #333333);
+  }
+  
+  .sidebar.collapsed .utilsSection {
+    border-top-color: var(--border-color, #333333);
+  }
+  
+  .productInfoButton {
+    background-color: rgba(255, 183, 102, 0.15);
+    border-color: var(--primary-color, #FFB766);
+  }
+  
+  .productInfoButton:hover {
+    background-color: rgba(255, 183, 102, 0.2);
+  }
+}
+
+/* Force light mode overrides */
+html.force-light-mode .utilsSection {
+  border-top-color: var(--border-color, #e0e0e0) !important;
+}
+
+html.force-light-mode .sidebar.collapsed .utilsSection {
+  border-top-color: var(--border-color, #e0e0e0) !important;
+}
+
+html.force-light-mode .productInfoButton {
+  background-color: rgba(255, 163, 54, 0.1) !important;
+  border-color: var(--primary-color, #FFA336) !important;
+}
+
+html.force-light-mode .productInfoButton:hover {
+  background-color: rgba(255, 163, 54, 0.15) !important;
 } 

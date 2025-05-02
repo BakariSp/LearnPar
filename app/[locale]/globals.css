@@ -37,9 +37,36 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* Force light mode class that overrides any dark mode media queries */
+html.force-light-mode {
+  /* Re-apply light mode variables to override dark mode */
+  --primary-accent: #FFA336 !important; /* Bright orange */
+  --primary-accent-dark: #D67D13 !important; /* Darker orange for better contrast */
+  --background: #FFFFFF !important;     /* White */
+  --card-background: #FFFFFF !important; /* White */
+  --heading-color: #4A5744 !important;  /* Dark green-gray */
+  --text-color: #4A5744 !important;     /* Use heading color for main text */
+  --text-secondary: #6F736E !important; /* Medium gray */
+  --border-color: #e0e0e0 !important;   /* Light border */
+  --background-color: #f8f9fa !important; /* Light page background */
+  --foreground: #1f1f1f !important; /* Dark foreground */
+  --primary-color: var(--primary-accent) !important; /* Use light accent */
+  --primary-color-dark: var(--primary-accent-dark) !important; /* Darker primary for contrast */
+  --primary-text-color: #FFFFFF !important; /* Light text for primary background */
+  --primary-color-light: #FFF2E5 !important; /* Lighter shade of orange */
+  --secondary-color: var(--text-secondary) !important; /* Light secondary gray */
+  
+  /* Light mode shadows */
+  --shadow-subtle: 0 2px 4px rgba(0, 0, 0, 0.05) !important;
+  --shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+  --shadow-sm: 0 1px 2px 0 rgba(60, 64, 67, 0.3), 0 1px 3px 1px rgba(60, 64, 67, 0.15) !important;
+  --shadow-md: 0 1px 3px 0 rgba(60, 64, 67, 0.3), 0 4px 8px 3px rgba(60, 64, 67, 0.15) !important;
+}
+
 /* --- Dark Mode Styles --- */
 @media (prefers-color-scheme: dark) {
-  :root {
+  /* Don't apply dark mode if force-light-mode class is present */
+  :root:not(.force-light-mode) {
     /* --- Dark Mode Palette --- */
     --primary-accent: #FFB766; /* Lighter orange for dark mode (kept as accent) */
     --primary-accent-dark: #CC7D26; /* Darker orange for dark mode */

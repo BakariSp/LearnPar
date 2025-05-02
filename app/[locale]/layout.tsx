@@ -6,6 +6,7 @@ import { AuthProvider } from '../../context/AuthContext';
 import { LayoutClientWrapper } from '../../components/LayoutClientWrapper';
 import { NotificationProvider } from '@/context/NotificationContext';
 import { ToastProvider } from '@/context/ToastContext';
+import { ThemeProvider } from '@/context/ThemeContext';
 import I18nInitializer from '../../components/I18nInitializer';
 import { Analytics } from '@vercel/analytics/react';
 
@@ -52,15 +53,17 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <I18nInitializer />
-        <AuthProvider>
-          <NotificationProvider>
-            <ToastProvider>
-              <LayoutClientWrapper>
-                {children}
-              </LayoutClientWrapper>
-            </ToastProvider>
-          </NotificationProvider>
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <NotificationProvider>
+              <ToastProvider>
+                <LayoutClientWrapper>
+                  {children}
+                </LayoutClientWrapper>
+              </ToastProvider>
+            </NotificationProvider>
+          </AuthProvider>
+        </ThemeProvider>
         <Analytics />
       </body>
     </html>
