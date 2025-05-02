@@ -28,7 +28,7 @@
     "calendar": "Study Plan",
     "dashboard": "Home Base",
     "login": "Sign In",
-    "logout": "See You Later",
+    "logout": "Log Out",
     "expand": "Show More",
     "collapse": "Show Less",
     "subscription": "Membership"
@@ -58,7 +58,7 @@
   "dashboard": {
     "welcome": "Welcome to Home Base",
     "loading": "Setting up personal space...",
-    "logout": "See You Later",
+    "logout": "Log Out",
     "username": "Name",
     "account_id": "ID",
     "account_status": "Account Status",
