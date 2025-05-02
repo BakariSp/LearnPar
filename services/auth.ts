@@ -6,6 +6,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 // Import cookie functions if you're using the 'cookies-next' package
 // If not, these functions will rely on document.cookie APIs
 import { setCookie, getCookie, deleteCookie } from 'cookies-next';
+import { getCurrentLocale, getLocalizedUrl } from './utils'; // Import utility functions
 
 export interface LoginCredentials {
   username: string;
@@ -125,7 +126,9 @@ export const logout = () => {
     // Also clear setup cookies
     deleteCookie('new_user');
     deleteCookie('setup_complete');
-    window.location.href = '/login';
+    
+    // Use utility function to get localized URL
+    window.location.href = getLocalizedUrl('login');
   }
 };
 

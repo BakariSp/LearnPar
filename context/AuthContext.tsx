@@ -2,6 +2,7 @@
 
 import React, { createContext, useState, useEffect, useContext, ReactNode, useCallback } from 'react';
 import { getCurrentUser, UserProfile, getToken, logout as authLogout, login as authLogin, LoginCredentials, handleOAuthCallback as authHandleOAuthCallback } from '../services/auth'; // Adjust path as needed
+import { getLocalizedUrl, getCurrentLocale } from '../services/utils'; // Import utility functions
 import { useRouter } from 'next/navigation';
 
 interface AuthContextType {
@@ -55,15 +56,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       await authLogin(credentials); // Original login handles token storage
       const userData = await getCurrentUser(); // Fetch user data after login
       setUser(userData);
-      router.push('/'); // Redirect after successful login
+      
+      // Use utility function to generate localized URL
+      router.push(getLocalizedUrl('dashboard'));
     } catch (error) {
       setUser(null);
       // Don't set isLoading false here if error is thrown, let finally handle it if needed
       console.error("Login failed:", error);
       throw error; // Re-throw for the login page to handle
     } finally {
-       // Setting loading false here might be okay after redirect starts or error is thrown
-       setIsLoading(false);
+      // Setting loading false here might be okay after redirect starts or error is thrown
+      setIsLoading(false);
     }
   }, [router]); // Dependencies: router, setIsLoading, setUser (implicitly stable from useState)
 
@@ -100,15 +103,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
        // Check if user needs setup (no username or interests)
        const isNewUser = userData && (!userData.username || !userData.interests || userData.interests.length === 0);
        
-       // Get current locale from path or use default 'en'
-       let locale = 'en';
-       if (typeof window !== 'undefined') {
-         const path = window.location.pathname;
-         const localeMatch = path.match(/^\/([a-z]{2})\//);
-         if (localeMatch && localeMatch[1]) {
-           locale = localeMatch[1];
-         }
-       }
+       // Get locale using utility function
+       const locale = getCurrentLocale();
        
        // Pre-emptively load any needed imports to reduce waiting time after redirect
        if (isNewUser && typeof window !== 'undefined') {
@@ -124,19 +120,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
              setNewUserStatus(true);
              setSetupCompleteStatus(false);
              
-             // Redirect to setup page instead with correct locale
+             // Redirect to setup page with locale
              console.log("AuthContext: New user detected, redirecting to setup...");
-             router.push(`/${locale}/setup`);
+             router.push(getLocalizedUrl('setup'));
            } catch (error) {
              console.error("Failed to set new user status:", error);
              // Fallback to home if setup fails
-             router.push(`/${locale}/home`);
+             router.push(getLocalizedUrl('home'));
            }
          }
        } else {
-         // Regular user - redirect to home with correct locale
+         // Regular user - redirect to home with locale
          console.log("AuthContext: Redirecting to home...");
-         router.push(`/${locale}/home`);
+         router.push(getLocalizedUrl('home'));
        }
        
        console.log("AuthContext: Redirect initiated.");
