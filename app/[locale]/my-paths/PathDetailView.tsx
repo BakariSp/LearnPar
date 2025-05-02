@@ -125,16 +125,19 @@ export const PathDetailView: React.FC<PathDetailViewProps> = ({
         );
     };
 
-    // Render status badge
+    // Render status badge with improved loading state
     const renderStatusBadge = () => {
         if (isFetchingStatus) {
-            return <span className={`${styles.statusBadge} ${styles.statusLoading}`}>Checking status...</span>;
+            return (
+                <span className={`${styles.statusBadge} ${styles.statusLoading}`}>
+                    <span className={styles.smallSpinner}></span>
+                    Checking status...
+                </span>
+            );
         }
         if (!taskStatus) {
-            // If no task found, assume generation is complete or wasn't tracked
-            // We could show nothing or a default "Ready" status if path data exists
-            return learningPathData ? <span className={`${styles.statusBadge} ${styles.statusCompleted}`}>Ready</span> : null;
-            // return null; // Or show nothing if no status is available
+            return learningPathData ? 
+                <span className={`${styles.statusBadge} ${styles.statusCompleted}`}>Ready</span> : null;
         }
 
         let statusText = taskStatus.status.replace('_', ' ').toUpperCase();
@@ -145,11 +148,22 @@ export const PathDetailView: React.FC<PathDetailViewProps> = ({
                 statusStyle = styles.statusCompleted;
                 break;
             case 'pending':
-            case 'running': // Combine running-like statuses
+            case 'queued':
+            case 'starting':
+            case 'running':
                 statusStyle = styles.statusRunning;
-                break;
+                // Add a progress indicator for active tasks
+                return (
+                    <div>
+                        <span className={`${styles.statusBadge} ${statusStyle}`}>
+                            <span className={styles.smallSpinner}></span>
+                            {statusText}
+                        </span>
+                        <div className={`${styles.progressBar} ${styles.active}`}></div>
+                    </div>
+                );
             case 'failed':
-            case 'timeout': // Treat timeout as failed
+            case 'timeout':
                 statusStyle = styles.statusFailed;
                 if (taskStatus.result_message) {
                     statusText += ` - ${taskStatus.result_message}`;
@@ -164,12 +178,39 @@ export const PathDetailView: React.FC<PathDetailViewProps> = ({
         return <span className={`${styles.statusBadge} ${statusStyle}`}>{statusText}</span>;
     };
 
+    // Enhance the section loading state
+    const renderSectionLoadingState = (sectionId: number) => {
+        const isCurrentlyLoading = isFetchingSection && currentSectionIdForFetch === sectionId;
+        const sectionReady = sectionReadyStatus[sectionId];
+        
+        if (isCurrentlyLoading) {
+            return (
+                <div className={styles.sectionGenerating}>
+                    <span className={styles.smallSpinner}></span>
+                    <p>Loading section content...</p>
+                </div>
+            );
+        }
+        
+        if (!sectionReady && isFetchingStatus && taskStatus && 
+            ['pending', 'queued', 'starting', 'running'].includes(taskStatus.status)) {
+            return (
+                <div className={styles.generatingState}>
+                    <span className={styles.smallSpinner}></span>
+                    <p>Generating content for this section...</p>
+                    <div className={`${styles.progressBar} ${styles.active}`}></div>
+                </div>
+            );
+        }
+        
+        return null;
+    };
 
     // --- Main Render Logic for Detail Pane ---
 
     if (!selectedPathId && !isLoadingDetails && !detailError) {
         return (
-            <div className={styles.detailPlaceholder}>
+            <div className={`${styles.detailPlaceholder} ${styles.fadeIn}`}>
                 <h2>Select a Learning Path</h2>
                 <p>Choose a path from the list on the left to view its details.</p>
             </div>
@@ -178,19 +219,20 @@ export const PathDetailView: React.FC<PathDetailViewProps> = ({
 
     if (isLoadingDetails) {
         return (
-            <div className={styles.detailLoading}>
-                Loading...
+            <div className={`${styles.detailLoading} ${styles.fadeIn}`}>
+                <div className={styles.spinner}></div>
+                <p>Loading learning path details...</p>
+                {/* Add a progress bar animation for better visual feedback */}
+                <div className={`${styles.progressBar} ${styles.active}`}></div>
             </div>
         );
     }
 
     if (detailError && !isLoadingDetails) {
         return (
-            <div className={styles.detailError}>
+            <div className={`${styles.detailError} ${styles.fadeIn}`}>
                 <h2>Error Loading Path</h2>
                 <p>{detailError}</p>
-                {/* Optionally add a retry button for the specific path */}
-                {/* <button onClick={() => fetchPathDetails(selectedPathId)}>Retry</button> */}
             </div>
         );
     }
@@ -200,7 +242,7 @@ export const PathDetailView: React.FC<PathDetailViewProps> = ({
         const isDeletingThisPath = deletingPathId === selectedPathId;
 
         return (
-            <div className={styles.detailContentContainer}> {/* Added container */}
+            <div className={`${styles.detailContentContainer} ${styles.fadeIn}`}>
                 {/* Header Section */}
                 <header className={styles.detailHeader}>
                     <div className={styles.headerTitleSection}>

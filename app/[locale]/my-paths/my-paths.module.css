@@ -23,11 +23,11 @@
   min-height: 200px;
   text-align: center;
   padding: 2rem;
-  background-color: var(--card-background);
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius);
+  /* background-color: var(--card-background); */
+  /* border: 1px solid var(--border-color);
+  border-radius: var(--border-radius); */
   margin-top: 2rem;
-  box-shadow: var(--shadow-sm);
+  /* box-shadow: var(--shadow-sm); */
 }
 
 .spinner {
@@ -508,10 +508,7 @@
   overflow-y: auto; /* Scroll only the list part */
   /* Add some padding for scrollbar */
   padding-right: 8px;
-  margin-right: -8px; /* Offset scrollbar padding */
-  display: flex; /* Use flex for list items */
-  flex-direction: column; /* Stack list items */
-  gap: 1rem; /* Add gap between list items */
+  margin-right: -8px;
 }
 
 /* --- Detail View Container --- */
@@ -1399,4 +1396,189 @@
   }
 
   /* ... rest of dark mode styles ... */
+}
+
+/* Smaller spinner for inline use */
+.smallSpinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  border-left-color: var(--primary-color);
+  animation: spin 1s ease infinite;
+  margin-right: 0.5rem;
+  vertical-align: middle;
+}
+
+/* Improved spinner animation */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Add a pulse animation for subtle loading indicators */
+@keyframes pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+/* Add a shimmer animation for progress indicators */
+.shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.6) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: shimmer 1.5s infinite linear;
+  transform: translateX(-100%);
+}
+
+@keyframes shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* Loading status badge with animation */
+.statusLoading {
+  background-color: #e2e8f0; /* Light gray */
+  color: #4a5568; /* Dark gray text */
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+/* Progress bar for active tasks */
+.progressBar {
+  height: 4px;
+  background-color: #e2e8f0;
+  position: relative;
+  overflow: hidden;
+  border-radius: 2px;
+  margin: 0.5rem 0;
+}
+
+.progressBar.active::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 30%;
+  background-color: var(--primary-color);
+  animation: progressAnim 2s infinite ease-in-out;
+}
+
+@keyframes progressAnim {
+  0% {
+    left: -30%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+/* Page transition animation */
+.fadeIn {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Add styles for section loading/generating states */
+.generatingState {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  background-color: #f9fafb;
+  border-radius: var(--border-radius);
+  margin: 0.5rem 0;
+}
+
+.generatingState .smallSpinner {
+  margin-right: 0.75rem;
+}
+
+.generatingState p {
+  color: var(--text-secondary);
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+/* Style the detail loading state */
+.detailLoading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 300px;
+  padding: 2rem;
+}
+
+.detailLoading .spinner {
+  margin-bottom: 1rem;
+}
+
+.detailLoading p {
+  color: var(--text-secondary);
+  font-size: 1rem;
+}
+
+/* Style for section generating/loading placeholder */
+.sectionGenerating {
+  padding: 1rem;
+  border-radius: var(--border-radius);
+  background-color: #f9fafb;
+  margin: 0.75rem 0;
+  display: flex;
+  align-items: center;
+}
+
+.sectionGenerating .smallSpinner {
+  margin-right: 0.75rem;
+}
+
+.sectionGenerating p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  .sectionGenerating {
+    background-color: #1a202c;
+  }
+}
+
+/* Style for the deleting indicator when removing a path */
+.deletingIndicator {
+  display: flex;
+  align-items: center;
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--danger-color);
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+.deletingIndicator .smallSpinner {
+  border-left-color: var(--danger-color);
 }

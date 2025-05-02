@@ -1,6 +1,7 @@
 // import { LoginCredentials } from './auth'; // Assuming LoginCredentials is defined elsewhere or above
 
 const AUTH_TOKEN_KEY = 'auth_token';
+const USER_ID_KEY = 'userId'; // Add a constant for the user ID key
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 // Import cookie functions if you're using the 'cookies-next' package
@@ -53,6 +54,10 @@ export const login = async (credentials: LoginCredentials) => {
   // Store the token received in the 'access_token' field
   localStorage.setItem(AUTH_TOKEN_KEY, data.access_token);
   console.log('🔍 DEBUG LOGIN - Token stored in localStorage');
+  
+  // Clear any existing userId from localStorage to ensure it's refreshed on login
+  localStorage.removeItem(USER_ID_KEY);
+  console.log('🔍 DEBUG LOGIN - Cleared existing userId from localStorage');
   
   // Check if user needs setup
   checkUserNeedsSetup();
@@ -141,6 +146,7 @@ export const isAuthenticated = () => {
 export const logout = () => {
   if (typeof window !== 'undefined') {
     localStorage.removeItem(AUTH_TOKEN_KEY);
+    localStorage.removeItem(USER_ID_KEY); // Also remove the user ID from localStorage
     // Also clear setup cookies
     deleteCookie('new_user');
     deleteCookie('setup_complete');
@@ -309,32 +315,27 @@ export interface UserProfile {
 
 export const getCurrentUser = async (): Promise<UserProfile | null> => {
   try {
-    console.log('Fetching user data from API...');
-    // Ensure the path starts with /api/ to match the rewrite rule
+    console.log('🔍 DEBUG USER - getCurrentUser called');
     const response = await apiClient('/api/users/me');
-
-    if (!response) {
-      // apiClient already logs the specific fetch error
-      console.error('No response received from apiClient for /api/users/me');
+    
+    if (!response || !response.ok) {
+      console.error('🔍 DEBUG USER - Failed to fetch current user');
       return null;
     }
 
-    if (!response.ok) {
-      console.error(`API error fetching user: ${response.status} ${response.statusText}`);
-      // Optionally try to parse error details
-      try {
-        const errorData = await response.json();
-        console.error("Error details:", errorData);
-      } catch (e) { /* Ignore parsing error */ }
-      return null;
+    const user = await response.json();
+    console.log('🔍 DEBUG USER - Current user data retrieved:', user ? `ID: ${user.id}, Email: ${user.email}` : 'No user');
+    
+    // Store the user ID in localStorage when we successfully retrieve the user
+    if (user && user.id) {
+      const userId = user.id.toString();
+      localStorage.setItem(USER_ID_KEY, userId);
+      console.log(`🔍 DEBUG USER - Updated user ID in localStorage to: ${userId}`);
     }
-
-    const userData = await response.json();
-    console.log('User data received:', userData);
-    return userData;
+    
+    return user;
   } catch (error) {
-    // This catch might be less likely now as apiClient handles the fetch error
-    console.error('Error in getCurrentUser function:', error);
+    console.error('🔍 DEBUG USER - Error in getCurrentUser:', error);
     return null;
   }
 };
@@ -344,57 +345,38 @@ export const getCurrentUser = async (): Promise<UserProfile | null> => {
  * This should be called early in the application lifecycle
  */
 export const verifyAuthState = async (): Promise<void> => {
-  console.log('🔍 AUTH VERIFY - Starting auth state verification');
+  console.log('🔍 DEBUG AUTH - Verifying auth state...');
   
-  if (typeof window === 'undefined') {
-    console.log('🔍 AUTH VERIFY - Running on server, skipping check');
+  const token = getToken();
+  if (!token) {
+    console.log('🔍 DEBUG AUTH - No token found, clearing any user ID in localStorage');
+    // If there's no token, but there is a userId, clear it
+    if (typeof window !== 'undefined' && localStorage.getItem(USER_ID_KEY)) {
+      localStorage.removeItem(USER_ID_KEY);
+    }
     return;
   }
   
+  // If we have a token but no user ID, try to fetch the user and update the user ID
   try {
-    // Check if token exists
-    const token = getToken();
-    console.log('🔍 AUTH VERIFY - Token exists:', !!token);
-    
-    if (!token) {
-      console.log('🔍 AUTH VERIFY - No token found, user is not authenticated');
-      return;
-    }
-    
-    // Try to decode token to check expiration (if JWT)
-    try {
-      // Simple check for token format - not full validation
-      const parts = token.split('.');
-      if (parts.length === 3) {
-        // Looks like a JWT, try to decode payload
-        const payload = JSON.parse(atob(parts[1]));
-        console.log('🔍 AUTH VERIFY - Token payload:', payload);
-        
-        // Check if token is expired
-        if (payload.exp && payload.exp * 1000 < Date.now()) {
-          console.log('🔍 AUTH VERIFY - Token is expired, logging out');
-          logout();
-          return;
-        }
-      }
-    } catch (e) {
-      console.log('🔍 AUTH VERIFY - Not a standard JWT or unable to decode:', e);
-      // Continue anyway, the API call will validate the token
-    }
-    
-    // Test token by making a request
-    console.log('🔍 AUTH VERIFY - Testing token with API call');
-    const userData = await getCurrentUser();
-    
-    if (userData) {
-      console.log('🔍 AUTH VERIFY - Token is valid, user is authenticated');
+    const userId = localStorage.getItem(USER_ID_KEY);
+    if (!userId) {
+      console.log('🔍 DEBUG AUTH - Token exists but no user ID, fetching user data');
+      await getCurrentUser(); // This will update the userId in localStorage
     } else {
-      console.log('🔍 AUTH VERIFY - Token validation failed, clearing auth state');
-      logout();
+      // Validate that the stored user ID matches the actual user ID
+      console.log('🔍 DEBUG AUTH - Token and user ID exist, validating user ID...');
+      const userData = await getCurrentUser();
+      
+      if (userData && userData.id && userData.id.toString() !== userId) {
+        console.warn(`🔍 DEBUG AUTH - User ID mismatch: stored ${userId}, actual ${userData.id}, updating`);
+        localStorage.setItem(USER_ID_KEY, userData.id.toString());
+      } else if (!userData || !userData.id) {
+        console.warn('🔍 DEBUG AUTH - User data invalid but token exists, clearing user ID');
+        localStorage.removeItem(USER_ID_KEY);
+      }
     }
-  } catch (e) {
-    console.error('🔍 AUTH VERIFY - Error verifying auth state:', e);
-    // Optional: consider clearing auth state on verification error
-    // logout();
+  } catch (error) {
+    console.error('🔍 DEBUG AUTH - Error verifying auth state:', error);
   }
 }; 

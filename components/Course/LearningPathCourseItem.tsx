@@ -2,6 +2,7 @@ import React from 'react';
 // Import necessary types - adjust paths as needed
 import { CourseResponse, SectionResponse, CardResponse, TaskStatusResponse } from '@/services/api'; // Assuming types are here
 import styles from './LearningPathCourseItem.module.css'; // Import the new CSS module
+import myPathsStyles from '@/app/[locale]/my-paths/my-paths.module.css'; // Import the my-paths styles for animations
 
 interface LearningPathCourseItemProps {
     course: CourseResponse;
@@ -47,13 +48,23 @@ export const LearningPathCourseItem: React.FC<LearningPathCourseItemProps> = ({
         // Determine indicator state
         const showGenerating = overallTaskActive && !isSectionReady;
 
-        const statusClass = showGenerating ? styles.generating : styles.ready;
-        const title = showGenerating ? 'Section generation likely in progress...' : 'Section ready';
+        if (showGenerating) {
+            return (
+                <span 
+                    className={`${styles.statusIndicator} ${styles.generating}`}
+                    title="Section generation in progress..."
+                    aria-label="Section generation in progress"
+                >
+                    <span className={myPathsStyles.smallSpinner}></span>
+                </span>
+            );
+        }
+
         return (
             <span
-                className={`${styles.statusIndicator} ${statusClass}`}
-                title={title}
-                aria-label={title}
+                className={`${styles.statusIndicator} ${styles.ready}`}
+                title="Section ready"
+                aria-label="Section ready"
             >
                 ●
             </span>
@@ -107,7 +118,7 @@ export const LearningPathCourseItem: React.FC<LearningPathCourseItemProps> = ({
                                     {renderSectionStatusIndicator(section.id)}
                                     <span className={styles.sectionHeaderTitle}>{section.title}</span>
                                     <span className={styles.sectionHeaderToggleIcon}>
-                                        {isLoadingThisSection ? <span className={styles.smallSpinner}></span> : (isSectionExpanded ? '▼' : '▶')}
+                                        {isLoadingThisSection ? <span className={myPathsStyles.smallSpinner}></span> : (isSectionExpanded ? '▼' : '▶')}
                                     </span>
                                 </button>
 
@@ -121,12 +132,15 @@ export const LearningPathCourseItem: React.FC<LearningPathCourseItemProps> = ({
                                 >
                                     {/* Show loading spinner *only* when actively fetching this section */}
                                     {isSectionExpanded && isLoadingThisSection && (
-                                        <div className={styles.cardsLoading}>Loading cards...</div>
+                                        <div className={myPathsStyles.sectionGenerating}>
+                                            <span className={myPathsStyles.smallSpinner}></span>
+                                            <p>Loading section content...</p>
+                                        </div>
                                     )}
 
                                     {/* Show cards if expanded, not loading, and cards are available in cache */}
                                     {isSectionExpanded && !isLoadingThisSection && sectionCardsCache.hasOwnProperty(section.id) && cards.length > 0 && (
-                                        <ul className={styles.cardList}>
+                                        <ul className={`${styles.cardList} ${myPathsStyles.fadeIn}`}>
                                             {cards.map(card => (
                                                 <li key={card.id} className={`${styles.cardListItem} ${selectedCard?.id === card.id ? styles.selected : ''}`}>
                                                     <button
@@ -148,7 +162,11 @@ export const LearningPathCourseItem: React.FC<LearningPathCourseItemProps> = ({
 
                                     {/* Show "Generating" msg if expanded, not loading, task active, section not ready */}
                                     {isSectionExpanded && !isLoadingThisSection && overallTaskActive && !isSectionReady && (
-                                        <p className={styles.generationInProgressMessage}>Section generation likely in progress. Cards will appear once ready.</p>
+                                        <div className={myPathsStyles.generatingState}>
+                                            <span className={myPathsStyles.smallSpinner}></span>
+                                            <p>Section generation in progress... Cards will appear once ready.</p>
+                                            <div className={`${myPathsStyles.progressBar} ${myPathsStyles.active}`}></div>
+                                        </div>
                                     )}
                                 </div>
                             </li>

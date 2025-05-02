@@ -112,7 +112,7 @@ export default function LoginPage() {
           <div className={styles.loginSubtitle}>
             {isClient && (
               <>
-                Don't have an account? <Link href={`/${locale}/register`}>Sign up</Link> or use Google/Microsoft below
+                Don't have an account? <Link href={`/${locale}/login`}>Sign up</Link> or use Google/Microsoft below
               </>
             )}
           </div>

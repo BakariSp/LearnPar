@@ -575,11 +575,17 @@ export default function MyLearningPathsPage() {
   return (
     <div className={styles.pageContainer}>
       {/* Left Pane: Path List */}
-      <aside className={styles.pathListPane}>
-      <h1 className={styles.listTitle}>
-        {isClient && t('My Paths')} {userPaths.length > 0 && `(${userPaths.length})`}
-      </h1>
-        {isLoadingList && <div className={styles.listLoading}>{isClient && t('my_paths.loading')}</div>}
+      <aside className={`${styles.pathListPane} ${styles.fadeIn}`}>
+        <h1 className={styles.listTitle}>
+          {isClient && t('My Paths')} {userPaths.length > 0 && `(${userPaths.length})`}
+        </h1>
+        {isLoadingList && (
+          <div className={styles.listLoading}>
+            <div className={styles.spinner}></div>
+            <p>{isClient && t('my_paths.loading')}</p>
+            <div className={`${styles.progressBar} ${styles.active}`}></div>
+          </div>
+        )}
         {listError && !isLoadingList && (
           <div className={styles.listErrorBox}>
             <p>{isClient && t('my_paths.error')}: {listError}</p>
@@ -588,11 +594,11 @@ export default function MyLearningPathsPage() {
         )}
         {!isLoadingList && !listError && userPaths.length === 0 && (
           <div className={styles.emptyState}>
-            <p>{isClient && t('my_paths.no_paths')}</p>
+            <p>{isClient && t('You have no learning paths yet. Create one to get started.')}</p>
           </div>
         )}
-{!isLoadingList && !listError && userPaths.length > 0 && (
-          <ul className={styles.pathList}>
+        {!isLoadingList && !listError && userPaths.length > 0 && (
+          <ul className={`${styles.pathList} ${styles.fadeIn}`}>
             {userPaths.map(pathItem => {
               const pathDetailId = pathItem.id;
               const listItemKey = pathItem.id;
@@ -602,11 +608,20 @@ export default function MyLearningPathsPage() {
               const displayTitle = pathItem.title || 'Untitled Path';
               return (
                 <li key={listItemKey} className={`${styles.pathListItem} ${isDeleting ? styles.deleting : ''} ${isSelected ? styles.selected : ''}`}>
-                  <button className={styles.pathSelectButton} onClick={() => handlePathSelect(pathDetailId)} disabled={isDeleting || isLoadingList} title={displayTitle}>
+                  <button 
+                    className={styles.pathSelectButton} 
+                    onClick={() => handlePathSelect(pathDetailId)} 
+                    disabled={isDeleting || isLoadingList} 
+                    title={displayTitle}
+                  >
                     <div className={styles.pathInfo}>
                       <h2 className={styles.pathTitleSmall}>{displayTitle}</h2>
                       <p className={styles.pathDescriptionSmall}>{pathItem.description || 'No description.'}</p>
-                      {/* Status badge removed */}
+                      {isDeleting && (
+                        <div className={styles.deletingIndicator}>
+                          <span className={styles.smallSpinner}></span> Deleting...
+                        </div>
+                      )}
                     </div>
                   </button>
                 </li>
@@ -617,7 +632,7 @@ export default function MyLearningPathsPage() {
       </aside>
 
       {/* Right Pane: Path Details - Now uses the component */}
-      <main className={styles.detailPane}>
+      <main className={`${styles.detailPane} ${styles.fadeIn}`}>
         <PathDetailView
           selectedPathId={selectedPathId}
           learningPathData={learningPathData}

@@ -2,8 +2,23 @@ import { apiClient, getCurrentUser } from '../auth'; // Import shared apiClient 
 // Import necessary types
 import { Task } from '../../components/Calendar/types';
 
+/**
+ * IMPORTANT CHANGE: April 2024
+ * We've updated all API endpoints to consistently use the /api/calendar/me endpoints instead of /api/calendar/tasks.
+ * The /api/calendar/me endpoints automatically set the user_id based on the authentication token,
+ * while the /api/calendar/tasks endpoints required the user_id to be explicitly provided in the request body.
+ * This change fixes the 422 Unprocessable Entity errors that occurred when creating tasks.
+ * 
+ * See API documentation:
+ * - POST /api/calendar/me: Create a task for the current user (automatically sets user_id)
+ * - GET /api/calendar/me: Get tasks for the current user (automatically sets user_id)
+ * - PATCH /api/calendar/me/{task_id}: Update a task (automatically sets user_id)
+ * - DELETE /api/calendar/me/{task_id}: Delete a task (automatically sets user_id)
+ */
+
 // Constants
 const AUTH_TOKEN_KEY = 'auth_token';
+const USER_ID_KEY = 'userId'; // Add constant for consistency with auth.ts
 
 // Map frontend status to backend status
 export const mapStatusToBackend = (status: string): string => {
@@ -28,35 +43,25 @@ export const mapStatusToFrontend = (status: string): 'todo' | 'done' | 'skipped'
 // Get the current user ID
 export const getUserId = async (): Promise<string | undefined> => {
   // First try to get userId from localStorage
-  let userId = localStorage.getItem('userId');
+  let userId = localStorage.getItem(USER_ID_KEY);
 
-  // Check if userId is 4 and fix it to be 1 (Keep this specific fix for now)
-  if (userId === '4') {
-    console.warn('Found incorrect user ID (4) in localStorage, replacing with correct ID (1)');
-    console.trace('Stack trace for incorrect user ID'); // Add stack trace to help debug
-    localStorage.setItem('userId', '1');
-    return '1';
-  }
-
-  // Check if userId is null or invalid format
+  // If userId is null or invalid format, fetch from API
   if (!userId || isNaN(Number(userId))) {
     if (userId) {
       console.warn(`Invalid user ID format in localStorage: ${userId}, removing and fetching from API`);
-      localStorage.removeItem('userId');
+      localStorage.removeItem(USER_ID_KEY);
     } else {
       console.log('No user ID found in localStorage, fetching from API');
     }
 
-    // Fetch from /api/users/me using getCurrentUser which uses apiClient
+    // Fetch from /api/users/me using getCurrentUser
     try {
       console.log('Fetching current user data using getCurrentUser...');
-      const userData = await getCurrentUser(); // Use the function from auth.ts
+      const userData = await getCurrentUser(); // This now also updates localStorage
 
       if (userData && userData.id) {
-        const newUserId = userData.id.toString();
-        console.log(`Setting user ID in localStorage to: ${newUserId}`);
-        localStorage.setItem('userId', newUserId);
-        return newUserId;
+        // getCurrentUser now handles storing the userId in localStorage
+        return userData.id.toString();
       } else {
         console.error('User data received from getCurrentUser but no valid ID found:', userData);
       }
@@ -78,35 +83,9 @@ export const CalendarService = {
   // Fetch tasks for a date range
   fetchTasks: async (start: string, end: string): Promise<Task[]> => {
     try {
-      // Get the user ID asynchronously
-      const userId = await getUserId();
-      
-      // Construct the proper API endpoint depending on whether we have a userId
-      // Use relative paths for apiClient
-      let endpoint: string;
+      // Always use the /api/calendar/me endpoint as it automatically sets the user_id
       const params = new URLSearchParams({ start, end });
-
-      if (userId) {
-        // Validate user ID before using it
-        let effectiveUserId = userId;
-        if (userId === '4') {
-          console.warn('Caught attempt to fetch tasks with incorrect user ID (4), using ID 1 instead');
-          effectiveUserId = '1';
-        }
-
-        const numUserId = parseInt(effectiveUserId);
-        if (isNaN(numUserId) || numUserId <= 0) {
-          console.error(`Invalid user ID format: ${effectiveUserId}, using /api/calendar/me endpoint instead`);
-          endpoint = `/api/calendar/me?${params.toString()}`;
-        } else {
-          params.set('user_id', effectiveUserId);
-          endpoint = `/api/calendar/tasks?${params.toString()}`;
-          console.log(`Fetching tasks for user ID: ${effectiveUserId}`);
-        }
-      } else {
-        endpoint = `/api/calendar/me?${params.toString()}`;
-        console.log('No user ID available, using /me endpoint for task fetching');
-      }
+      const endpoint = `/api/calendar/me?${params.toString()}`;
       
       console.log(`Fetching tasks from endpoint: ${endpoint} using apiClient`);
       // Use apiClient for the request
@@ -166,21 +145,11 @@ export const CalendarService = {
     }
     
     try {
-      // Get the user ID asynchronously - No need to check '4' here, backend should handle auth
-      const userId = await getUserId(); 
-      
-      // Determine the correct relative endpoint
-      const endpoint = userId ? 
-        `/api/calendar/tasks/${taskId}` : // Use tasks endpoint if user ID known
-        `/api/calendar/me/${taskId}`;     // Fallback to /me if not (backend handles auth)
+      // Always use the /api/calendar/me endpoint as it automatically sets the user_id
+      const endpoint = `/api/calendar/me/${taskId}`;
 
       // Prepare payload - map status and ensure only provided fields are sent
       const payload: Record<string, any> = {};
-      
-      // No need to add user_id to payload, backend derives from token
-      // if (userId) {
-      //   payload.user_id = parseInt(userId); // REMOVED
-      // }
       
       // Map frontend status to backend status if present
       if (updatedTask.status !== undefined) {
@@ -207,13 +176,13 @@ export const CalendarService = {
       
       // Use apiClient for the PUT request
       const response = await apiClient(endpoint, {
-        method: 'PUT',
+        method: 'PATCH',
         body: JSON.stringify(payload),
         // apiClient adds Content-Type: application/json and Authorization header
       });
 
       if (!response) {
-         console.error(`No response received from apiClient for PUT ${endpoint}`);
+         console.error(`No response received from apiClient for PATCH ${endpoint}`);
          throw new Error('API request failed');
       }
 
@@ -251,13 +220,8 @@ export const CalendarService = {
   // Create a new task
   createTask: async (newTaskData: Omit<Task, 'id'>): Promise<Task> => { // Return the created Task
     try {
-      // Get the user ID asynchronously - No need to check '4' here
-      const userId = await getUserId();
-
-      // Determine the correct relative endpoint
-       const endpoint = userId ? 
-        `/api/calendar/tasks` : // Use tasks endpoint if user ID known
-        `/api/calendar/me`;     // Fallback to /me if not (backend handles auth)
+      // Always use the /api/calendar/me endpoint as it automatically sets the user_id
+      const endpoint = `/api/calendar/me`;
 
       // Prepare payload
       const payload: Record<string, any> = {
@@ -266,11 +230,7 @@ export const CalendarService = {
       };
       // Remove potential id if passed in newTaskData (should not be there)
       delete payload.id; 
-      // No need to add user_id, backend derives from token
-      // if (userId) {
-      //   payload.user_id = parseInt(userId); // REMOVED
-      // }
-
+      
       console.log(`Creating new task using endpoint ${endpoint}:`, payload);
 
       // Use apiClient for the POST request
@@ -330,13 +290,8 @@ export const CalendarService = {
       throw new Error(`Invalid task ID: ${taskId}`);
     }
     try {
-      // Get the user ID asynchronously
-      const userId = await getUserId();
-
-       // Determine the correct relative endpoint
-       const endpoint = userId ? 
-        `/api/calendar/tasks/${taskId}` : // Use tasks endpoint if user ID known
-        `/api/calendar/me/${taskId}`;     // Fallback to /me if not (backend handles auth)
+      // Always use the /api/calendar/me endpoint as it automatically sets the user_id
+      const endpoint = `/api/calendar/me/${taskId}`;
 
       console.log(`Deleting task ${taskId} using endpoint ${endpoint}`);
 
@@ -375,15 +330,10 @@ export const CalendarService = {
     }
 
     try {
-      const userId = await getUserId();
       const backendStatus = mapStatusToBackend(status);
 
-      // Endpoint for updating status - Check if your backend has a specific PATCH endpoint
-      // Assuming PATCH /api/calendar/tasks/{task_id} or /api/calendar/me/{task_id}
-      // If not, use the general PUT updateTask logic. For now, assume PATCH exists.
-       const endpoint = userId ? 
-        `/api/calendar/tasks/${taskId}` : 
-        `/api/calendar/me/${taskId}`;
+      // Use the /api/calendar/me endpoint as it automatically sets the user_id
+      const endpoint = `/api/calendar/me/${taskId}`;
 
       const payload = { status: backendStatus };
       
@@ -460,8 +410,8 @@ export const CalendarService = {
     // TODO: Implement actual API call to backend endpoint for shifting tasks
     console.warn('shiftTasks is not implemented. Needs API endpoint.');
     try {
-        const userId = await getUserId();
-        const endpoint = userId ? `/api/calendar/tasks/shift` : `/api/calendar/me/shift`; // Example endpoint
+        // Always use the /api/calendar/me endpoint as it automatically sets the user_id
+        const endpoint = `/api/calendar/me/shift`; // Example endpoint
         const payload = { from_date: fromDate, days };
         console.log(`Placeholder: Calling shiftTasks endpoint ${endpoint} with payload:`, payload);
         
@@ -492,9 +442,8 @@ export const CalendarService = {
     }
     console.warn('rescheduleSection is not implemented. Needs API endpoint.');
      try {
-        const userId = await getUserId();
-         // Example endpoint - Adjust as necessary based on your backend API structure
-        const endpoint = userId ? `/api/calendar/sections/${sectionId}/reschedule` : `/api/calendar/me/sections/${sectionId}/reschedule`; 
+        // Always use the /api/calendar/me endpoint as it automatically sets the user_id
+        const endpoint = `/api/calendar/me/sections/${sectionId}/reschedule`; 
         const payload = { start_date: newStartDate, end_date: newEndDate };
         console.log(`Placeholder: Calling rescheduleSection endpoint ${endpoint} for section ${sectionId} with payload:`, payload);
 

@@ -118,14 +118,28 @@ export function CalendarContainer() {
       }
       
       console.log('Updating task with formatted data:', formattedUpdates);
-      await CalendarService.updateTask(taskId, formattedUpdates);
+      const updatedTask = await CalendarService.updateTask(taskId, formattedUpdates);
       
-      // Update local state after successful API call
-      setTasks(prevTasks => 
-        prevTasks.map(task => 
-          task.id === taskId ? { ...task, ...updates } : task
-        )
-      );
+      // Update local state after successful API call with the returned task data
+      if (updatedTask) {
+        setTasks(prevTasks => 
+          prevTasks.map(task => 
+            task.id === taskId ? updatedTask : task
+          )
+        );
+        
+        // If the updated task is the selected task, update it too
+        if (selectedTask && selectedTask.id === taskId) {
+          setSelectedTask(updatedTask);
+        }
+      } else {
+        // If no task was returned (no changes), just use the local updates
+        setTasks(prevTasks => 
+          prevTasks.map(task => 
+            task.id === taskId ? { ...task, ...updates } : task
+          )
+        );
+      }
       
       showToast(t('calendar.taskUpdated', 'Task updated successfully'));
     } catch (error) {
@@ -137,17 +151,32 @@ export function CalendarContainer() {
   // Specialized function for updating just the note field
   const handleUpdateTaskNote = async (taskId: number, note: string | null): Promise<void> => {
     try {
-      await CalendarService.updateTask(taskId, { note });
+      const updatedTask = await CalendarService.updateTask(taskId, { note });
       
-      // Update task locally
-      const updatedTasks = tasks.map(task => 
-        task.id === taskId ? { ...task, note } : task
-      );
-      setTasks(updatedTasks);
-      
-      // If the updated task is the selected task, update it
-      if (selectedTask && selectedTask.id === taskId) {
-        setSelectedTask({ ...selectedTask, note });
+      // Update task locally with the returned data from API
+      if (updatedTask) {
+        setTasks(prevTasks => 
+          prevTasks.map(task => 
+            task.id === taskId ? updatedTask : task
+          )
+        );
+        
+        // If the updated task is the selected task, update it
+        if (selectedTask && selectedTask.id === taskId) {
+          setSelectedTask(updatedTask);
+        }
+      } else {
+        // Fallback to local update if no task was returned
+        setTasks(prevTasks => 
+          prevTasks.map(task => 
+            task.id === taskId ? { ...task, note } : task
+          )
+        );
+        
+        // If the updated task is the selected task, update it
+        if (selectedTask && selectedTask.id === taskId) {
+          setSelectedTask({ ...selectedTask, note });
+        }
       }
       
       setError(null);

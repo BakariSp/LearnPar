@@ -14,6 +14,9 @@ import {
 import { getLocalizedUrl, getCurrentLocale } from '../services/utils'; // Import utility functions
 import { useRouter } from 'next/navigation';
 
+// Constants
+const USER_ID_KEY = 'userId'; // Add constant for consistency
+
 interface AuthContextType {
   user: UserProfile | null;
   isLoading: boolean;
@@ -48,6 +51,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             if (userData) {
               console.log('AuthContext: User data received, setting state');
               setUser(userData);
+              
+              // Store user ID in localStorage (getCurrentUser should handle this now)
+              if (userData.id) {
+                console.log(`AuthContext: Ensuring user ID ${userData.id} is in localStorage`);
+              }
             } else {
               console.log('AuthContext: No user data received, clearing auth state');
               // Token might be invalid, clear it
@@ -118,6 +126,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Memoize logout function
   const logout = useCallback(() => {
+    // Clear user ID from localStorage
+    if (typeof window !== 'undefined') {
+      console.log('AuthContext: Clearing user ID from localStorage on logout');
+      localStorage.removeItem(USER_ID_KEY);
+    }
+    
     authLogout(); // Original logout handles token removal and redirect
     setUser(null);
     // No need to push router here if authLogout handles redirect
