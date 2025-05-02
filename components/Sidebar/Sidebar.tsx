@@ -41,6 +41,9 @@ export function Sidebar({ isCollapsed, toggleSidebar, locale }: SidebarProps) {
     return `${styles.navItem} ${pathname === href ? styles.active : ''}`.trim();
   };
 
+  // Feedback form URL
+  const feedbackFormUrl = "https://docs.google.com/forms/d/e/1FAIpQLSezgdVX2_oQa9TNUEnXd7TVUhlc5lgYNXWDr7vEhMv00Z_fdg/viewform?usp=header";
+
   return (
     <div className={`${styles.sidebar} ${isCollapsed ? styles.collapsed : ''}`}>
       <div className={styles.sidebarContent}>
@@ -105,6 +108,17 @@ export function Sidebar({ isCollapsed, toggleSidebar, locale }: SidebarProps) {
             <Image src="/calendar.svg" alt="Calendar" width={24} height={24} />
             <span className={styles.navText}>Study Calendar</span>
           </Link>
+          {/* Feedback button */}
+          <a 
+            href={feedbackFormUrl} 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className={styles.navItem} 
+            title={isCollapsed ? t('sidebar.feedback') : undefined}
+          >
+            <Image src="/form.png" alt="Feedback" width={24} height={24} />
+            <span className={styles.navText}>Feedback</span>
+          </a>
         </nav>
 
         {/* Admin section at the bottom */}

@@ -72,7 +72,8 @@
     "browse_courses": "Find Something Exciting",
     "learning_progress": "Progress",
     "start_course": "Pick a module to begin tracking growth.",
-    "no_progress": "No progress yet. Start learning!"
+    "no_progress": "No progress yet. Start learning!",
+    "learning_resources": "Learning Resources"
   },
   "learning_path": {
     "my_paths": "My Learning Journeys",
@@ -175,5 +176,8 @@
     "needHelp": "Questions?",
     "contactSupport": "We're here to help",
     "loading": "Getting membership details..."
+  },
+  "Common": {
+    "loading": "Loading..."
   }
 }

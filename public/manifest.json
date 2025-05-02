@@ -1,0 +1,17 @@
+{
+  "name": "ZeroAI",
+  "short_name": "ZeroAI",
+  "description": "Your personalized learning journey",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/logo.svg",
+      "sizes": "48x48",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+} 

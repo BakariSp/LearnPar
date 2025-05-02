@@ -1,5 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fallbackLng, languages } from './i18n/settings'; // Adjust path if your i18n settings are elsewhere
+import { fallbackLng, supportedLngs } from './i18n/settings';
+
+// List of static assets that should be excluded from locale prefixing
+const STATIC_ASSETS = [
+  '/logo.svg',
+  '/sidebar_expend.svg',
+  '/sidebar_collasp.svg',
+  '/explore.svg',
+  '/my_path.svg',
+  '/calendar.svg',
+  '/knowledge_map.svg',
+  '/logout-icon.svg',
+  '/subscription.svg',
+  '/login_google.svg',
+  '/learning_path_1.png',
+  '/window.svg',
+  '/vercel.svg',
+  '/next.svg',
+  '/globe.svg',
+  '/file.svg',
+  '/site.webmanifest',
+  '/manifest.json',
+  '/favicon.ico'
+];
 
 // List of public paths that don't require locale prefixing or auth
 const PUBLIC_FILE = /\.(.*)$/; // Match files with extensions (e.g., .jpg, .css)
@@ -19,67 +42,85 @@ const ALLOWED_NEW_USER_PATHS = [
 
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
-
-  // 1. Check if the path is for a public file or explicitly public path
-  if (
-    PUBLIC_PATHS.some(p => pathname.startsWith(p)) ||
-    PUBLIC_FILE.test(pathname)
-  ) {
-    return undefined; // Allow the request to proceed as is
+  
+  // Logic to determine if a request is for a static asset
+  const isStaticAsset = (path: string) => {
+    // Check for file extensions (.svg, .png, .jpg, etc.)
+    if (/\.([a-zA-Z0-9]+)$/.test(path)) {
+      return true;
+    }
+    
+    // Check for special manifest files that don't have extensions
+    if (path === '/manifest.json' || path === '/site.webmanifest') {
+      return true;
+    }
+    
+    // Check if the path is directly in the public folder (no intermediary directories)
+    // This matches paths like /logo.svg but not /some/nested/path
+    if (/^\/[^\/]+$/.test(path) && path !== '/') {
+      // Common static asset directories to exclude from locale prefixing
+      const staticAssetDirectories = [
+        'assets',
+        'images',
+        'fonts',
+        'icons',
+        'media',
+        'static',
+      ];
+      
+      // Check if this is a known static asset directory
+      for (const dir of staticAssetDirectories) {
+        if (path.startsWith(`/${dir}/`)) {
+          return true;
+        }
+      }
+      
+      return true;
+    }
+    
+    return false;
+  };
+  
+  // Skip locale redirection for static assets
+  if (isStaticAsset(pathname)) {
+    return;
   }
-
-  // 2. Check if the pathname already has a supported locale prefix
-  const pathnameIsMissingLocale = languages.every(
-    (locale) => !pathname.startsWith(`/${locale}/`) && pathname !== `/${locale}`
+  
+  // Skip i18n paths
+  if (pathname.startsWith('/locales/')) {
+    return;
+  }
+  
+  // Skip Next.js internal paths
+  if (pathname.startsWith('/_next/') || pathname.startsWith('/api/')) {
+    return;
+  }
+  
+  // Check if the pathname has any locale
+  const pathnameHasLocale = supportedLngs.some(
+    (locale) => pathname.startsWith(`/${locale}/`) || pathname === `/${locale}`
   );
 
-  // 3. If it's missing a locale, redirect to the default locale
-  if (pathnameIsMissingLocale) {
-    const url = request.nextUrl.clone();
-    // Prepend the default locale (e.g., 'en')
-    url.pathname = `/${fallbackLng}${pathname.startsWith('/') ? '' : '/'}${pathname}`;
+  if (pathnameHasLocale) return;
 
-    // Perform the redirect
-    return NextResponse.redirect(url);
-  }
-
-  // 4. Check if user is a new user who needs to complete the setup process
-  // Get the user data from the request cookies
-  const isNewUser = request.cookies.get('new_user')?.value === 'true';
-  const isSetupComplete = request.cookies.get('setup_complete')?.value === 'true';
+  // Redirect if there is no locale
+  const locale = request.cookies.get('NEXT_LOCALE')?.value || fallbackLng;
   
-  // Extract the path without locale for checking against allowed paths
-  const localePrefix = languages.find(locale => pathname.startsWith(`/${locale}/`));
-  const pathWithoutLocale = localePrefix 
-    ? pathname.replace(new RegExp(`^/${localePrefix}`), '') 
-    : pathname;
-
-  // If user is new and hasn't completed setup, redirect to setup page
-  // But only if they're not already on an allowed path
-  // Check setup_complete first - if it's true, skip the redirect regardless of new_user status
-  if (!isSetupComplete && isNewUser && !ALLOWED_NEW_USER_PATHS.some(path => pathWithoutLocale.startsWith(path))) {
-    const url = request.nextUrl.clone();
-    url.pathname = `/${localePrefix || fallbackLng}/setup`;
-    return NextResponse.redirect(url);
+  // e.g. incoming request is /products
+  // The new URL is /en/products
+  const newUrl = new URL(`/${locale}${pathname.startsWith('/') ? pathname : `/${pathname}`}`, request.url);
+  
+  if (request.nextUrl.search) {
+    newUrl.search = request.nextUrl.search;
   }
 
-  // 5. If locale exists or it's a public path, continue
-  return undefined;
+  return NextResponse.redirect(newUrl);
 }
 
-// Configure the middleware matcher
+// Use a more precise matcher to reduce unnecessary middleware executions
 export const config = {
-  /*
-   * Match all request paths except for the ones starting with:
-   * - api (API routes)
-   * - _next/static (static files)
-   * - _next/image (image optimization files)
-   * - favicon.ico (favicon file)
-   * - assets (assuming you have an assets folder in /public)
-   * - locales (translation files) - Added this based on your i18n setup
-   * Matcher ensures middleware doesn't run unnecessarily on these paths.
-   */
   matcher: [
-    '/((?!api|_next/static|_next/image|assets|favicon.ico|locales).*)',
+    // Only run middleware on pages, not on static assets or API routes
+    '/((?!api|_next|.*\\..*|locales|favicon.ico|assets|images|fonts|icons|media|static).*)',
   ],
 }; 
