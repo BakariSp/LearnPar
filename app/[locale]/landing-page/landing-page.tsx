@@ -1,20 +1,26 @@
+'use client';
+
 import React from 'react';
 import styles from './landing-page.module.css'; // Import the CSS module
 import Link from 'next/link'; // Import Link for navigation
 import Image from 'next/image';
+import { useParams } from 'next/navigation'; // Import useParams to get locale
 
 export default function LandingPage() {
+  const params = useParams();
+  const locale = params.locale || 'en';
+  
   return (
     <div className={`${styles.pageContainer} ${styles.root}`}>
       {/* Header with Logo and Login */}
       <nav className={styles.navbar}>
         <div className={styles.navbarBrand}>
-          <Link href="/" className={styles.logoLink}>
+          <Link href={`/${locale}`} className={styles.logoLink}>
             <span className={styles.logoText}>Zero AI</span>
           </Link>
         </div>
         <div className={styles.navbarActions}>
-          <Link href="/login" className={styles.loginButton}>
+          <Link href={`/${locale}/login`} className={styles.loginButton}>
             Login
           </Link>
         </div>
@@ -31,10 +37,10 @@ export default function LandingPage() {
               with <span className={styles.accentText}>Zero AI</span>
             </h1>
             <div className={styles.heroButtons}>
-              <Link href="/login" className={styles.primaryButton}>
+              <Link href={`/${locale}/login`} className={styles.primaryButton}>
                 Get started
               </Link>
-              <Link href="/about" className={styles.secondaryButton}>
+              <Link href={`/${locale}/about`} className={styles.secondaryButton}>
                 Learn more
               </Link>
             </div>
@@ -176,7 +182,7 @@ export default function LandingPage() {
           <p className={styles.waitlistText}>
             Be among the first to experience the future of learning with Zero AI.
           </p>
-          <Link href="/login" className={styles.waitlistButton}>
+          <Link href={`/${locale}/login`} className={styles.waitlistButton}>
             🚀 Get Early Access
           </Link>
         </section>
