@@ -8,7 +8,12 @@ const nextConfig: NextConfig = {
     // Fallback to localhost:8000 only if the env var is not set
     const apiDestination = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/:path*`;
 
-    console.log(`Rewriting /api/:path* to ${apiDestination}`); // Add log for debugging
+    // Log API destination configuration for better debugging
+    console.log(`[next.config.ts] Rewriting /api/:path* to ${apiDestination}`);
+    
+    if (!process.env.NEXT_PUBLIC_API_URL) {
+      console.warn('[next.config.ts] Warning: NEXT_PUBLIC_API_URL is not set, using default localhost:8000');
+    }
 
     return [
       {
@@ -21,6 +26,16 @@ const nextConfig: NextConfig = {
   // Add environment variables to be available at build time
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
+  },
+  
+  // Experimental features configuration
+  experimental: {
+    // Add a faster timeout for API requests
+    serverActions: {
+      bodySizeLimit: '2mb',
+    },
+    // Configure performance tracking
+    webVitalsAttribution: ['CLS', 'LCP', 'FCP', 'FID', 'INP'],
   },
 };
 

@@ -1,0 +1,408 @@
+.setupContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  width: 100%;
+  padding: 40px 20px;
+  background-color: #ffffff;
+  position: relative;
+}
+
+.headerLogo {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-bottom: 40px;
+}
+
+.logoContainer {
+  display: flex;
+  align-items: center;
+}
+
+.logoCircle {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 4px solid #f7941d;
+  background-color: transparent;
+  box-sizing: border-box;
+}
+
+.logoText {
+  margin-left: 10px;
+  font-size: 24px;
+  font-weight: 600;
+  color: #f7941d;
+}
+
+.stepsIndicator {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-bottom: 50px;
+}
+
+.step {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #e0e0e0;
+  color: #666;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.step.active {
+  background-color: #ffffff;
+  color: #f7941d;
+  border: 2px solid #f7941d;
+}
+
+.setupCard {
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  width: 100%;
+  max-width: 550px;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0 auto;
+}
+
+.welcomeStep, .interestsStep {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.welcomeStep h1, .interestsStep h1 {
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 30px;
+  text-align: center;
+  color: #333;
+}
+
+.inputField {
+  width: 100%;
+  padding: 16px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 16px;
+  margin-bottom: 25px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.inputField:focus {
+  border-color: #f7941d;
+}
+
+.termsContainer {
+  width: 100%;
+  margin-bottom: 30px;
+}
+
+.checkboxContainer {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.checkboxContainer input {
+  margin-top: 4px;
+}
+
+.checkboxContainer label {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.5;
+}
+
+.checkboxContainer a {
+  color: #f7941d;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.checkboxContainer a:hover {
+  text-decoration: underline;
+}
+
+.interestsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  width: 100%;
+  margin-bottom: 30px;
+}
+
+.interestItem {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.interestItem:hover {
+  border-color: #f7941d;
+  background-color: #fff8f0;
+}
+
+.interestItem.selected {
+  border-color: #f7941d;
+  background-color: #fff8f0;
+}
+
+.interestIcon {
+  font-size: 24px;
+}
+
+.interestLabel {
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+}
+
+.errorMessage {
+  color: #e53935;
+  font-size: 14px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.buttonContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  margin-top: 15px;
+}
+
+.continueButton, .backButton {
+  padding: 14px 30px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.continueButton {
+  background-color: #f7941d;
+  color: white;
+  border: none;
+  flex: 1;
+  text-align: center;
+  max-width: 300px;
+}
+
+.continueButton:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.continueButton:hover:not(:disabled) {
+  background-color: #e78108;
+}
+
+.backButton {
+  background-color: transparent;
+  color: #666;
+  border: 1px solid #e0e0e0;
+}
+
+.backButton:hover {
+  background-color: #f5f5f5;
+}
+
+.skipButton {
+  position: absolute;
+  top: 20px;
+  right: 40px;
+  background-color: transparent;
+  color: #666;
+  border: none;
+  padding: 8px 16px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.skipButton:hover {
+  color: #f7941d;
+  text-decoration: underline;
+}
+
+/* Modal Styles */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(3px);
+}
+
+.modal {
+  background-color: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 700px;
+  max-height: 90vh;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: modalFadeIn 0.3s ease-out;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.modalHeader h2 {
+  font-size: 20px;
+  margin: 0;
+  color: #333;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #666;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.closeButton:hover {
+  color: #f7941d;
+}
+
+.modalContent {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.modalContent h3 {
+  font-size: 18px;
+  margin-top: 20px;
+  margin-bottom: 10px;
+  color: #444;
+}
+
+.modalContent h3:first-child {
+  margin-top: 0;
+}
+
+.modalContent p {
+  margin-bottom: 16px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #666;
+}
+
+.modalFooter {
+  padding: 15px 20px;
+  border-top: 1px solid #e0e0e0;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.modalButton {
+  background-color: #f7941d;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.modalButton:hover {
+  background-color: #e78108;
+}
+
+@media (max-width: 768px) {
+  .interestsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .setupCard {
+    padding: 30px;
+    max-width: 450px;
+  }
+  
+  .modal {
+    width: 95%;
+  }
+}
+
+@media (max-width: 600px) {
+  .setupCard {
+    padding: 20px;
+    box-shadow: none;
+  }
+  
+  .interestsGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .buttonContainer {
+    flex-direction: row;
+    gap: 12px;
+  }
+  
+  .skipButton {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+  }
+
+  .stepsIndicator {
+    margin-bottom: 30px;
+  }
+  
+  .modalHeader, .modalContent, .modalFooter {
+    padding: 15px;
+  }
+} 

@@ -541,36 +541,51 @@
 
 /* --- Generate Full Path Button Styles --- */
 .generateFullPathButton {
-  display: block;
+  display: inline-block;
   width: 100%;
-  padding: 0.8rem 1.5rem; /* Slightly larger padding */
-  margin-top: 0.5rem;
-  font-size: 1rem; /* Slightly larger font */
-  font-weight: 500;
-  color: #ffffff;
-  /* Pinkish color from image */
-  background-color: #77c7e6;
-  /* Orange from visual guide: */
-  /* background-color: #FFA336; */
-  border: none;
-  border-radius: 8px; /* Slightly larger radius */
-  cursor: pointer;
-  transition: background-color 0.2s, opacity 0.2s, box-shadow 0.2s;
+  max-width: 320px;
+  margin: 1.5rem auto 1rem;
+  padding: 0.8rem 1.5rem;
+  background-color: #28a745; /* Green color to match selected difficulty */
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
   text-align: center;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  border: none;
+  border-radius: 6px; /* Match difficulty buttons */
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(40, 167, 69, 0.2); /* Soft shadow for depth */
 }
 
 .generateFullPathButton:hover:not(:disabled) {
-  background-color: #d65555; /* Darker pinkish */
-  /* background-color: #f7921b; */ /* Darker Orange */
-  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  background-color: #218838; /* Darker green */
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
 }
 
 .generateFullPathButton:disabled {
-  background-color: #adb5bd; /* Grey out when disabled */
+  background-color: #6c757d;
+  opacity: 0.65;
   cursor: not-allowed;
-  opacity: 0.6;
-  box-shadow: none;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .generateFullPathButton {
+    background-color: #38a169; /* Dark mode green */
+    box-shadow: 0 2px 4px rgba(56, 161, 105, 0.3);
+  }
+  
+  .generateFullPathButton:hover:not(:disabled) {
+    background-color: #2f855a; /* Darker green for dark mode */
+    box-shadow: 0 4px 8px rgba(56, 161, 105, 0.4);
+  }
+  
+  .generateFullPathButton:disabled {
+    background-color: #4a5568;
+    opacity: 0.65;
+  }
 }
 /* --- End Generate Full Path Button Styles --- */
 
@@ -601,8 +616,8 @@
     padding: 3rem 2rem;
     text-align: center;
     color: #6c757d;
-    background-color: #f8f9fa;
-    border: 1px solid #e9ecef;
+    /* background-color: #FFDABA;  */
+    /* border: 1px solid #FFB777;  */
     border-radius: 8px;
     min-height: 300px; /* Give it some height */
     display: flex;
@@ -613,9 +628,191 @@
     font-size: 1.1rem;
 }
 
+/* New placeholder title and text styles */
+.placeholderTitle {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #343a40;
+    margin: 0 0 0.5rem 0;
+}
+
+.placeholderText {
+    font-size: 0.95rem;
+    color: #6c757d;
+    margin: 0 0 1.5rem 0;
+}
+
+/* Visual placeholder for editable learning path container */
+.pathPlaceholder {
+    width: 100%;
+    max-width: 540px;
+    background-color: #ffffff; /* White background to match the example */
+    border: 1px solid #e9ecef; /* Lighter border to match example */
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    margin-top: 1rem;
+}
+
+.pathPlaceholderHeader {
+    height: 32px;
+    width: 70%;
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite linear;
+    border-radius: 4px;
+    margin: 0 auto 1.5rem auto;
+}
+
+.pathPlaceholderRow {
+    height: 24px;
+    width: 90%;
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite linear;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+}
+
+.pathPlaceholderRow:last-child {
+    width: 75%;
+    margin-bottom: 0;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
 /* Ensure spinner is styled for placeholder */
 .placeholder .spinner {
-    margin-top: 1rem;
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+/* Text in the purple placeholder area */
+.placeholderMessage {
+    color: #495057; /* Darker text to match example */
+    font-size: 1rem;
+    text-align: center;
+    padding: 1rem 0;
+    margin-bottom: 1.5rem;
+    background-color: rgba(233, 236, 239, 0.4); /* Very light gray background */
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+}
+
+/* Study days and difficulty level controls */
+.pathPlaceholderControls {
+    margin-bottom: 1.5rem;
+}
+
+.pathPlaceholderLabel {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #495057;
+    margin-bottom: 0.6rem;
+}
+
+.pathPlaceholderDays {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.pathPlaceholderDay {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    color: #495057;
+    padding: 0.35rem 0.8rem;
+    border-radius: 30px; /* More rounded to match example */
+    font-size: 0.8rem;
+    min-width: 40px;
+    text-align: center;
+}
+
+.pathPlaceholderDifficulty {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.pathPlaceholderLevel {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    color: #495057;
+    padding: 0.45rem 1.2rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    min-width: 100px;
+    text-align: center;
+}
+
+.pathPlaceholderLevelSelected {
+    background-color: #28a745; /* Green to match the selected Intermediate */
+    color: #ffffff;
+    border-color: #28a745;
+}
+
+/* Dark mode overrides for placeholder */
+@media (prefers-color-scheme: dark) {
+    .placeholder {
+        background-color: rgba(104, 211, 145, 0.15); /* Darker green with transparency */
+        border-color: rgba(104, 211, 145, 0.3); /* Darker green border */
+        color: #e2e8f0;
+    }
+    
+    .placeholderTitle {
+        color: #f8f9fa;
+    }
+    
+    .placeholderText {
+        color: #adb5bd;
+    }
+    
+    .pathPlaceholder {
+        background-color: #2d3748; /* Dark background */
+        border-color: #4a5568;
+    }
+    
+    .placeholderMessage {
+        color: #e2e8f0;
+        background-color: rgba(74, 85, 104, 0.4);
+        border-color: #4a5568;
+    }
+    
+    .pathPlaceholderHeader,
+    .pathPlaceholderRow {
+        background: linear-gradient(90deg, #4a5568 25%, #3a4556 50%, #4a5568 75%);
+    }
+    
+    .pathPlaceholderLabel {
+        color: #e2e8f0;
+    }
+    
+    .pathPlaceholderDay {
+        background-color: #2d3748;
+        border-color: #4a5568;
+        color: #e2e8f0;
+    }
+    
+    .pathPlaceholderLevel {
+        background-color: #2d3748;
+        border-color: #4a5568;
+        color: #e2e8f0;
+    }
+    
+    .pathPlaceholderLevelSelected {
+        background-color: #38a169; /* Dark green */
+        color: #ffffff;
+        border-color: #38a169;
+    }
 }
 
 /* --- Add any missing styles copied from EditableLearningPath.module.css if needed --- */
@@ -740,4 +937,96 @@
     background-color: var(--card-background);
     border: 1px solid var(--border-color);
   }
+}
+
+/* AI Working Phases */
+.phaseText {
+    color: #6c757d;
+    font-size: 0.9rem;
+    margin: 0 0.5rem;
+}
+
+.activePhase {
+    color: #28a745;
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin: 0 0.5rem;
+    position: relative;
+}
+
+.activePhase::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: #28a745;
+    animation: pulse 1.5s infinite;
+}
+
+.aiThinkingText {
+    margin-top: 1rem;
+    color: #495057;
+    font-size: 0.9rem;
+    font-style: italic;
+    text-align: center;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 0.6;
+    }
+    50% {
+        opacity: 1;
+    }
+}
+
+/* Dark mode overrides for placeholder */
+@media (prefers-color-scheme: dark) {
+    .placeholder {
+        background-color: rgba(104, 211, 145, 0.15); /* Darker green with transparency */
+        border-color: rgba(104, 211, 145, 0.3); /* Darker green border */
+        color: #e2e8f0;
+    }
+    
+    .placeholderTitle {
+        color: #f8f9fa;
+    }
+    
+    .placeholderText {
+        color: #adb5bd;
+    }
+    
+    .phaseText {
+        color: #adb5bd;
+    }
+    
+    .activePhase {
+        color: #38a169;
+    }
+    
+    .activePhase::after {
+        background-color: #38a169;
+    }
+    
+    .aiThinkingText {
+        color: #cbd5e0;
+    }
+    
+    .pathPlaceholder {
+        background-color: #2d3748; /* Dark background */
+        border-color: #4a5568;
+    }
+    
+    .placeholderMessage {
+        color: #e2e8f0;
+        background-color: rgba(74, 85, 104, 0.4);
+        border-color: #4a5568;
+    }
+    
+    .pathPlaceholderHeader,
+    .pathPlaceholderRow {
+        background: linear-gradient(90deg, #4a5568 25%, #3a4556 50%, #4a5568 75%);
+    }
 }

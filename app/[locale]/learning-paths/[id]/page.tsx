@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link'; // Import Link for potential back button
 import { useTranslation } from 'react-i18next';
@@ -17,7 +17,7 @@ import {
   NextItemInfo,
   CompletionInfo,
 } from '@/services/api'; // Adjust path as needed
-import styles from './learning-path-detail.module.css';
+import styles from '../styles';
 import LearnAssistant from '../components/LearnAssistant';
 // Optional: Import an icon library if you want icons for status
 // import { CheckCircleIcon, ExclamationTriangleIcon, ArrowPathIcon } from '@heroicons/react/20/solid';
@@ -30,8 +30,8 @@ export default function LearningPathDetailPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
-  const locale = Array.isArray(params.locale) ? params.locale[0] : params.locale; // ✅ locale
-  const id = params.id as string;
+  const locale = params && Array.isArray(params.locale) ? params.locale[0] : params?.locale || 'en';
+  const id = params?.id ? (Array.isArray(params.id) ? params.id[0] : params.id) : '';
 
   const [learningPathData, setLearningPathData] = useState<FullLearningPathResponse | null>(null);
   const [taskStatus, setTaskStatus] = useState<TaskStatusResponse | null>(null); // State for task status
@@ -51,6 +51,67 @@ export default function LearningPathDetailPage() {
   const [autoSelectCardId, setAutoSelectCardId] = useState<number | null>(null);
   const [autoSelectFirstCardInSectionId, setAutoSelectFirstCardInSectionId] = useState<number | null>(null);
   const [isPreloadingCards, setIsPreloadingCards] = useState(true);
+  // Add a ref to store the polling interval
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Helper function to check if a task is active (running)
+  const isTaskActive = useCallback((status: TaskStatusResponse | null): boolean => {
+    return !!status && ['pending', 'queued', 'starting', 'running'].includes(status.status);
+  }, []);
+
+  // Helper function to check if task is specifically generating cards
+  const isGeneratingCards = useCallback((status: TaskStatusResponse | null): boolean => {
+    return isTaskActive(status) && status?.stage === 'generating_cards';
+  }, [isTaskActive]);
+
+  // Function to fetch task status
+  const fetchTaskStatus = useCallback(async () => {
+    if (!id) return null;
+    
+    const pathId = parseInt(String(id), 10);
+    if (isNaN(pathId)) return null;
+    
+    setIsFetchingStatus(true);
+    try {
+      const latestTask = await apiGetLatestTaskForLearningPath(pathId);
+      setTaskStatus(latestTask);
+      return latestTask;
+    } catch (error) {
+      console.error("Failed to fetch latest task status:", error);
+      return null;
+    } finally {
+      setIsFetchingStatus(false);
+    }
+  }, [id]);
+
+  // Function to fetch a specific section's cards
+  const fetchSectionCards = useCallback(async (sectionId: number) => {
+    if (!sectionId) return null;
+    
+    setIsFetchingSection(true);
+    setCurrentSectionIdForFetch(sectionId);
+    
+    try {
+      console.log(`Fetching cards for section ${sectionId}...`);
+      const sectionData = await apiGetSectionWithCards(sectionId);
+      const cards = sectionData.cards || [];
+      console.log(`Fetch successful for section ${sectionId}. Cards: ${cards.length}`);
+      
+      // Cache the cards
+      setSectionCardsCache(prevCache => ({
+        ...prevCache,
+        [sectionId]: cards
+      }));
+      
+      return cards;
+    } catch (error) {
+      console.error(`Failed to fetch cards for section ${sectionId}:`, error);
+      return null;
+    } finally {
+      setIsFetchingSection(false);
+      setCurrentSectionIdForFetch(prev => prev === sectionId ? null : prev);
+    }
+  }, []);
 
   // --- Wrap handleCardSelect in useCallback ---
   // (Place this definition before the useEffect hooks that depend on it)
@@ -109,7 +170,7 @@ export default function LearningPathDetailPage() {
       setIsPreloadingCards(true); // Start loading indicator
 
       try {
-        const pathId = parseInt(id, 10);
+        const pathId = parseInt(String(id), 10);
         if (isNaN(pathId)) {
           throw new Error("Invalid Learning Path ID.");
         }
@@ -132,8 +193,8 @@ export default function LearningPathDetailPage() {
         }
 
         // --- Check for query parameters AFTER pathData is loaded ---
-        const targetSectionIdStr = searchParams.get('section');
-        const targetCardIdStr = searchParams.get('card');
+        const targetSectionIdStr = searchParams?.get('section');
+        const targetCardIdStr = searchParams?.get('card');
 
         if (targetSectionIdStr && targetCardIdStr && pathData) {
           const targetSectionId = parseInt(targetSectionIdStr, 10);
@@ -195,6 +256,43 @@ export default function LearningPathDetailPage() {
     fetchData();
   }, [id, router, processSectionCards, handleCardSelect, locale, searchParams]);
 
+  // Add polling effect for when task is running in generating_cards state
+  useEffect(() => {
+    // Clear any existing interval
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+
+    // If the task is in generating_cards state, start polling
+    if (isGeneratingCards(taskStatus)) {
+      console.log("Task is generating cards, starting polling interval");
+      
+      // Poll every 10 seconds
+      pollingIntervalRef.current = setInterval(() => {
+        fetchTaskStatus();
+      }, 10000); // 10 seconds
+    }
+
+    // Cleanup function
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    };
+  }, [taskStatus, isGeneratingCards, fetchTaskStatus]);
+
+  // Add a cleanup effect when component unmounts
+  useEffect(() => {
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    };
+  }, []);
+
   const findNextItem = (currentSectionId: number): NextItemInfo | null => {
     if (!learningPathData) return null;
 
@@ -252,12 +350,39 @@ export default function LearningPathDetailPage() {
     return { type: 'end' };
   };
 
-  const toggleExpand = (itemId: string, itemType: 'course' | 'section', sectionId?: number) => {
+  const toggleExpand = useCallback((itemId: string, itemType: 'course' | 'section', sectionId?: number) => {
+    // Toggle expansion state
     setExpandedItems(prev => {
       const isCurrentlyExpanded = !!prev[itemId];
       return { ...prev, [itemId]: !isCurrentlyExpanded };
     });
-  };
+
+    // If expanding a section and task is generating cards, handle special logic
+    if (itemType === 'section' && sectionId && !expandedItems[itemId]) {
+      // Check if we need to fetch cards for this section (empty or not in cache)
+      const cachedCards = sectionCardsCache[sectionId] || [];
+      const needsFetch = cachedCards.length === 0;
+      
+      // If we need to fetch and task is actively generating cards
+      if (needsFetch && isGeneratingCards(taskStatus)) {
+        console.log(`Section ${sectionId} is empty and task is generating cards. Attempting to fetch latest cards...`);
+        
+        // First refresh task status, then try to fetch cards for the section
+        fetchTaskStatus().then((updatedStatus) => {
+          // If task is still generating, try to fetch the section's cards
+          if (updatedStatus && isGeneratingCards(updatedStatus)) {
+            fetchSectionCards(sectionId).then(cards => {
+              // If we got cards, handle auto-select if needed
+              if (cards && cards.length > 0 && autoSelectFirstCardInSectionId === sectionId) {
+                handleCardSelect(cards[0], sectionId, cards, true);
+                setAutoSelectFirstCardInSectionId(null);
+              }
+            });
+          }
+        });
+      }
+    }
+  }, [expandedItems, sectionCardsCache, isGeneratingCards, taskStatus, fetchTaskStatus, fetchSectionCards, autoSelectFirstCardInSectionId, handleCardSelect]);
 
   const renderResources = (resources: Record<string, CardResource> | CardResource[] | {}) => {
     if (!resources || Object.keys(resources).length === 0) {
@@ -560,7 +685,23 @@ export default function LearningPathDetailPage() {
                                 if (cachedCards.length === 0) {
                                   return (
                                     <li className={styles.navNoCards}>
-                                      {t('learning_path.no_cards')}
+                                      {isGeneratingCards(taskStatus) ? (
+                                        <>
+                                          <span>{t('learning_path.cards_generating', 'Cards still generating...')}</span>
+                                          <button 
+                                            className={styles.refreshButton}
+                                            onClick={(e) => {
+                                              e.stopPropagation(); // Prevent toggle expansion
+                                              if (section.id) {
+                                                console.log(`Manually refreshing section ${section.id}...`);
+                                                fetchSectionCards(section.id);
+                                              }
+                                            }}
+                                          >
+                                            🔄 {t('learning_path.refresh_section', 'Refresh')}
+                                          </button>
+                                        </>
+                                      ) : t('learning_path.no_cards')}
                                     </li>
                                   );
                                 }
@@ -703,7 +844,7 @@ export default function LearningPathDetailPage() {
                               }
 
                               // Fetch fresh data for the learning path to ensure UI is up-to-date
-                              const pathId = parseInt(id, 10);
+                              const pathId = parseInt(String(id), 10);
                               if (!isNaN(pathId)) {
                                 apiGetFullLearningPath(pathId)
                                   .then(freshData => {
@@ -916,7 +1057,7 @@ export default function LearningPathDetailPage() {
             }}
             onRefreshCards={() => {
               // Fetch fresh data for the learning path
-              const pathId = parseInt(id, 10);
+              const pathId = parseInt(String(id), 10);
               if (!isNaN(pathId)) {
                 apiGetFullLearningPath(pathId)
                   .then(freshData => {

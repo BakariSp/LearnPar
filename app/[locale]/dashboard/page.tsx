@@ -43,7 +43,7 @@ export default function DashboardPage() {
   const { user, isLoading, logout: contextLogout } = useAuth();
   const router = useRouter();
   const params = useParams();
-  const locale = Array.isArray(params.locale) ? params.locale[0] : params.locale || 'en';
+  const locale = params ? (Array.isArray(params.locale) ? params.locale[0] : params.locale) || 'en' : 'en';
   const { t } = useTranslation('common');
   const searchParams = useSearchParams();
 
@@ -59,7 +59,7 @@ export default function DashboardPage() {
 
   // Check for show_upgrade query parameter and auto-expand upgrade section
   useEffect(() => {
-    if (searchParams.get('show_upgrade') === 'true') {
+    if (searchParams?.get('show_upgrade') === 'true') {
       setShowPromoSection(true);
       // Set error message if redirected from subscription limit error
       setError('You have reached your subscription limit. Please upgrade to continue creating learning paths.');
@@ -202,29 +202,11 @@ export default function DashboardPage() {
         setUpgradeSuccess(true);
         setUpgradeMessage(response.message || 'Subscription upgraded successfully!');
         
-        // Fetch both subscription data and daily usage in parallel
-        try {
-          const [updatedInfo, updatedUsage] = await Promise.all([
-            getUserSubscription(),
-            getDailyUsage()
-          ]);
-          
-          // Verify data before setting state
-          if (updatedInfo && updatedInfo.subscription_type) {
-            setSubscriptionInfo(updatedInfo);
-          } else {
-            console.warn('Received invalid subscription info after upgrade:', updatedInfo);
-          }
-          
-          if (updatedUsage && updatedUsage.paths && updatedUsage.cards) {
-            setDailyUsage(updatedUsage);
-          } else {
-            console.warn('Received invalid daily usage data after upgrade:', updatedUsage);
-          }
-        } catch (refreshError) {
-          console.error('Error refreshing subscription data after upgrade:', refreshError);
-          // Still show success since the upgrade worked, but log the refresh error
-        }
+        // Set a brief timeout before refreshing the page to allow the success message to be shown
+        setTimeout(() => {
+          // Use window.location.reload() to refresh the entire page
+          window.location.reload();
+        }, 500); // 0.5 second delay to show the success message before refresh
         
         setShowPromoSection(false);
         setPromoCode('');

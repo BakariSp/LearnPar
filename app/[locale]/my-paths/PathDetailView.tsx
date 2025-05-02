@@ -79,7 +79,7 @@ export const PathDetailView: React.FC<PathDetailViewProps> = ({
     const router = useRouter();
     const params = useParams(); // Get params
     // Explicitly check and log the locale derived from params
-    const locale = Array.isArray(params.locale) ? params.locale[0] : params.locale;
+    const locale = params ? (Array.isArray(params.locale) ? params.locale[0] : params.locale) || 'en' : 'en';
     console.log('[PathDetailView] Locale from params:', locale); // Add this log
     const { t, ready } = useTranslation('common'); // Get the ready state
 

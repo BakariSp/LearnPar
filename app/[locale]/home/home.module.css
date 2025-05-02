@@ -222,4 +222,41 @@
   .learningPathGrid {
     grid-template-columns: 1fr;
   }
+}
+
+/* Load More Button Styles */
+.loadMoreContainer {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-top: 32px;
+}
+
+.loadMoreButton {
+  padding: 12px 24px;
+  background-color: transparent;
+  color: var(--primary-color, #f7941d);
+  border: 1px solid var(--primary-color, #f7941d);
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.loadMoreButton:hover {
+  background-color: rgba(247, 148, 29, 0.1);
+}
+
+.loadMoreButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.noMoreMessage {
+  color: #666;
+  font-size: 0.9rem;
+  text-align: center;
+  margin: 16px 0;
+  font-style: italic;
 } 

@@ -19,12 +19,14 @@ export function LanguageSwitcher() {
   const newLocale = currentLocale === 'en' ? 'zh' : 'en';
 
   const handleClick = () => {
-    const segments = pathname.replace(/^\/+/, '').split('/');
-    segments[0] = newLocale;
-    const newPath = '/' + segments.join('/');
+    const segments = pathname?.replace(/^\/+/, '').split('/');
+    if (segments) {
+      segments[0] = newLocale;
+      const newPath = '/' + segments.join('/');
 
-    i18n.changeLanguage(newLocale);
-    window.location.replace(newPath);
+      i18n.changeLanguage(newLocale);
+      window.location.replace(newPath);
+    }
   };
 
   return (

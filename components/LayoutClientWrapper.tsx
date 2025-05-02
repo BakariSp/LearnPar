@@ -17,7 +17,7 @@ export function LayoutClientWrapper({ children }: LayoutClientWrapperProps) {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const { user } = useAuth();
   const params = useParams();
-  const locale = Array.isArray(params.locale) ? params.locale[0] : params.locale;
+  const locale = params ? (Array.isArray(params.locale) ? params.locale[0] : params.locale) || 'en' : 'en';
 
   const toggleSidebar = () => {
     console.log("Toggling sidebar, current state:", isSidebarCollapsed);

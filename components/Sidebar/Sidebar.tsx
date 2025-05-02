@@ -58,12 +58,15 @@ export function Sidebar({ isCollapsed, toggleSidebar, locale }: SidebarProps) {
         <div className={styles.toggleButtonContainer}>
           <button onClick={toggleSidebar} className={styles.toggleButton} aria-label={isCollapsed ? t('sidebar.expand') : t('sidebar.collapse')}>
             <div className={styles.windowIconWrapper}>
-              <Image 
-                src={isCollapsed ? "/sidebar_expend.svg" : "/sidebar_collasp.svg"} 
-                alt={isCollapsed ? "Expand sidebar" : "Collapse sidebar"} 
-                width={24} 
-                height={24} 
-              />
+              <div className={styles.fixedSizeIcon}>
+                <Image 
+                  src={isCollapsed ?  "/sidebar_collasp.svg" : "/sidebar_expend.svg"} 
+                  alt={isCollapsed ? "Expand sidebar" : "Collapse sidebar"} 
+                  width={24} 
+                  height={24}
+                  className={styles.sidebarIcon}
+                />
+              </div>
             </div>
           </button>
         </div>
@@ -106,11 +109,15 @@ export function Sidebar({ isCollapsed, toggleSidebar, locale }: SidebarProps) {
 
         {/* Admin section at the bottom */}
         <div className={styles.adminSection}>
-          <Link href={`/${locale}/dashboard`} className={getNavItemClass(`/${locale}/dashboard`)} title={isCollapsed ? t('sidebar.dashboard') : undefined}>
+          <Link 
+            href={`/${locale}/dashboard`} 
+            className={`${styles.adminProfile} ${pathname === `/${locale}/dashboard` ? styles.active : ''}`} 
+            title={isCollapsed ? t('sidebar.dashboard') : undefined}
+          >
             <div className={styles.adminAvatar}>{userInitial}</div>
             <div className={styles.adminInfo}>
-              <div className={styles.adminTitle}>{userName || 'Admin'}</div>
-              <div className={styles.adminEmail}>{user?.email || 'admin@example.com'}</div>
+              <div className={styles.adminTitle}>{userName || 'Unknown'}</div>
+              <div className={styles.adminEmail}>{user?.email || 'Unknown'}</div>
             </div>
             {!isCollapsed && <div className={styles.adminStatus}></div>}
           </Link>

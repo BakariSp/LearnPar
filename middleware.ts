@@ -8,6 +8,15 @@ const PUBLIC_PATHS = [
   // Add other public paths if needed (e.g., '/robots.txt', '/sitemap.xml')
 ];
 
+// Paths that new users should be able to access without being redirected to setup
+const ALLOWED_NEW_USER_PATHS = [
+  '/setup',
+  '/login',
+  '/oauth',
+  '/terms',
+  '/privacy',
+];
+
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
@@ -34,7 +43,26 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // 4. If locale exists or it's a public path, continue
+  // 4. Check if user is a new user who needs to complete the setup process
+  // Get the user data from the request cookies
+  const isNewUser = request.cookies.get('new_user')?.value === 'true';
+  const isSetupComplete = request.cookies.get('setup_complete')?.value === 'true';
+  
+  // Extract the path without locale for checking against allowed paths
+  const localePrefix = languages.find(locale => pathname.startsWith(`/${locale}/`));
+  const pathWithoutLocale = localePrefix 
+    ? pathname.replace(new RegExp(`^/${localePrefix}`), '') 
+    : pathname;
+
+  // If user is new and hasn't completed setup, redirect to setup page
+  // But only if they're not already on an allowed path
+  if (isNewUser && !isSetupComplete && !ALLOWED_NEW_USER_PATHS.some(path => pathWithoutLocale.startsWith(path))) {
+    const url = request.nextUrl.clone();
+    url.pathname = `/${localePrefix || fallbackLng}/setup`;
+    return NextResponse.redirect(url);
+  }
+
+  // 5. If locale exists or it's a public path, continue
   return undefined;
 }
 

@@ -86,15 +86,27 @@ export function EditableLearningPath({
   // --- Local state for UI elements derived from props ---
   // Use initialPlan to set initial state for difficulty, courses etc.
   const pathTitle = initialPlan?.title || 'Learning Plan';
-  // Map incoming courses to add order_index based on array position
+  // Map incoming courses to add order_index based on array position and ensure stable IDs
   const courses: Course[] = (initialPlan?.courses || []).map((course, index) => ({
     ...course,
     order_index: index,
+    // Ensure the id is consistent
+    id: course.id || `course-${index}`,
   }));
-  const selectedDifficulty = initialPlan?.difficulty_level || 'Intermediate';
+  
+  // Keep the difficulty level in sync with initialPlan or default to "Intermediate"
+  const [internalDifficulty, setInternalDifficulty] = useState(initialPlan?.difficulty_level || 'Intermediate');
 
   // State for schedule selector (remains local)
   const [selectedDays, setSelectedDays] = useState<Set<string>>(new Set());
+
+  // Update internal difficulty when initialPlan changes
+  useEffect(() => {
+    // Update difficulty if present in initialPlan
+    if (initialPlan?.difficulty_level) {
+      setInternalDifficulty(initialPlan.difficulty_level);
+    }
+  }, [initialPlan]);
 
   // --- REMOVE Chat Scroll Effect ---
   // useEffect(() => { ... }, [messages]);
@@ -149,7 +161,8 @@ export function EditableLearningPath({
   };
 
   const handleDifficultySelect = (level: string) => {
-    onDifficultyChange(level); // Notify parent immediately
+    setInternalDifficulty(level); // Update local state first for immediate UI feedback
+    onDifficultyChange(level); // Then notify parent
   };
 
   // If there's no plan, maybe render nothing or a minimal placeholder?
@@ -161,51 +174,43 @@ export function EditableLearningPath({
   return (
     // Main container - styles might need adjustment based on parent layout
     <div className={styles.editablePathContainer}>
+        {/* Path title */}
+        <h3 className={styles.pathTitle}>{pathTitle}</h3>
 
-        {/* Top Row: Only Controls */}
-        <div className={styles.topRow}>
-
-            {/* --- REMOVE Chat Area --- */}
-
-            {/* Controls Area (Schedule & Difficulty) - Keep */}
-            <div className={styles.controlsArea}>
-                <h3 className={styles.pathTitle}>{pathTitle}</h3>
-
-                {/* Schedule Selector */}
-                <div className={styles.scheduleContainer}>
-                    <span className={styles.scheduleTitle}>Study Days</span>
-                    <div className={styles.daySelector}>
-                        {daysOfWeek.map(day => (
-                            <button
-                                key={day}
-                                onClick={() => handleDaySelect(day)}
-                                className={`${styles.dayButton} ${selectedDays.has(day) ? styles.selectedDay : ''}`}
-                            >
-                                {day}
-                            </button>
-                        ))}
-                    </div>
-                 </div>
-
-                 {/* Difficulty Selector */}
-                 <div className={styles.difficultyContainer}>
-                    <span className={styles.difficultyTitle}>Difficulty Level</span>
-                    <div className={styles.difficultySelector}>
-                        {difficultyLevels.map(level => (
-                            <button
-                                key={level}
-                                onClick={() => handleDifficultySelect(level)}
-                                className={`${styles.difficultyButton} ${selectedDifficulty === level ? styles.selectedDifficulty : ''}`}
-                            >
-                                {level}
-                            </button>
-                        ))}
-                    </div>
-                 </div>
+        {/* Study Days */}
+        <div className={styles.scheduleContainer}>
+            <span className={styles.scheduleTitle}>Study Days</span>
+            <div className={styles.daySelector}>
+                {daysOfWeek.map(day => (
+                    <button
+                        key={day}
+                        onClick={() => handleDaySelect(day)}
+                        className={`${styles.dayButton} ${selectedDays.has(day) ? styles.selectedDay : ''}`}
+                    >
+                        {day}
+                    </button>
+                ))}
             </div>
         </div>
 
-        {/* Bottom Area: Course List */}
+        {/* Difficulty Level */}
+        <div className={styles.difficultyContainer}>
+            <span className={styles.difficultyTitle}>Difficulty Level</span>
+            <div className={styles.difficultySelector}>
+                {difficultyLevels.map(level => (
+                    <button
+                        key={level}
+                        onClick={() => handleDifficultySelect(level)}
+                        className={`${styles.difficultyButton} ${internalDifficulty === level ? styles.selectedDifficulty : ''}`}
+                        aria-selected={internalDifficulty === level}
+                    >
+                        {level}
+                    </button>
+                ))}
+            </div>
+        </div>
+
+        {/* Course List */}
         <div className={styles.courseListArea}>
             <DndContext
                 sensors={sensors}
@@ -217,20 +222,23 @@ export function EditableLearningPath({
                     {courses.length > 0 ? (
                     courses.map((course, index) => (
                         <SortableCourseItem
-                            // Use stable ID for key
-                            key={course.id || course.title || `course-${course.order_index}`}
+                            // Use stable ID for key - use actual ID value directly
+                            key={course.id}
                             course={{ // Ensure props match SortableCourseItem expectations
-                                id: course.id || course.title || `course-${course.order_index}`,
+                                id: course.id, // Pass the ID directly
                                 title: course.title,
-                                order_index: course.order_index, // Pass order_index if needed by SortableCourseItem
+                                order_index: index, // Ensure index matches array position
                                 sections: course.sections?.map(s => ({ // Map sections if needed
-                                    id: s.id || s.title || `section-${course.order_index}-${s.order_index}`,
+                                    id: s.id || `section-${index}-${s.order_index || 0}`,
                                     title: s.title,
-                                    order_index: s.order_index,
+                                    order_index: s.order_index || 0,
                                 })) || [],
                             }}
                             index={index} // Pass index if needed
-                            onDelete={onDeleteCourse} // Pass parent handler directly
+                            onDelete={(id) => {
+                              // Call the parent component's onDeleteCourse function
+                              onDeleteCourse(id);
+                            }}
                             // isGeneratingSections={generatingCourseIds?.has(course.id)} // Pass if needed
                         />
                     ))

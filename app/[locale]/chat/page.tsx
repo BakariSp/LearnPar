@@ -51,7 +51,7 @@ type LearningPlan = FullLearningPathResponse | null;
 function ChatPageContent() {
   const { t } = useTranslation('common');
   const params = useParams();
-  const locale = Array.isArray(params.locale) ? params.locale[0] : params.locale;
+  const locale = params ? (Array.isArray(params.locale) ? params.locale[0] : params.locale) : 'en';
 
   // --- Re-introduce chat-specific state ---
   const [userInput, setUserInput] = useState('');
@@ -61,6 +61,9 @@ function ChatPageContent() {
 
   const [currentPlan, setCurrentPlan] = useState<LearningPlan>(null); // State for the plan remains
   const [initialPrompt, setInitialPrompt] = useState<string | null>(null); // State to hold initial prompt
+  
+  // Add a separate state for user-selected difficulty
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string>("Intermediate");
 
   // --- Re-introduce Finalization State ---
   const [isFinalizing, setIsFinalizing] = useState(false);
@@ -239,13 +242,13 @@ function ChatPageContent() {
       setIsLoading(false);
     }
     // Pass handlePlanUpdateFromAI as dependency
-  }, [messages, currentPlan, handlePlanUpdateFromAI, t]); // Removed unnecessary locale dependency
+  }, [messages, currentPlan, handlePlanUpdateFromAI, t]);
 
 
   // Handle initial prompt from URL query parameter
   useEffect(() => {
     if (!initialPromptProcessed.current) {
-      const queryPrompt = searchParams.get('prompt');
+      const queryPrompt = searchParams?.get('prompt');
       if (queryPrompt) {
         initialPromptProcessed.current = true;
         const decodedPrompt = decodeURIComponent(queryPrompt);
@@ -267,38 +270,99 @@ function ChatPageContent() {
      sendMessage(userInput); // Send current user input using the local sendMessage
   };
 
-  // --- Handlers for EditableLearningPath (modified - removed sendMessage calls) ---
+  // Add localStorage effects for saving and loading the plan
+  useEffect(() => {
+    // Load the plan from localStorage on component mount
+    try {
+      const savedPlan = localStorage.getItem('currentLearningPlan');
+      if (savedPlan) {
+        const parsedPlan = JSON.parse(savedPlan);
+        setCurrentPlan(parsedPlan);
+        console.log('Loaded learning plan from localStorage');
+      }
+    } catch (error) {
+      console.error('Error loading plan from localStorage:', error);
+    }
+  }, []);
+
+  // Save the current plan to localStorage whenever it changes
+  useEffect(() => {
+    if (currentPlan) {
+      try {
+        localStorage.setItem('currentLearningPlan', JSON.stringify(currentPlan));
+        console.log('Learning plan saved to localStorage');
+      } catch (error) {
+        console.error('Error saving plan to localStorage:', error);
+      }
+    } else {
+      console.log('Current plan was set to null');
+    }
+  }, [currentPlan]);
+
+  // --- Handlers for EditableLearningPath ---
   const handleDeleteCourse = (courseId: string | number) => {
-    if (!currentPlan || !currentPlan.courses) return;
-    // Filter using the correct course ID
-    const updatedCourses = currentPlan.courses.filter(course => course.id !== courseId);
-    // Remove the renumbering step that added order_index back
-    // Ensure updatedPlan.courses matches the expected CourseResponse[] structure
-    const updatedPlan = { ...currentPlan, courses: updatedCourses };
+    console.log('Deleting course with ID:', courseId);
+    
+    if (!currentPlan || !currentPlan.courses) {
+      console.error('Cannot delete course: no current plan or courses');
+      return;
+    }
+    
+    // Convert courseId to string to ensure consistent comparison
+    const courseIdStr = String(courseId);
+    
+    // Filter using the correct course ID (string comparison for consistency)
+    const updatedCourses = currentPlan.courses.filter(course => String(course.id) !== courseIdStr);
+    
+    // Verify filtering worked correctly
+    if (updatedCourses.length === currentPlan.courses.length) {
+      console.error(`Filter didn't remove any courses. Course ID may not exist: ${courseIdStr}`);
+      return;
+    }
+    
+    // Create a new plan object to ensure React detects the change
+    const updatedPlan = {
+      ...currentPlan,
+      courses: [...updatedCourses]
+    };
+    
+    // Force update by setting a new plan object
     setCurrentPlan(updatedPlan);
-    // Optionally: Inform AI about the deletion?
-    sendMessage(`I have deleted the course titled "${currentPlan.courses.find(c => c.id === courseId)?.title}". Please acknowledge.`, updatedPlan);
+    
+    // localStorage is automatically updated via the useEffect
+  };
+
+  // Utility function to manually clear learning plan data
+  const clearLearningPlanData = () => {
+    try {
+      localStorage.removeItem('currentLearningPlan');
+      console.log('Learning plan data cleared from localStorage');
+      setCurrentPlan(null);
+    } catch (error) {
+      console.error('Error clearing learning plan data from localStorage:', error);
+    }
   };
 
   const handleReorderCourses = (reorderedCourses: EditableCourseDefinition[]) => {
     if (!currentPlan) return;
     // Map reordered courses back to the expected structure (e.g., CourseResponse)
-    // Assuming CourseResponse doesn't have order_index, remove it.
-    // Adjust this mapping if CourseResponse structure differs significantly.
+    // Remove order_index since it's not part of CourseResponse
     const coursesForState = reorderedCourses.map(({ order_index, ...rest }) => rest);
-
-    const updatedPlan = { ...currentPlan, courses: coursesForState as any }; // Use 'as any' for now to bypass strict type check, review needed
+    
+    const updatedPlan = { ...currentPlan, courses: coursesForState as any };
     setCurrentPlan(updatedPlan);
-     // Optionally: Inform AI about the reorder?
-    sendMessage(`I have reordered the courses. Please acknowledge.`, updatedPlan);
+    // Save the change automatically via the useEffect above
   };
 
+  // --- Updated handler for difficulty change ---
   const handleDifficultyChange = (difficulty: string) => {
     if (!currentPlan) return;
+    
     const updatedPlan = { ...currentPlan, difficulty_level: difficulty };
     setCurrentPlan(updatedPlan);
-    // Optionally: Inform AI about the difficulty change?
-    sendMessage(`I have changed the difficulty to ${difficulty}. Please update the plan if necessary.`, updatedPlan);
+    setSelectedDifficulty(difficulty);
+    console.log(`Difficulty changed to: ${difficulty}`);
+    // Save the change automatically via the useEffect above
   };
 
 
@@ -314,12 +378,13 @@ function ChatPageContent() {
     setFinalizationError(null);
 
     try {
-      // Ensure the plan has the required fields
+      // Ensure the plan has the required fields and use the user-selected difficulty
       const planToFinalize = {
         ...currentPlan,
         title: currentPlan.title || t('default_plan_title'),
         description: currentPlan.description || '',
-        difficulty_level: currentPlan.difficulty_level || 'Intermediate',
+        difficulty_level: selectedDifficulty, // Use the selected difficulty level
+        estimated_days: currentPlan.estimated_days || 7, // Default to 7 days if not specified
       };
 
       // Log the payload
@@ -371,7 +436,12 @@ function ChatPageContent() {
           prev + '\n' + t('chat.sending_plan', 'Sending learning path to server...')
         );
         
-        const createResponse = await apiCreatePathFromStructure(planToFinalize);
+        // Make sure the API is aware of the selected difficulty level
+        const createResponse = await apiCreatePathFromStructure({
+          ...planToFinalize,
+          difficulty_level: selectedDifficulty // Ensure difficulty is set correctly
+        });
+        
         let learningPathId: number | null = null;
         
         if (createResponse && createResponse.task_id) {
@@ -579,6 +649,46 @@ function ChatPageContent() {
     }
   };
 
+  // Add cleanup effect to remove learning plan from localStorage when leaving the page
+  useEffect(() => {
+    // Function to handle the beforeunload event
+    const handleBeforeUnload = () => {
+      // Check if we should clean up the localStorage data
+      try {
+        // Clean up the temporary learning plan from localStorage
+        localStorage.removeItem('currentLearningPlan');
+        console.log('Learning plan cleanup: removed from localStorage');
+      } catch (error) {
+        console.error('Error cleaning up learning plan from localStorage:', error);
+      }
+    };
+
+    // Only add listener on client-side (window only exists in browser)
+    if (typeof window !== 'undefined') {
+      // Add event listener for page unload
+      window.addEventListener('beforeunload', handleBeforeUnload);
+      
+      // Clean up function to remove event listener
+      return () => {
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+      };
+    }
+  }, []); // Empty dependency array means this only runs on mount/unmount
+
+  // Add cleanup when component unmounts (e.g., navigating to a different page)
+  useEffect(() => {
+    // Return a cleanup function that will run when the component unmounts
+    return () => {
+      // Clean up localStorage when navigating away from this page (not refreshing)
+      try {
+        localStorage.removeItem('currentLearningPlan');
+        console.log('Component unmount: Cleaned up learning plan from localStorage');
+      } catch (error) {
+        console.error('Error cleaning up learning plan on unmount:', error);
+      }
+    };
+  }, []); // Empty dependency array means cleanup only runs on unmount
+
   return (
     // Use the new two-column layout container
     <main className={styles.twoColumnLayout}>
@@ -594,15 +704,16 @@ function ChatPageContent() {
               onReorderCourses={handleReorderCourses}
               onDifficultyChange={handleDifficultyChange}
             />
+            
             {/* --- Finalize Path Button --- */}
-             <button
-                onClick={handleFinalizePath}
-                className={styles.generateFullPathButton} // Use style defined in chat.module.css
-                disabled={isFinalizing || isLoading || !currentPlan || !currentPlan.courses || currentPlan.courses.length === 0}
+            <button
+              onClick={handleFinalizePath}
+              className={styles.generateFullPathButton}
+              disabled={isFinalizing || isLoading || !currentPlan || !currentPlan.courses || currentPlan.courses.length === 0}
             >
-                {/* Show generic "Processing..." if finalizing */}
-                {isFinalizing ? t('chat.processing') : t('chat.generate_full_path')}
-              </button>
+              {/* Show generic "Processing..." if finalizing */}
+              {isFinalizing ? t('chat.processing') : t('chat.generate_full_path')}
+            </button>
             {/* --- Display Finalization Status (includes Redirecting message) --- */}
             {isFinalizing && finalizationMessage && <p className={styles.successMessage}>{finalizationMessage}</p>}
             {/* Show error only if NOT finalizing (finalizing has its own message) */}
@@ -614,11 +725,45 @@ function ChatPageContent() {
              {/* Show different message while initial prompt is loading */}
              {isLoading && messages.length === 0 && initialPrompt ? (
                 <>
-                  {t('chat.generating_initial_plan')}
+                  <h3 className={styles.placeholderTitle}>Zero AI is working on your path...</h3>
+                  <p className={styles.placeholderText}>
+                    <span className={styles.phaseText}>Planning</span> • 
+                    <span className={styles.activePhase}>Generating</span> • 
+                    <span className={styles.phaseText}>Organizing</span>
+                  </p>
                   <div className={styles.spinner}></div>
+                  <p className={styles.aiThinkingText}>
+                    Analyzing your interests and crafting a personalized learning journey
+                  </p>
                 </>
              ) : (
-                t('chat.start_prompt')
+                <>
+                  <h3 className={styles.placeholderTitle}>Your learning path will appear here</h3>
+                  <p className={styles.placeholderText}>Zero AI is analyzing your interests and creating a structured learning path.</p>
+                  {/* Visual placeholder for the editable learning path container */}
+                  <div className={styles.pathPlaceholder}>
+                    <div className={styles.pathPlaceholderHeader}></div>
+                    <div className={styles.placeholderMessage}>
+                      Zero AI is ready to craft your perfect learning journey
+                    </div>
+                    <div className={styles.pathPlaceholderControls}>
+                      <div className={styles.pathPlaceholderLabel}>Study Days</div>
+                      <div className={styles.pathPlaceholderDays}>
+                        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
+                          <div key={day} className={styles.pathPlaceholderDay}>{day}</div>
+                        ))}
+                      </div>
+                      <div className={styles.pathPlaceholderLabel}>Difficulty Level</div>
+                      <div className={styles.pathPlaceholderDifficulty}>
+                        {['Beginner', 'Intermediate', 'Advanced'].map(level => (
+                          <div key={level} className={`${styles.pathPlaceholderLevel} ${level === 'Intermediate' ? styles.pathPlaceholderLevelSelected : ''}`}>{level}</div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className={styles.pathPlaceholderRow}></div>
+                    <div className={styles.pathPlaceholderRow}></div>
+                  </div>
+                </>
              )}
           </div>
         )}

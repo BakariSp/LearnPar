@@ -38,7 +38,7 @@ export default function MyLearningPathsPage() {
   const { t } = useTranslation('common');
   const params = useParams();
   const searchParams = useSearchParams();
-  const locale = Array.isArray(params.locale) ? params.locale[0] : params.locale;
+  const locale = params ? (Array.isArray(params.locale) ? params.locale[0] : params.locale) : 'en';
 
   const router = useRouter(); // Initialize router
   const [userPaths, setUserPaths] = useState<LearningPathBasicInfo[]>([]);

@@ -1,52 +1,148 @@
 .loginContainer {
   display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #fff7ef 0%, #fff 100%);
+  padding: 0;
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 80px;
+  background-color: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  z-index: 10;
+}
+
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 1200px;
+  padding: 0 2rem;
+}
+
+.navbarBrand {
+  display: flex;
+  align-items: center;
+}
+
+.navbarActions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.navButton {
+  padding: 0.5rem 1.25rem;
+  background-color: transparent;
+  color: #666;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.navButton:hover {
+  background-color: #f5f5f5;
+}
+
+.logoLink {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+}
+
+.logoText {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #ff9c38;
+  margin-left: 0.5rem;
+}
+
+.mainContent {
+  display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 100vh;
-  background-color: var(--background-color);
+  flex: 1;
   padding: 20px;
 }
 
 .loginCard {
-  background-color: var(--card-background);
-  border-radius: 10px;
-  box-shadow: var(--shadow-md);
-  padding: 30px;
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 40px 30px;
   width: 100%;
-  max-width: 400px;
+  max-width: 420px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 480px;
 }
 
 .loginTitle {
-  font-size: 1.8rem;
-  font-weight: 600;
-  margin-bottom: 20px;
+  font-size: 28px;
+  font-weight: 700;
   text-align: center;
-  color: var(--text-color);
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.loginSubtitle {
+  text-align: center;
+  margin-bottom: 30px;
+  font-size: 0.95rem;
+  color: #666;
+}
+
+.loginSubtitle a {
+  color: #ff9c38;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.loginSubtitle a:hover {
+  text-decoration: underline;
 }
 
 .oauthButtons {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: 16px;
+  margin-top: 30px;
+  margin-bottom: 30px;
 }
 
 .oauthButton {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 12px;
+  padding: 12px 16px;
   border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  background-color: white;
   font-size: 1rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s;
-  border: 1px solid var(--border-color);
+  transition: background-color 0.2s, box-shadow 0.2s;
 }
 
 .googleButton {
   background-color: #ffffff;
-  color: #757575;
+  color: #333;
 }
 
 .googleButton:hover {
@@ -54,12 +150,12 @@
 }
 
 .microsoftButton {
-  background-color: #2f2f2f;
-  color: #ffffff;
+  background-color: #ffffff;
+  color: #333;
 }
 
 .microsoftButton:hover {
-  background-color: #1f1f1f;
+  background-color: #f5f5f5;
 }
 
 .oauthIcon {
@@ -76,25 +172,25 @@
   display: flex;
   align-items: center;
   margin: 20px 0;
-  color: var(--text-secondary);
+  color: #999;
 }
 
 .divider::before,
 .divider::after {
   content: "";
   flex: 1;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid #eaeaea;
 }
 
 .divider span {
   padding: 0 10px;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 
 .loginForm {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 15px;
 }
 
 .formGroup {
@@ -106,41 +202,48 @@
 .formGroup label {
   font-size: 0.9rem;
   font-weight: 500;
-  color: var(--text-secondary);
+  color: #666;
+  display: none;
 }
 
 .inputField {
-  padding: 12px 16px;
-  border: 1px solid var(--border-color);
+  padding: 14px 16px;
+  border: 1px solid #eaeaea;
   border-radius: 8px;
-  font-size: 1rem;
+  font-size: 0.95rem;
   transition: border-color 0.2s;
+  background-color: #f9f9f9;
+}
+
+.inputField::placeholder {
+  color: #aaa;
 }
 
 .inputField:focus {
-  border-color: var(--primary-color);
+  border-color: #ff9c38;
   outline: none;
 }
 
 .loginButton {
-  background-color: var(--primary-color);
+  background-color: #ff9c38;
   color: white;
   border: none;
   border-radius: 8px;
-  padding: 12px;
+  padding: 14px;
   font-size: 1rem;
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s;
   margin-top: 10px;
+  height: 46px;
 }
 
 .loginButton:hover {
-  background-color: #3c99e6;
+  background-color: #f08c28;
 }
 
 .loginButton:disabled {
-  background-color: #a0c8e7;
+  background-color: #ffc38e;
   cursor: not-allowed;
 }
 
@@ -153,27 +256,100 @@
   text-align: center;
 }
 
-.smallText {
-  font-size: 0.8rem;
-  color: #666;
-  padding: 5px 0;
-  margin: 5px 0;
-  word-break: break-word;
-}
-
 .registerLink {
   margin-top: 20px;
   text-align: center;
   font-size: 0.9rem;
-  color: var(--text-secondary);
+  color: #666;
+  display: none; /* Hide this as we're moving it to the subtitle */
 }
 
 .registerLink a {
-  color: var(--primary-color);
+  color: #ff9c38;
   text-decoration: none;
   font-weight: 500;
 }
 
 .registerLink a:hover {
   text-decoration: underline;
+}
+
+.oauthNote {
+  margin-top: 20px;
+  margin-bottom: 20px;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--text-secondary, #666);
+  line-height: 1.4;
+  padding: 0 10px;
+}
+
+.passwordLoginLink {
+  text-align: center;
+  margin-top: auto;
+  padding-top: 20px;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.passwordLoginLink button {
+  background: none;
+  border: none;
+  color: #ff9c38;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  font-size: inherit;
+  text-decoration: underline;
+}
+
+.passwordLoginLink button:hover {
+  color: #f08c28;
+}
+
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modalContent {
+  background-color: white;
+  padding: 30px;
+  border-radius: 10px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.modalTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #000;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #666;
+}
+
+.closeButton:hover {
+  color: #000;
 } 

@@ -567,7 +567,7 @@
   align-items: center;
   margin-top: 2rem;
   padding-top: 1rem;
-  border-top: 1px solid var(--border-color, #e9ecef);
+  /* border-top: 1px solid var(--border-color, #e9ecef); */
 }
 
 .navButton {
@@ -1227,23 +1227,57 @@
 
 .navCardList {
   list-style: none;
-  padding: 0.25rem 0 0.25rem 1.75rem;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
+  padding: 0;
+  margin: 0 0 0 24px;
+  background-color: #f8f9fa;
+  border-left: 1px solid #eaecef;
 }
 
 .navCardItem {
-  /* No specific style needed */
+  padding: 2px 0;
+}
+
+.navLoadingCards {
+  padding: 10px;
+  font-style: italic;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.navNoCards {
+  padding: 10px;
+  font-style: italic;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+/* Refresh button in nav sections */
+.refreshButton {
+  border: none;
+  background-color: #f0f0f0;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  margin-top: 4px;
+  color: #555;
+  transition: background-color 0.2s;
+}
+
+.refreshButton:hover {
+  background-color: #e0e0e0;
 }
 
 .navCardLink {
+  background: none;
+  border: none;
   display: block;
   width: 100%;
   text-align: left;
-  background: none;
-  border: none;
   padding: 0.3rem 0.5rem;
   cursor: pointer;
   color: var(--text-secondary);
@@ -1264,14 +1298,6 @@
   background-color: var(--primary-color-light, #d0ebff);
   color: var(--primary-color-dark, #0056b3);
   font-weight: 500;
-}
-
-.navLoadingCards, 
-.navNoCards {
-  padding: 0.3rem 0.5rem;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  font-style: italic;
 }
 
 .detailPlaceholder {

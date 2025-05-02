@@ -1,0 +1,191 @@
+.structureNavPane {
+  width: 380px; /* Make the navigation pane wider */
+  flex-shrink: 0;
+  overflow-y: auto;
+  padding: 1.5rem;
+  background-color: var(--card-background, #ffffff);
+  border-radius: 12px;
+  scrollbar-width: thin; /* For Firefox */
+  scrollbar-color: transparent transparent; /* Initially transparent for Firefox */
+}
+
+.navHeader {
+  margin-bottom: 1.5rem;
+}
+
+.navPathTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.navPathDescription {
+  color: #666;
+  margin-bottom: 1rem;
+}
+
+.tagContainer {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.tag {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  background-color: #f5f5f5;
+  color: #666;
+}
+
+.successTag {
+  background-color: #f6ffed;
+  border: 1px solid #b7eb8f;
+  color: #52c41a;
+}
+
+.divider {
+  height: 1px;
+  background-color: #f0f0f0;
+  margin: 0.75rem 0;
+}
+
+.buttonContainer {
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  font-weight: 500;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.primaryButton {
+  background-color: #1677ff;
+  color: white;
+  border: none;
+}
+
+.primaryButton:hover {
+  background-color: #0958d9;
+}
+
+.icon {
+  margin-right: 0.5rem;
+}
+
+.navCourseList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.navCourseItem {
+  margin-bottom: 0.75rem;
+}
+
+.navCourseHeaderButton {
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #f5f5f5;
+  border: none;
+  border-radius: 0.25rem;
+  cursor: pointer;
+}
+
+.navCourseHeader {
+  display: flex;
+  flex-direction: column;
+}
+
+.navCourseOrder {
+  font-size: 0.875rem;
+  color: #666;
+}
+
+.navCourseTitle {
+  font-weight: 500;
+}
+
+.navSectionList {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 0 1rem;
+}
+
+.navSectionItem {
+  margin-bottom: 0.5rem;
+}
+
+.navSectionHeaderButton {
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #fafafa;
+  border: none;
+  border-radius: 0.25rem;
+  cursor: pointer;
+}
+
+.navSectionTitle {
+  font-weight: 500;
+  flex: 1;
+}
+
+.navCardCountInfo {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  color: #666;
+}
+
+.navCardList {
+  list-style: none;
+  padding: 0;
+  margin: 0.25rem 0 0 1rem;
+}
+
+.navCardItem {
+  margin-bottom: 0.25rem;
+}
+
+.navCardLink {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.375rem 0.5rem;
+  border: none;
+  background-color: transparent;
+  cursor: pointer;
+  border-radius: 0.25rem;
+}
+
+.navCardLink:hover {
+  background-color: #f0f0f0;
+}
+
+.selectedCard {
+  background-color: #e6f7ff;
+  color: #1677ff;
+  font-weight: 500;
+}
+
+.navNoCards {
+  padding: 0.5rem;
+  font-size: 0.875rem;
+  color: #999;
+} 

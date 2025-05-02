@@ -79,20 +79,73 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
      console.log("AuthContext: handleOAuthCallback started"); // Added log
      authHandleOAuthCallback(token); // Stores the token
      setIsLoading(true);
+     
+     // Track performance for debugging
+     const startTime = performance.now();
+     
      try {
-        console.log("AuthContext: Calling getCurrentUser..."); // Added log
-        const userData = await getCurrentUser(); // Fetch user after getting token
-        console.log("AuthContext: getCurrentUser returned:", userData); // Added log
-        setUser(userData);
-        console.log("AuthContext: Redirecting to / ..."); // Added log
-        router.push('/'); // Redirect to explore page
-        console.log("AuthContext: Redirect initiated."); // Added log
+       console.log("AuthContext: Calling getCurrentUser..."); // Added log
+       const userData = await getCurrentUser(); // Fetch user after getting token
+       
+       const endTime = performance.now();
+       console.log(`AuthContext: getCurrentUser completed in ${endTime - startTime}ms`);
+       console.log("AuthContext: getCurrentUser returned:", userData); // Added log
+       
+       if (!userData) {
+         throw new Error('Failed to fetch user data');
+       }
+       
+       setUser(userData);
+       
+       // Check if user needs setup (no username or interests)
+       const isNewUser = userData && (!userData.username || !userData.interests || userData.interests.length === 0);
+       
+       // Get current locale from path or use default 'en'
+       let locale = 'en';
+       if (typeof window !== 'undefined') {
+         const path = window.location.pathname;
+         const localeMatch = path.match(/^\/([a-z]{2})\//);
+         if (localeMatch && localeMatch[1]) {
+           locale = localeMatch[1];
+         }
+       }
+       
+       // Pre-emptively load any needed imports to reduce waiting time after redirect
+       if (isNewUser && typeof window !== 'undefined') {
+         // Start the dynamic import early but don't wait for it
+         import('../services/auth').catch(e => console.error('Failed to preload auth module:', e));
+       }
+       
+       if (isNewUser) {
+         // Set cookies to indicate new user status (using our auth service functions)
+         if (typeof window !== 'undefined') {
+           try {
+             const { setNewUserStatus, setSetupCompleteStatus } = await import('../services/auth');
+             setNewUserStatus(true);
+             setSetupCompleteStatus(false);
+             
+             // Redirect to setup page instead with correct locale
+             console.log("AuthContext: New user detected, redirecting to setup...");
+             router.push(`/${locale}/setup`);
+           } catch (error) {
+             console.error("Failed to set new user status:", error);
+             // Fallback to home if setup fails
+             router.push(`/${locale}/home`);
+           }
+         }
+       } else {
+         // Regular user - redirect to home with correct locale
+         console.log("AuthContext: Redirecting to home...");
+         router.push(`/${locale}/home`);
+       }
+       
+       console.log("AuthContext: Redirect initiated.");
      } catch (error) {
-        console.error("AuthContext: Failed to fetch user after OAuth:", error); // Added log
-        logout(); // Log out if fetching fails (logout is now memoized)
+       console.error("AuthContext: Failed to fetch user after OAuth:", error); // Added log
+       logout(); // Log out if fetching fails (logout is now memoized)
      } finally {
-        console.log("AuthContext: handleOAuthCallback finally block"); // Added log
-        setIsLoading(false);
+       console.log("AuthContext: handleOAuthCallback finally block"); // Added log
+       setIsLoading(false);
      }
    }, [router, logout]); // Dependencies: router, logout (memoized version), setIsLoading, setUser (implicitly stable)
 

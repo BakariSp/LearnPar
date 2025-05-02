@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import styles from './EditableLearningPath.module.css'; // We'll create this CSS file next
@@ -12,6 +12,20 @@ interface SortableCourseItemProps {
 }
 
 export function SortableCourseItem({ course, index, onDelete, isGeneratingSections }: SortableCourseItemProps) {
+  // The key issue was the delete button being affected by the drag & drop functionality
+  // We'll keep the separate delete function outside the sortable handlers
+  
+  // The parent delete handler will be called directly from a non-sortable element
+  const triggerDelete = useCallback(() => {
+    console.log('Delete action triggered for course ID:', course.id);
+    try {
+      // Try-catch to ensure we can debug any issues
+      onDelete(course.id);
+    } catch (error) {
+      console.error('Error in delete handler:', error);
+    }
+  }, [course.id, onDelete]);
+
   const {
     attributes,
     listeners,
@@ -30,12 +44,12 @@ export function SortableCourseItem({ course, index, onDelete, isGeneratingSectio
   };
 
   return (
-    <div ref={setNodeRef} style={style} className={styles.courseItem} {...attributes} {...listeners}>
+    <div className={styles.courseItem} ref={setNodeRef} style={style} {...attributes} {...listeners}>
       <div className={styles.courseContent}>
         <div className={styles.courseHeader}>
-           <span className={styles.courseWeek}>Week {index + 1}</span>
-           <h4 className={styles.courseTitle}>{course.title}</h4>
-           {isGeneratingSections && <span className={styles.statusDot} title="Generating sections..."></span>}
+          <span className={styles.courseWeek}>Week {index + 1}</span>
+          <h4 className={styles.courseTitle}>{course.title}</h4>
+          {isGeneratingSections && <span className={styles.statusDot} title="Generating sections..."></span>}
         </div>
         {/* --- Conditional Rendering for Sections --- */}
         {isGeneratingSections ? (
@@ -59,17 +73,18 @@ export function SortableCourseItem({ course, index, onDelete, isGeneratingSectio
         )}
         {/* --- End Conditional Rendering --- */}
       </div>
-
-      <button
-        onClick={(e) => {
-            e.stopPropagation(); // Prevent drag start when clicking delete
-            onDelete(course.id);
-        }}
-        className={styles.deleteButton}
-        aria-label={`Delete course: ${course.title}`}
-      >
-        ✕
-      </button>
+      
+      {/* Delete button - still outside sortable context handlers but visually positioned in the corner */}
+      <div className={styles.deleteButtonContainer}>
+        <button
+          type="button"
+          className={styles.deleteButton}
+          aria-label={`Delete course: ${course.title}`}
+          onClick={triggerDelete}
+        >
+          ×
+        </button>
+      </div>
     </div>
   );
 } 

@@ -1,4 +1,4 @@
-import { apiClient } from './auth'; // Assuming apiClient handles base URL and auth
+import { apiClient, getToken } from './auth'; // Assuming apiClient handles base URL and auth
 
 // Export the interface
 export interface LearningPathCourse {
@@ -761,6 +761,121 @@ export const apiUpgradeSubscription = async (payload: SubscriptionUpgradePayload
     };
   } catch (error) {
     console.error("Error in apiUpgradeSubscription:", error);
+    throw error;
+  }
+};
+
+// --- Recommendation Interfaces ---
+
+export interface RecommendationMetadata {
+  interest_id: string;
+  score: number;
+  priority: number;
+  tags: string[];
+}
+
+export interface RecommendationsByInterestsResponse {
+  learning_paths: LearningPath[];
+  metadata: Record<string, RecommendationMetadata>;
+  refresh_token: string;
+}
+
+// Get recommendations based on user interests
+export const apiGetRecommendationsByInterests = async (
+  interests: string[], 
+  limit: number = 5, 
+  excludePaths: number[] = [],
+  refreshToken: string = "string"
+): Promise<RecommendationsByInterestsResponse | null> => {
+  try {
+    const response = await apiClient('/api/recommendations/interests', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        interests,
+        limit,
+        exclude_paths: excludePaths,
+        refresh_token: refreshToken
+      })
+    });
+    
+    if (!response || !response.ok) {
+      console.error('Failed to fetch interest-based recommendations:', response?.status);
+      return null;
+    }
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Error in apiGetRecommendationsByInterests:", error);
+    return null;
+  }
+};
+
+// Add a learning path to the user's account
+export const apiAddToMyLearningPaths = async (learningPathId: number): Promise<boolean> => {
+  try {
+    console.log('🔍 DEBUG API - apiAddToMyLearningPaths called with ID:', learningPathId);
+    
+    // Make sure the user is authenticated for this operation
+    const token = getToken();
+    console.log('🔍 DEBUG API - Token exists:', !!token);
+    
+    if (!token) {
+      console.log('🔍 DEBUG API - No auth token found, throwing error');
+      throw new Error('Authentication required to add learning path to your account');
+    }
+    
+    // Get the API URL from environment or use default
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const fullUrl = `${apiUrl}/api/learning-paths/${learningPathId}/add-to-my-paths`;
+    console.log(`🔍 DEBUG API - Making direct API call to: ${fullUrl}`);
+    
+    // Make a direct fetch request to the backend
+    const response = await fetch(fullUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    });
+    
+    console.log('🔍 DEBUG API - API response status:', response.status);
+    console.log('🔍 DEBUG API - Response ok:', response.ok);
+    
+    if (!response.ok) {
+      // Handle specific response codes
+      if (response.status === 403) {
+        console.log('🔍 DEBUG API - 403 Forbidden error');
+        throw new Error('You do not have permission to add this learning path');
+      } else if (response.status === 404) {
+        console.log('🔍 DEBUG API - 404 Not Found error');
+        throw new Error('Learning path not found');
+      } else if (response.status === 409) {
+        console.log('🔍 DEBUG API - 409 Conflict error - path already in account');
+        throw new Error('This learning path is already in your account');
+      } else {
+        console.log('🔍 DEBUG API - Other error status:', response.status);
+        // Try to get the error message from the response
+        try {
+          const errorData = await response.json();
+          console.log('🔍 DEBUG API - Error details from response:', errorData);
+          throw new Error(errorData.detail || 'Failed to add learning path to your account');
+        } catch (e) {
+          console.log('🔍 DEBUG API - Could not parse error details');
+          throw new Error(`Failed to add learning path (Status: ${response.status})`);
+        }
+      }
+    }
+    
+    // Assume success if response is ok
+    console.log('🔍 DEBUG API - Successfully added learning path');
+    return true;
+  } catch (error) {
+    console.error("🔍 DEBUG API - Error in apiAddToMyLearningPaths:", error);
     throw error;
   }
 }; 

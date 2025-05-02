@@ -22,8 +22,8 @@ export default function OAuthErrorPage({ params }: OAuthErrorPageProps) {
       setLocale(resolvedParams.locale);
     });
 
-    const errorParam = searchParams.get('error');
-    const errorDescParam = searchParams.get('error_description');
+    const errorParam = searchParams?.get('error');
+    const errorDescParam = searchParams?.get('error_description');
     
     if (errorParam) {
       setError(errorParam);

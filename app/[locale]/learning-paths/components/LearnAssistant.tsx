@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from './LearnAssistant.module.css';
+import sharedStyles from '../styles';
 import { 
   askQuestion, 
   addCard, 
