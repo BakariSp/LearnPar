@@ -10,10 +10,19 @@
 export const getCurrentLocale = (defaultLocale = 'en'): string => {
   if (typeof window === 'undefined') return defaultLocale;
   
-  const path = window.location.pathname;
-  const localeMatch = path.match(/^\/([a-z]{2})\//);
-  
-  return localeMatch && localeMatch[1] ? localeMatch[1] : defaultLocale;
+  try {
+    const path = window.location.pathname;
+    console.log('🔍 URL UTILS - Getting locale from path:', path);
+    
+    const localeMatch = path.match(/^\/([a-z]{2})\//);
+    const locale = localeMatch && localeMatch[1] ? localeMatch[1] : defaultLocale;
+    
+    console.log('🔍 URL UTILS - Detected locale:', locale);
+    return locale;
+  } catch (e) {
+    console.error('🔍 URL UTILS - Error getting locale:', e);
+    return defaultLocale;
+  }
 };
 
 /**
@@ -22,11 +31,19 @@ export const getCurrentLocale = (defaultLocale = 'en'): string => {
  * @returns The locale-prefixed URL
  */
 export const getLocalizedUrl = (path: string): string => {
-  const locale = getCurrentLocale();
-  // Remove any leading slash from the path
-  const cleanPath = path.startsWith('/') ? path.substring(1) : path;
-  
-  return `/${locale}/${cleanPath}`;
+  try {
+    const locale = getCurrentLocale();
+    // Remove any leading slash from the path
+    const cleanPath = path.startsWith('/') ? path.substring(1) : path;
+    
+    const localizedUrl = `/${locale}/${cleanPath}`;
+    console.log('🔍 URL UTILS - Generated localized URL:', localizedUrl);
+    return localizedUrl;
+  } catch (e) {
+    console.error('🔍 URL UTILS - Error generating localized URL:', e);
+    // Fallback to a basic locale/path format
+    return `/en/${path.startsWith('/') ? path.substring(1) : path}`;
+  }
 };
 
 /**
@@ -35,7 +52,14 @@ export const getLocalizedUrl = (path: string): string => {
  */
 export const getBaseUrl = (): string => {
   if (typeof window !== 'undefined') {
-    return window.location.origin;
+    try {
+      const baseUrl = window.location.origin;
+      console.log('🔍 URL UTILS - Base URL:', baseUrl);
+      return baseUrl;
+    } catch (e) {
+      console.error('🔍 URL UTILS - Error getting base URL:', e);
+      return '';
+    }
   }
   return '';
 };
@@ -46,8 +70,16 @@ export const getBaseUrl = (): string => {
  * @returns The complete URL with origin and locale
  */
 export const getFullUrl = (path: string): string => {
-  const baseUrl = getBaseUrl();
-  const localizedPath = getLocalizedUrl(path);
-  
-  return `${baseUrl}${localizedPath}`;
+  try {
+    const baseUrl = getBaseUrl();
+    const localizedPath = getLocalizedUrl(path);
+    
+    const fullUrl = `${baseUrl}${localizedPath}`;
+    console.log('🔍 URL UTILS - Generated full URL:', fullUrl);
+    return fullUrl;
+  } catch (e) {
+    console.error('🔍 URL UTILS - Error generating full URL:', e);
+    // Just return the path if something goes wrong
+    return path;
+  }
 }; 

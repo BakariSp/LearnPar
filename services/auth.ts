@@ -14,11 +14,15 @@ export interface LoginCredentials {
 }
 
 export const login = async (credentials: LoginCredentials) => {
+  console.log('🔍 DEBUG LOGIN - Login attempt started for username:', credentials.username);
+  
   // Use URLSearchParams to create x-www-form-urlencoded data
   const body = new URLSearchParams();
   body.append('username', credentials.username); // Use 'username' as per doc
   body.append('password', credentials.password);
 
+  console.log('🔍 DEBUG LOGIN - Making token request to /api/token');
+  
   const response = await fetch(`/api/token`, { // Should be relative now
     method: 'POST',
     headers: {
@@ -27,12 +31,15 @@ export const login = async (credentials: LoginCredentials) => {
     body: body.toString() // Send the URL-encoded string
   });
 
+  console.log('🔍 DEBUG LOGIN - Token response status:', response.status);
+
   if (!response.ok) {
     let errorMessage = 'Login failed';
     try {
       const errorData = await response.json();
       // Use 'detail' field from the backend error response as per doc
       errorMessage = errorData.detail || 'Invalid username or password';
+      console.log('🔍 DEBUG LOGIN - Login error details:', errorData);
     } catch (e) {
       // Keep default message if parsing fails
       console.error('Failed to parse login error response:', e);
@@ -41,8 +48,11 @@ export const login = async (credentials: LoginCredentials) => {
   }
 
   const data = await response.json();
+  console.log('🔍 DEBUG LOGIN - Token received, length:', data.access_token ? data.access_token.length : 'none');
+  
   // Store the token received in the 'access_token' field
   localStorage.setItem(AUTH_TOKEN_KEY, data.access_token);
+  console.log('🔍 DEBUG LOGIN - Token stored in localStorage');
   
   // Check if user needs setup
   checkUserNeedsSetup();
@@ -110,7 +120,15 @@ export const getSetupCompleteStatus = (): boolean => {
 
 export const getToken = () => {
   if (typeof window !== 'undefined') {
-    return localStorage.getItem(AUTH_TOKEN_KEY);
+    const token = localStorage.getItem(AUTH_TOKEN_KEY);
+    if (token) {
+      // Log the first few characters for debugging (not the whole token for security)
+      console.log(`🔍 DEBUG TOKEN - Retrieved token from localStorage, starts with: ${token.substring(0, 10)}...`);
+      return token;
+    } else {
+      console.log('🔍 DEBUG TOKEN - No token found in localStorage');
+      return null;
+    }
   }
   return null;
 };
@@ -318,5 +336,65 @@ export const getCurrentUser = async (): Promise<UserProfile | null> => {
     // This catch might be less likely now as apiClient handles the fetch error
     console.error('Error in getCurrentUser function:', error);
     return null;
+  }
+};
+
+/**
+ * Verifies the authentication state and fixes any issues
+ * This should be called early in the application lifecycle
+ */
+export const verifyAuthState = async (): Promise<void> => {
+  console.log('🔍 AUTH VERIFY - Starting auth state verification');
+  
+  if (typeof window === 'undefined') {
+    console.log('🔍 AUTH VERIFY - Running on server, skipping check');
+    return;
+  }
+  
+  try {
+    // Check if token exists
+    const token = getToken();
+    console.log('🔍 AUTH VERIFY - Token exists:', !!token);
+    
+    if (!token) {
+      console.log('🔍 AUTH VERIFY - No token found, user is not authenticated');
+      return;
+    }
+    
+    // Try to decode token to check expiration (if JWT)
+    try {
+      // Simple check for token format - not full validation
+      const parts = token.split('.');
+      if (parts.length === 3) {
+        // Looks like a JWT, try to decode payload
+        const payload = JSON.parse(atob(parts[1]));
+        console.log('🔍 AUTH VERIFY - Token payload:', payload);
+        
+        // Check if token is expired
+        if (payload.exp && payload.exp * 1000 < Date.now()) {
+          console.log('🔍 AUTH VERIFY - Token is expired, logging out');
+          logout();
+          return;
+        }
+      }
+    } catch (e) {
+      console.log('🔍 AUTH VERIFY - Not a standard JWT or unable to decode:', e);
+      // Continue anyway, the API call will validate the token
+    }
+    
+    // Test token by making a request
+    console.log('🔍 AUTH VERIFY - Testing token with API call');
+    const userData = await getCurrentUser();
+    
+    if (userData) {
+      console.log('🔍 AUTH VERIFY - Token is valid, user is authenticated');
+    } else {
+      console.log('🔍 AUTH VERIFY - Token validation failed, clearing auth state');
+      logout();
+    }
+  } catch (e) {
+    console.error('🔍 AUTH VERIFY - Error verifying auth state:', e);
+    // Optional: consider clearing auth state on verification error
+    // logout();
   }
 }; 

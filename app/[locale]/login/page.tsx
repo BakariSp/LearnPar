@@ -45,12 +45,21 @@ export default function LoginPage() {
     setIsLoading(true);
     setError(null);
     
+    console.log('Login Page: Login attempt started for:', credentials.username);
+    
     try {
+      // Use direct window location instead of router for more reliable page refresh
       await login(credentials);
-      router.push(`/${locale}/dashboard`);
+      
+      // The login function in AuthContext now handles the redirect using window.location
+      // so we don't need to do router.push here
+      
+      // For debugging purposes - we should never reach this point if login is successful
+      // since AuthContext's login function will redirect
+      console.log('Login Page: Login successful but no redirect occurred');
     } catch (err: any) {
-      setError(err.message || 'Login failed');
-    } finally {
+      console.error('Login Page: Login failed:', err);
+      setError(err.message || 'Login failed. Please check your credentials and try again.');
       setIsLoading(false);
     }
   };

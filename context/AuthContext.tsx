@@ -1,7 +1,16 @@
 'use client';
 
 import React, { createContext, useState, useEffect, useContext, ReactNode, useCallback } from 'react';
-import { getCurrentUser, UserProfile, getToken, logout as authLogout, login as authLogin, LoginCredentials, handleOAuthCallback as authHandleOAuthCallback } from '../services/auth'; // Adjust path as needed
+import { 
+  getCurrentUser, 
+  UserProfile, 
+  getToken, 
+  logout as authLogout, 
+  login as authLogin, 
+  LoginCredentials, 
+  handleOAuthCallback as authHandleOAuthCallback,
+  verifyAuthState
+} from '../services/auth'; // Adjust path as needed
 import { getLocalizedUrl, getCurrentLocale } from '../services/utils'; // Import utility functions
 import { useRouter } from 'next/navigation';
 
@@ -21,54 +30,91 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const [authReady, setAuthReady] = useState(false); 
+  
   useEffect(() => {
     const validateTokenAndFetchUser = async () => {
+      console.log('AuthContext: Initializing and validating auth state');
       setIsLoading(true);
-      const token = getToken();
-      if (token) {
-        try {
-          const userData = await getCurrentUser();
-          if (userData) {
-            setUser(userData);
-          } else {
-            // Token might be invalid, clear it
-            authLogout(); // Use the original logout to clear token etc.
+      
+      try {
+        // First verify the auth state to fix any issues
+        await verifyAuthState();
+        
+        const token = getToken();
+        if (token) {
+          console.log('AuthContext: Token found, fetching user data');
+          try {
+            const userData = await getCurrentUser();
+            if (userData) {
+              console.log('AuthContext: User data received, setting state');
+              setUser(userData);
+            } else {
+              console.log('AuthContext: No user data received, clearing auth state');
+              // Token might be invalid, clear it
+              authLogout(); // Use the original logout to clear token etc.
+              setUser(null);
+            }
+          } catch (error) {
+            console.error("AuthContext: Failed to fetch user on initial load:", error);
+            authLogout(); // Logout on error
             setUser(null);
-            // Optionally redirect to login here if needed, though logout might handle it
           }
-        } catch (error) {
-          console.error("Failed to fetch user on initial load:", error);
-          authLogout(); // Logout on error
-          setUser(null);
+        } else {
+          console.log('AuthContext: No token found, user not authenticated');
+          setUser(null); // No token, not logged in
         }
-      } else {
-        setUser(null); // No token, not logged in
+      } catch (error) {
+        console.error('AuthContext: Error during auth initialization:', error);
+        setUser(null);
+      } finally {
+        setIsLoading(false);
+        setAuthReady(true);
+        console.log('AuthContext: Auth initialization complete, ready:', true);
       }
-      setIsLoading(false);
-      setAuthReady(true);
     };
+    
     validateTokenAndFetchUser();
   }, []); // Run only once on mount
 
   const login = useCallback(async (credentials: LoginCredentials) => {
     setIsLoading(true);
+    console.log('AuthContext: Login started');
+    
     try {
-      await authLogin(credentials); // Original login handles token storage
+      const tokenData = await authLogin(credentials); // Original login handles token storage
+      console.log('AuthContext: Login successful, token received');
+      
+      // Introduce a small delay to ensure token is properly stored
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      console.log('AuthContext: Fetching user data after login');
       const userData = await getCurrentUser(); // Fetch user data after login
+      
+      if (!userData) {
+        console.error('AuthContext: Failed to fetch user data after successful login');
+        throw new Error('Login succeeded but could not fetch user data');
+      }
+      
+      console.log('AuthContext: User data received, setting user state');
       setUser(userData);
       
-      // Use utility function to generate localized URL
-      router.push(getLocalizedUrl('dashboard'));
+      // Use the window.location for redirect instead of router to ensure page reload
+      // This helps establish a fresh state with the auth token
+      console.log('AuthContext: Redirecting to dashboard');
+      const dashboardUrl = getLocalizedUrl('dashboard');
+      console.log('AuthContext: Dashboard URL:', dashboardUrl);
+      
+      window.location.href = dashboardUrl;
+      // Don't use router.push here as it doesn't force a page refresh
+      // router.push(getLocalizedUrl('dashboard'));
     } catch (error) {
+      console.error("AuthContext: Login failed:", error);
       setUser(null);
-      // Don't set isLoading false here if error is thrown, let finally handle it if needed
-      console.error("Login failed:", error);
       throw error; // Re-throw for the login page to handle
     } finally {
-      // Setting loading false here might be okay after redirect starts or error is thrown
       setIsLoading(false);
     }
-  }, [router]); // Dependencies: router, setIsLoading, setUser (implicitly stable from useState)
+  }, [setUser, setIsLoading]); // Removed router dependency since we're using window.location
 
   // Memoize logout function
   const logout = useCallback(() => {
