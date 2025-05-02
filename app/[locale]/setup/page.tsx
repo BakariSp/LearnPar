@@ -6,6 +6,7 @@ import Image from 'next/image';
 import styles from './setup.module.css';
 import { updateUserProfile } from '@/services/user';
 import { setSetupCompleteStatus, getCurrentUser } from '@/services/auth';
+import { useAuth } from '@/context/AuthContext';
 import TermsModal from './components/TermsModal';
 import PrivacyModal from './components/PrivacyModal';
 
@@ -17,6 +18,7 @@ enum SetupStep {
 
 export default function SetupPage() {
   const router = useRouter();
+  const { user: authUser, isLoading } = useAuth();
   const [currentStep, setCurrentStep] = useState<SetupStep>(SetupStep.Welcome);
   const [nickname, setNickname] = useState('');
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
@@ -50,6 +52,13 @@ export default function SetupPage() {
     
     fetchUserData();
   }, []);
+
+  // Populate nickname from auth context if available
+  useEffect(() => {
+    if (authUser && authUser.username) {
+      setNickname(authUser.username);
+    }
+  }, [authUser]);
 
   const interestOptions = [
     { id: 'tech_basics', label: 'Build with Tech', icon: '🛠️' },                  // Covers coding, tools, web
@@ -100,8 +109,14 @@ export default function SetupPage() {
       // Set setup as complete
       setSetupCompleteStatus(true);
       
-      // Redirect to home page after successful setup
-      router.push(`/${locale}/home`);
+      // Force a refresh of the page to ensure the middleware reads the updated cookie
+      if (typeof window !== 'undefined') {
+        // Use window.location.href to force a full page reload
+        window.location.href = `/${locale}/home`;
+      } else {
+        // Fallback to router.push if window is not available (shouldn't happen in browser)
+        router.push(`/${locale}/home`);
+      }
     } catch (err) {
       console.error('Error updating profile:', err);
       setError('Failed to update profile. Please try again.');
@@ -132,7 +147,12 @@ export default function SetupPage() {
     }
     
     setSetupCompleteStatus(true);
-    router.push(`/${locale}/home`);
+    // Force a refresh of the page to ensure the middleware reads the updated cookie
+    if (typeof window !== 'undefined') {
+      window.location.href = `/${locale}/home`;
+    } else {
+      router.push(`/${locale}/home`);
+    }
   };
 
   const openTermsModal = (e: React.MouseEvent) => {

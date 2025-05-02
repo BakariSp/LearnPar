@@ -5,6 +5,7 @@ import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../../context/AuthContext';
 import { getUserSubscription, getDailyUsage, applyPromotionCode, checkDailyLimits, SubscriptionData, DailyUsageData } from '@/services/api/subscription';
+import { getSetupCompleteStatus } from '@/services/auth';
 import styles from './dashboard.module.css';
 
 // Extend the API interface to include the limit_reached property we're using
@@ -46,6 +47,7 @@ export default function DashboardPage() {
   const locale = params ? (Array.isArray(params.locale) ? params.locale[0] : params.locale) || 'en' : 'en';
   const { t } = useTranslation('common');
   const searchParams = useSearchParams();
+  const [isSetupComplete, setIsSetupComplete] = useState(false);
 
   const [subscriptionInfo, setSubscriptionInfo] = useState<ExtendedSubscriptionData | null>(null);
   const [dailyUsage, setDailyUsage] = useState<ExtendedDailyUsageData | null>(null);
@@ -56,6 +58,12 @@ export default function DashboardPage() {
   const [upgradeMessage, setUpgradeMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [showPromoSection, setShowPromoSection] = useState(false);
+
+  // Check if setup is complete based on cookie status
+  useEffect(() => {
+    const setupComplete = getSetupCompleteStatus();
+    setIsSetupComplete(setupComplete);
+  }, []);
 
   // Check for show_upgrade query parameter and auto-expand upgrade section
   useEffect(() => {
@@ -74,10 +82,21 @@ export default function DashboardPage() {
   }, [searchParams]);
 
   useEffect(() => {
+    // Redirect to login if not authenticated
     if (!isLoading && !user) {
       router.push(`/${locale}/login`);
+      return;
     }
-  }, [isLoading, user, router, locale]);
+
+    // Check if user needs setup and not already marked as complete via cookie
+    if (!isLoading && user && !isSetupComplete) {
+      // User needs setup if they don't have username or interests
+      const needsSetup = !user.username || !user.interests || user.interests.length === 0;
+      if (needsSetup) {
+        router.push(`/${locale}/setup`);
+      }
+    }
+  }, [isLoading, user, router, locale, isSetupComplete]);
 
   // Fetch the user's current subscription info and daily usage
   useEffect(() => {

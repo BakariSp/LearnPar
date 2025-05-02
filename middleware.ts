@@ -56,7 +56,8 @@ export function middleware(request: NextRequest) {
 
   // If user is new and hasn't completed setup, redirect to setup page
   // But only if they're not already on an allowed path
-  if (isNewUser && !isSetupComplete && !ALLOWED_NEW_USER_PATHS.some(path => pathWithoutLocale.startsWith(path))) {
+  // Check setup_complete first - if it's true, skip the redirect regardless of new_user status
+  if (!isSetupComplete && isNewUser && !ALLOWED_NEW_USER_PATHS.some(path => pathWithoutLocale.startsWith(path))) {
     const url = request.nextUrl.clone();
     url.pathname = `/${localePrefix || fallbackLng}/setup`;
     return NextResponse.redirect(url);
