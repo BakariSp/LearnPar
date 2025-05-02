@@ -113,6 +113,45 @@
   word-break: break-word;
 }
 
+.quickActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.actionButton {
+  background-color: var(--card-background);
+  color: var(--primary-color-dark, #D67D13);
+  border: 1.5px solid var(--primary-color-dark, #D67D13);
+  border-radius: 16px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+}
+
+.actionButton:hover {
+  background-color: var(--primary-color-dark, #D67D13);
+  color: white;
+}
+
+.generateAction {
+  background-color: rgba(139, 92, 246, 0.2);  /* Slightly more opaque purple background */
+  color: rgb(124, 58, 237);  /* Darker purple text for contrast */
+  border-color: rgb(124, 58, 237);  /* Darker purple border */
+  border-width: 1.5px;
+}
+
+.generateAction:hover {
+  background-color: rgb(124, 58, 237);  /* Darker purple on hover */
+  color: white;
+}
+
 .messageTime {
   font-size: 10px;
   opacity: 0.7;
@@ -621,6 +660,31 @@
   
   .cancelButton:hover {
     background-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .actionButton {
+    background-color: rgba(59, 130, 246, 0.15);
+    color: #4D84F3;
+    border-color: #4D84F3;
+    border-width: 1.5px;
+    font-weight: 600;
+  }
+  
+  .actionButton:hover {
+    background-color: var(--primary-color-dark, #2563eb);
+    color: white;
+  }
+  
+  .generateAction {
+    background-color: rgba(139, 92, 246, 0.25);
+    color: rgb(167, 139, 250);
+    border-color: rgb(139, 92, 246);
+    border-width: 1.5px;
+  }
+  
+  .generateAction:hover {
+    background-color: rgb(139, 92, 246);
+    color: white;
   }
 }
 

@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 import { FullLearningPathResponse, CardResponse } from '@/services/api';
 import LearnAssistant from '../components/LearnAssistant';
 import PathNavigation from './PathNavigation';
@@ -58,6 +58,18 @@ export default function LearningPathLayout({
   locale = 'en',
   onBack
 }: LearningPathLayoutProps) {
+  const [isPageEntering, setIsPageEntering] = useState(true);
+
+  // Page entrance animation effect
+  useEffect(() => {
+    // Set a timeout to remove the entrance animation
+    const timer = setTimeout(() => {
+      setIsPageEntering(false);
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, []);
+
   // Loading state
   if (isLoading) {
     return (
@@ -99,7 +111,7 @@ export default function LearningPathLayout({
   }
 
   return (
-    <div className={styles.pageContainer}>
+    <div className={`${styles.pageContainer} ${isPageEntering ? styles.fadeIn : ''}`}>
       {/* Left navigation pane */}
       <PathNavigation
         learningPathData={learningPathData}

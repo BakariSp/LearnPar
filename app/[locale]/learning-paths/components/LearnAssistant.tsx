@@ -67,7 +67,7 @@ const LearnAssistant: React.FC<LearnAssistantProps> = ({
       {
         id: 'welcome',
         role: 'assistant',
-        content: t('learnAssistant.welcome', 'Hi there! I can help you understand this topic better. Ask me anything about the current content! You can also ask me to "generate cards about [topic]" to create study materials.'),
+        content: t('learnAssistant.welcome', 'Hi there! I can help you understand this card and learning path better. I have information about the current content and can provide deeper explanations. Ask me anything, use the quick action buttons below, or try "generate cards about [topic]" to create study materials!'),
         timestamp: new Date(),
       },
     ]);
@@ -352,12 +352,133 @@ const LearnAssistant: React.FC<LearnAssistantProps> = ({
       >
         <div className={styles.messageContent}>
           {message.content}
+          
+          {/* Add quick action buttons to the welcome message */}
+          {message.id === 'welcome' && (
+            <div className={styles.quickActions}>
+              <button 
+                className={styles.actionButton}
+                onClick={() => handleSendPresetMessage('Tell me more about this card')}
+              >
+                {t('learnAssistant.tellMeMore', 'Tell me more about this card')}
+              </button>
+              
+              {currentSectionId && (
+                <button 
+                  className={styles.actionButton}
+                  onClick={() => handleSendPresetMessage(`Tell me about the ${sectionTitle || 'current'} section`)}
+                >
+                  {t('learnAssistant.explainSection', 'Explain this section')}
+                </button>
+              )}
+              
+              <button 
+                className={styles.actionButton}
+                onClick={() => handleSendPresetMessage('How does this fit into the learning path?')}
+              >
+                {t('learnAssistant.learningPathContext', 'Learning path context')}
+              </button>
+
+              <button 
+                className={`${styles.actionButton} ${styles.generateAction}`}
+                onClick={() => {
+                  // Use the topic from the current card or section title if available
+                  const topic = courseTitle || sectionTitle || 'this topic';
+                  handleSendPresetMessage(`Generate 3 cards about ${topic}`);
+                }}
+              >
+                {t('learnAssistant.generateExamples', 'Generate example cards')}
+              </button>
+            </div>
+          )}
         </div>
         <div className={styles.messageTime}>
           {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </div>
       </div>
     ));
+  };
+
+  // Helper function for quick action buttons to send a preset message
+  const handleSendPresetMessage = (message: string) => {
+    if (isLoading) return;
+    
+    const userMessage: Message = {
+      id: `user-${Date.now()}`,
+      role: 'user',
+      content: message,
+      timestamp: new Date(),
+    };
+
+    // Add user message to chat
+    setMessages(prev => [...prev, userMessage]);
+    setIsLoading(true);
+
+    // Process the message using the same logic as handleSendMessage
+    (async () => {
+      try {
+        // Check if this is a card generation request
+        const isCardGenerationRequest = await handleUserMessage(userMessage.content);
+        
+        // If it was handled as a card generation request, we're done
+        if (isCardGenerationRequest) {
+          setIsLoading(false);
+          return;
+        }
+
+        // Otherwise, proceed with normal question handling
+        // Prepare the request data
+        const requestData = {
+          query: userMessage.content,
+          card_id: currentCardId || undefined,
+          section_id: currentSectionId || undefined,
+          difficulty_level: difficulty
+        };
+
+        // Use the API service instead of direct fetch
+        const data = await askQuestion(requestData);
+
+        // Add assistant's response to chat
+        const assistantMessage: Message = {
+          id: `assistant-${Date.now()}`,
+          role: 'assistant',
+          content: data.answer,
+          timestamp: new Date(),
+        };
+
+        setMessages(prev => [...prev, assistantMessage]);
+
+        // Update context information if provided
+        if (data.context) {
+          // If we have updated context about the current card or section, we can
+          // use this information to update the UI if needed
+          console.log('Context information:', data.context);
+        }
+
+        // If there's a related card, store it
+        if (data.status && data.status.has_related_card && data.related_card) {
+          setRelatedCard(data.related_card);
+          setShowFullAnswer(false); // Reset the answer expansion state for new cards
+          
+          // Clear any previously generated cards when showing a related card
+          setGeneratedCards([]);
+        }
+      } catch (error) {
+        console.error('Error processing preset message:', error);
+        
+        // Add error message
+        const errorMessage: Message = {
+          id: `error-${Date.now()}`,
+          role: 'assistant',
+          content: t('learnAssistant.error', 'Sorry, I encountered an error. Please try again later.'),
+          timestamp: new Date(),
+        };
+        
+        setMessages(prev => [...prev, errorMessage]);
+      } finally {
+        setIsLoading(false);
+      }
+    })();
   };
 
   // Add a function to truncate text

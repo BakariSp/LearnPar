@@ -13,6 +13,7 @@ import { FullLearningPathResponse, GeneratePathPayload, apiCreatePathFromStructu
 import { checkDailyLimits } from '@/services/api/subscription';
 // Remove NotificationContext import if no longer needed anywhere else in this file
 // import { useNotificationContext } from '@/context/NotificationContext';
+import { SuccessAnimation } from '../../../app/components';
 
 // --- Define Dialogue types here ---
 interface DialogueMessage {
@@ -58,6 +59,7 @@ function ChatPageContent() {
   const [messages, setMessages] = useState<DialogueMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false); // Loading state for chat
   const [error, setError] = useState<string | null>(null); // Chat errors
+  const [isPageEntering, setIsPageEntering] = useState(true);
 
   const [currentPlan, setCurrentPlan] = useState<LearningPlan>(null); // State for the plan remains
   const [initialPrompt, setInitialPrompt] = useState<string | null>(null); // State to hold initial prompt
@@ -77,6 +79,10 @@ function ChatPageContent() {
   // Remove if NotificationContext is not used elsewhere in this file
   // const { setHasNewPaths } = useNotificationContext();
 
+  const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
+  const [successRedirectPath, setSuccessRedirectPath] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+
   // --- Re-introduce chat scroll effect ---
   useEffect(() => {
      // Only scroll if there are messages
@@ -84,6 +90,16 @@ function ChatPageContent() {
         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
      }
   }, [messages]);
+
+  // Page entrance animation effect
+  useEffect(() => {
+    // Set a timeout to remove the entrance animation
+    const timer = setTimeout(() => {
+      setIsPageEntering(false);
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   // Handler to update plan based on AI response or direct manipulation
    const handlePlanUpdateFromAI = useCallback((updatedPlanData: Partial<LearningPlan>) => {
@@ -245,7 +261,7 @@ function ChatPageContent() {
   }, [messages, currentPlan, handlePlanUpdateFromAI, t]);
 
 
-  // Handle initial prompt from URL query parameter
+  // Process the initial prompt from URL parameter
   useEffect(() => {
     if (!initialPromptProcessed.current) {
       const queryPrompt = searchParams?.get('prompt');
@@ -629,10 +645,10 @@ function ChatPageContent() {
             prev + '\n' + t('chat.path_created_redirecting', 'Learning path created successfully! Redirecting...')
           );
           
-          // Redirect after a short delay
-          setTimeout(() => {
-            router.push(`/${locale}/learning-paths/${learningPathId}`);
-          }, 1500); // 1.5 second delay
+          // Set success animation state variables
+          setSuccessMessage(t('chat.learning_path_success', 'Learning path created successfully!'));
+          setSuccessRedirectPath(`/${locale}/learning-paths/${learningPathId}`);
+          setShowSuccessAnimation(true);
 
         } else {
           setFinalizationError(t('chat.error_creating_path', 'Error creating learning path. Please try again later.'));
@@ -690,147 +706,169 @@ function ChatPageContent() {
   }, []); // Empty dependency array means cleanup only runs on unmount
 
   return (
-    // Use the new two-column layout container
-    <main className={styles.twoColumnLayout}>
-
-      {/* Left Column: Learning Path + Generate Button */}
-      <div className={styles.leftColumn}>
-        {/* Conditionally render EditableLearningPath only when a plan exists */}
-        {currentPlan ? (
-          <>
-            <EditableLearningPath
-              initialPlan={currentPlan}
-              onDeleteCourse={handleDeleteCourse}
-              onReorderCourses={handleReorderCourses}
-              onDifficultyChange={handleDifficultyChange}
-            />
+    <>
+      {showSuccessAnimation && (
+        <SuccessAnimation 
+          message={successMessage}
+          redirectPath={successRedirectPath}
+          delay={2000}
+          onAnimationComplete={() => {
+            // Clean up state when animation is done
+            setShowSuccessAnimation(false);
+            setSuccessRedirectPath('');
+            setSuccessMessage('');
             
-            {/* --- Finalize Path Button --- */}
-            <button
-              onClick={handleFinalizePath}
-              className={styles.generateFullPathButton}
-              disabled={isFinalizing || isLoading || !currentPlan || !currentPlan.courses || currentPlan.courses.length === 0}
-            >
-              {/* Show generic "Processing..." if finalizing */}
-              {isFinalizing ? t('chat.processing') : t('chat.generate_full_path')}
-            </button>
-            {/* --- Display Finalization Status (includes Redirecting message) --- */}
-            {isFinalizing && finalizationMessage && <p className={styles.successMessage}>{finalizationMessage}</p>}
-            {/* Show error only if NOT finalizing (finalizing has its own message) */}
-            {!isFinalizing && finalizationError && <p className={styles.errorMessage}>{finalizationError}</p>}
-          </>
-        ) : (
-          // Show placeholder if no plan exists yet
-          <div className={styles.placeholder}>
-             {/* Show different message while initial prompt is loading */}
-             {isLoading && messages.length === 0 && initialPrompt ? (
-                <>
-                  <h3 className={styles.placeholderTitle}>Zero AI is working on your path...</h3>
-                  <p className={styles.placeholderText}>
-                    <span className={styles.phaseText}>Planning</span> • 
-                    <span className={styles.activePhase}>Generating</span> • 
-                    <span className={styles.phaseText}>Organizing</span>
-                  </p>
-                  <div className={styles.spinner}></div>
-                  <p className={styles.aiThinkingText}>
-                    Analyzing your interests and crafting a personalized learning journey
-                  </p>
-                </>
-             ) : (
-                <>
-                  <h3 className={styles.placeholderTitle}>Your learning path will appear here</h3>
-                  <p className={styles.placeholderText}>Zero AI is analyzing your interests and creating a structured learning path.</p>
-                  {/* Visual placeholder for the editable learning path container */}
-                  <div className={styles.pathPlaceholder}>
-                    <div className={styles.pathPlaceholderHeader}></div>
-                    <div className={styles.placeholderMessage}>
-                      Zero AI is ready to craft your perfect learning journey
-                    </div>
-                    <div className={styles.pathPlaceholderControls}>
-                      <div className={styles.pathPlaceholderLabel}>Study Days</div>
-                      <div className={styles.pathPlaceholderDays}>
-                        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
-                          <div key={day} className={styles.pathPlaceholderDay}>{day}</div>
-                        ))}
-                      </div>
-                      <div className={styles.pathPlaceholderLabel}>Difficulty Level</div>
-                      <div className={styles.pathPlaceholderDifficulty}>
-                        {['Beginner', 'Intermediate', 'Advanced'].map(level => (
-                          <div key={level} className={`${styles.pathPlaceholderLevel} ${level === 'Intermediate' ? styles.pathPlaceholderLevelSelected : ''}`}>{level}</div>
-                        ))}
-                      </div>
-                    </div>
-                    <div className={styles.pathPlaceholderRow}></div>
-                    <div className={styles.pathPlaceholderRow}></div>
-                  </div>
-                </>
-             )}
-          </div>
-        )}
-      </div>
+            // Clear stored learning plan data when redirecting
+            try {
+              localStorage.removeItem('currentLearningPlan');
+            } catch (error) {
+              console.error('Error cleaning up learning plan from localStorage:', error);
+            }
+          }}
+        />
+      )}
+      {/* Use the new two-column layout container with animation */}
+      <main className={`${styles.twoColumnLayout} ${isPageEntering ? styles.fadeIn : ''}`}>
 
-      {/* Right Column: Chat Interface */}
-      <div className={styles.rightColumn}>
-         {/* Chat Display Area */}
-         <div className={styles.chatDisplayArea}>
-            {/* Optional: Add a welcome message or initial state message */}
-            {messages.length === 0 && !isLoading && (
-                <div className={`${styles.chatMessage} ${styles.ai}`}>
-                  <span className={styles.chatRole}>AI</span>
-                  <p className={styles.chatContent}>{t('chat.chat_greeting')}</p>
-              </div>
-            )}
-            {/* Render actual messages */}
-            {messages.map((msg, index) => (
-                <div key={index} className={`${styles.chatMessage} ${styles[msg.role]}`}>
-                    <span className={styles.chatRole}>
-                        {msg.role === 'ai' ? 'AI' : msg.role === 'user' ? 'You' : 'System'}
-                    </span>
-                    <p className={styles.chatContent}>{msg.content}</p>
-                </div>
-            ))}
-            {/* Display loading indicator within chat */}
-            {isLoading && (
-                <div className={`${styles.chatMessage} ${styles.ai}`}>
-                  <span className={styles.chatRole}>AI</span>
-                  <p className={styles.chatContent}><i>{t('chat.thinking')} <span className={styles.smallSpinner}></span></i></p>
-                </div>
-            )}
-            {/* Scroll anchor */}
-            <div ref={chatEndRef} />
+        {/* Left Column: Learning Path + Generate Button */}
+        <div className={styles.leftColumn}>
+          {/* Conditionally render EditableLearningPath only when a plan exists */}
+          {currentPlan ? (
+            <>
+              <EditableLearningPath
+                initialPlan={currentPlan}
+                onDeleteCourse={handleDeleteCourse}
+                onReorderCourses={handleReorderCourses}
+                onDifficultyChange={handleDifficultyChange}
+              />
+              
+              {/* --- Finalize Path Button --- */}
+              <button
+                onClick={handleFinalizePath}
+                className={styles.generateFullPathButton}
+                disabled={isFinalizing || isLoading || !currentPlan || !currentPlan.courses || currentPlan.courses.length === 0}
+              >
+                {/* Show generic "Processing..." if finalizing */}
+                {isFinalizing ? t('chat.processing') : t('chat.generate_full_path')}
+              </button>
+              {/* --- Display Finalization Status (includes Redirecting message) --- */}
+              {isFinalizing && finalizationMessage && <p className={styles.successMessage}>{finalizationMessage}</p>}
+              {/* Show error only if NOT finalizing (finalizing has its own message) */}
+              {!isFinalizing && finalizationError && <p className={styles.errorMessage}>{finalizationError}</p>}
+            </>
+          ) : (
+            // Show placeholder if no plan exists yet
+            <div className={styles.placeholder}>
+               {/* Show different message while initial prompt is loading */}
+               {isLoading && messages.length === 0 && initialPrompt ? (
+                  <>
+                    <h3 className={styles.placeholderTitle}>Zero AI is working on your path...</h3>
+                    <p className={styles.placeholderText}>
+                      <span className={styles.phaseText}>Planning</span> • 
+                      <span className={styles.activePhase}>Generating</span> • 
+                      <span className={styles.phaseText}>Organizing</span>
+                    </p>
+                    <div className={styles.spinner}></div>
+                    <p className={styles.aiThinkingText}>
+                      Analyzing your interests and crafting a personalized learning journey
+                    </p>
+                  </>
+               ) : (
+                  <>
+                    <h3 className={styles.placeholderTitle}>Your learning path will appear here</h3>
+                    <p className={styles.placeholderText}>Zero AI is analyzing your interests and creating a structured learning path.</p>
+                    {/* Visual placeholder for the editable learning path container */}
+                    <div className={styles.pathPlaceholder}>
+                      <div className={styles.pathPlaceholderHeader}></div>
+                      <div className={styles.placeholderMessage}>
+                        Zero AI is ready to craft your perfect learning journey
+                      </div>
+                      <div className={styles.pathPlaceholderControls}>
+                        <div className={styles.pathPlaceholderLabel}>Study Days</div>
+                        <div className={styles.pathPlaceholderDays}>
+                          {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
+                            <div key={day} className={styles.pathPlaceholderDay}>{day}</div>
+                          ))}
+                        </div>
+                        <div className={styles.pathPlaceholderLabel}>Difficulty Level</div>
+                        <div className={styles.pathPlaceholderDifficulty}>
+                          {['Beginner', 'Intermediate', 'Advanced'].map(level => (
+                            <div key={level} className={`${styles.pathPlaceholderLevel} ${level === 'Intermediate' ? styles.pathPlaceholderLevelSelected : ''}`}>{level}</div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className={styles.pathPlaceholderRow}></div>
+                      <div className={styles.pathPlaceholderRow}></div>
+                    </div>
+                  </>
+               )}
+            </div>
+          )}
         </div>
 
-        {/* Chat Input Form */}
-        <form onSubmit={handleSubmit} className={`${formStyles.inputForm} ${styles.chatInputForm}`}>
-             <input
-                type="text"
-                value={userInput}
-                onChange={(e) => setUserInput(e.target.value)}
-                placeholder={t('chat.chat_placeholder')}
-                className={formStyles.input}
-                disabled={isLoading || isFinalizing} // Disable if chat loading OR finalizing
-                aria-label="Chat input"
-            />
-            <button
-                type="submit"
-                className={formStyles.submitButton}
-                // style={{ backgroundColor: 'black', color: 'white' }} // Style for black button from image
-                disabled={isLoading || isFinalizing || !userInput.trim()}
-                aria-label={isLoading ? t('chat.sending') : t('chat.send_message')}
-            >
-                {isLoading ? <span className={styles.smallSpinner}></span> : <span className={formStyles.submitButtonIcon}>→</span>}
-            </button>
-        </form>
+        {/* Right Column: Chat Interface */}
+        <div className={styles.rightColumn}>
+           {/* Chat Display Area */}
+           <div className={styles.chatDisplayArea}>
+              {/* Optional: Add a welcome message or initial state message */}
+              {messages.length === 0 && !isLoading && (
+                  <div className={`${styles.chatMessage} ${styles.ai}`}>
+                    <span className={styles.chatRole}>AI</span>
+                    <p className={styles.chatContent}>{t('chat.chat_greeting')}</p>
+                </div>
+              )}
+              {/* Render actual messages */}
+              {messages.map((msg, index) => (
+                  <div key={index} className={`${styles.chatMessage} ${styles[msg.role]}`}>
+                      <span className={styles.chatRole}>
+                          {msg.role === 'ai' ? 'AI' : msg.role === 'user' ? 'You' : 'System'}
+                      </span>
+                      <p className={styles.chatContent}>{msg.content}</p>
+                  </div>
+              ))}
+              {/* Display loading indicator within chat */}
+              {isLoading && (
+                  <div className={`${styles.chatMessage} ${styles.ai}`}>
+                    <span className={styles.chatRole}>AI</span>
+                    <p className={styles.chatContent}><i>{t('chat.thinking')} <span className={styles.smallSpinner}></span></i></p>
+                  </div>
+              )}
+              {/* Scroll anchor */}
+              <div ref={chatEndRef} />
+          </div>
 
-        {/* Display general chat errors (e.g., network) below input */}
-        {error && !isLoading && (
-             <div className={styles.errorBox}>
-                {error}
-            </div>
-        )}
-      </div>
+          {/* Chat Input Form */}
+          <form onSubmit={handleSubmit} className={`${formStyles.inputForm} ${styles.chatInputForm}`}>
+               <input
+                  type="text"
+                  value={userInput}
+                  onChange={(e) => setUserInput(e.target.value)}
+                  placeholder={t('chat.chat_placeholder')}
+                  className={formStyles.input}
+                  disabled={isLoading || isFinalizing} // Disable if chat loading OR finalizing
+                  aria-label="Chat input"
+              />
+              <button
+                  type="submit"
+                  className={formStyles.submitButton}
+                  // style={{ backgroundColor: 'black', color: 'white' }} // Style for black button from image
+                  disabled={isLoading || isFinalizing || !userInput.trim()}
+                  aria-label={isLoading ? t('chat.sending') : t('chat.send_message')}
+              >
+                  {isLoading ? <span className={styles.smallSpinner}></span> : <span className={formStyles.submitButtonIcon}>→</span>}
+              </button>
+          </form>
 
-    </main>
+          {/* Display general chat errors (e.g., network) below input */}
+          {error && !isLoading && (
+               <div className={styles.errorBox}>
+                  {error}
+              </div>
+          )}
+        </div>
+
+      </main>
+    </>
   );
 }
 

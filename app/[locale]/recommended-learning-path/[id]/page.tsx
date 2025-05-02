@@ -7,6 +7,7 @@ import { isAuthenticated } from '@/services/auth';
 import CustomPreviewCardSection from '@/components/learning-path/CustomPreviewCardSection';
 import styles from './page.module.css';
 import detailStyles from '../../learning-paths/[id]/learning-path-detail.module.css';
+import { SuccessAnimation } from '../../../../app/components';
 
 interface RecommendedLearningPathPageProps {
   params?: Promise<{
@@ -28,6 +29,9 @@ export default function RecommendedLearningPathPage({ params }: RecommendedLearn
     type: null,
     message: null
   });
+  const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
+  const [successRedirectPath, setSuccessRedirectPath] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
     const resolveParams = async () => {
@@ -96,15 +100,16 @@ export default function RecommendedLearningPathPage({ params }: RecommendedLearn
       const success = await apiAddToMyLearningPaths(learningPath.id);
       
       if (success) {
+        // Show notification first
         setNotification({
           type: 'success',
           message: `"${learningPath.title}" added to your learning paths!`
         });
         
-        // Redirect to my paths page after a short delay
-        setTimeout(() => {
-          router.push(`/${locale}/my-paths`);
-        }, 1500);
+        // Set success animation state variables
+        setSuccessMessage(`"${learningPath.title}" added to your learning paths!`);
+        setSuccessRedirectPath(`/${locale}/my-paths`);
+        setShowSuccessAnimation(true);
       } else {
         throw new Error('Failed to add learning path');
       }
@@ -116,10 +121,10 @@ export default function RecommendedLearningPathPage({ params }: RecommendedLearn
           message: `"${learningPath.title}" is already in your learning paths.`
         });
         
-        // Redirect to the user's learning paths page after a short delay
-        setTimeout(() => {
-          router.push(`/${locale}/my-paths`);
-        }, 1500);
+        // Set success animation for navigation even in this case
+        setSuccessMessage(`"${learningPath.title}" is already in your learning paths.`);
+        setSuccessRedirectPath(`/${locale}/my-paths`);
+        setShowSuccessAnimation(true);
       } else {
         setNotification({
           type: 'error',
@@ -175,76 +180,85 @@ export default function RecommendedLearningPathPage({ params }: RecommendedLearn
   }
 
   return (
-    <div className={detailStyles.detailPageContainer}>
-      {notification.type && notification.message && (
-        <div className={`${styles.notification} ${styles[`notification${notification.type.charAt(0).toUpperCase() + notification.type.slice(1)}`]}`}>
-          {notification.message}
-        </div>
+    <>
+      {showSuccessAnimation && (
+        <SuccessAnimation 
+          message={successMessage}
+          redirectPath={successRedirectPath}
+          delay={2000}
+        />
       )}
-      
-      <div className={detailStyles.detailHeader}>
-        <div className={detailStyles.headerTitleSection}>
-          <h2 className={detailStyles.pathTitleHeader}>{learningPath.title}</h2>
-          <p className={detailStyles.pathDescriptionHeader}>{learningPath.description}</p>
-          <div className={detailStyles.pathMetaHeader}>
-            <span>{learningPath.category}</span>
-            <span>{learningPath.difficulty_level}</span>
-            <span>{learningPath.estimated_days} days</span>
+      <div className={detailStyles.detailPageContainer}>
+        {notification.type && notification.message && (
+          <div className={`${styles.notification} ${styles[`notification${notification.type.charAt(0).toUpperCase() + notification.type.slice(1)}`]}`}>
+            {notification.message}
           </div>
-        </div>
-        <div className={detailStyles.headerControls}>
-          {isLoggedIn ? (
-            <button 
-              className={`${detailStyles.navButton} ${detailStyles.nextAction}`} 
-              onClick={handleAddToMyPaths} 
-              disabled={isAddingPath}
-            >
-              {isAddingPath ? 'Adding...' : 'Add to My Learning Paths'}
-            </button>
-          ) : (
-            <div>
+        )}
+        
+        <div className={detailStyles.detailHeader}>
+          <div className={detailStyles.headerTitleSection}>
+            <h2 className={detailStyles.pathTitleHeader}>{learningPath.title}</h2>
+            <p className={detailStyles.pathDescriptionHeader}>{learningPath.description}</p>
+            <div className={detailStyles.pathMetaHeader}>
+              <span>{learningPath.category}</span>
+              <span>{learningPath.difficulty_level}</span>
+              <span>{learningPath.estimated_days} days</span>
+            </div>
+          </div>
+          <div className={detailStyles.headerControls}>
+            {isLoggedIn ? (
               <button 
                 className={`${detailStyles.navButton} ${detailStyles.nextAction}`} 
-                onClick={handleLoginRedirect}
+                onClick={handleAddToMyPaths} 
+                disabled={isAddingPath}
               >
-                Login to Add to My Paths
+                {isAddingPath ? 'Adding...' : 'Add to My Learning Paths'}
               </button>
-              <div className={styles.secondaryText}>
-                Login required to save this path
+            ) : (
+              <div>
+                <button 
+                  className={`${detailStyles.navButton} ${detailStyles.nextAction}`} 
+                  onClick={handleLoginRedirect}
+                >
+                  Login to Add to My Paths
+                </button>
+                <div className={styles.secondaryText}>
+                  Login required to save this path
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
-      </div>
 
-      <div className={detailStyles.detailContent}>
-        <h3 className={styles.subtitle}>Courses</h3>
-        <div className={detailStyles.structureView}>
-          {learningPath.courses.map((course, courseIndex) => (
-            <div key={course.id} className={detailStyles.courseWrapper}>
-              <div className={detailStyles.timeIndicator}>
-                Course {courseIndex + 1}
+        <div className={detailStyles.detailContent}>
+          <h3 className={styles.subtitle}>Courses</h3>
+          <div className={detailStyles.structureView}>
+            {learningPath.courses.map((course, courseIndex) => (
+              <div key={course.id} className={detailStyles.courseWrapper}>
+                <div className={detailStyles.timeIndicator}>
+                  Course {courseIndex + 1}
+                </div>
+                <div className={detailStyles.courseItem}>
+                  <h4 className={detailStyles.courseTitle}>{course.title}</h4>
+                  <p className={styles.description}>{course.description}</p>
+                  
+                  <div className={styles.divider}></div>
+                  
+                  {course.sections.map((section, sectionIndex) => (
+                    <div key={section.id} className={styles.sectionCard}>
+                      <h5 className={styles.sectionTitle}>{courseIndex + 1}.{sectionIndex + 1} {section.title}</h5>
+                      <p className={styles.description}>{section.description}</p>
+                      
+                      <h5 className={styles.sectionTitle}>Learning Cards ({section.cards.length})</h5>
+                      <CustomPreviewCardSection cards={section.cards} maxPreviewCards={2} />
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className={detailStyles.courseItem}>
-                <h4 className={detailStyles.courseTitle}>{course.title}</h4>
-                <p className={styles.description}>{course.description}</p>
-                
-                <div className={styles.divider}></div>
-                
-                {course.sections.map((section, sectionIndex) => (
-                  <div key={section.id} className={styles.sectionCard}>
-                    <h5 className={styles.sectionTitle}>{courseIndex + 1}.{sectionIndex + 1} {section.title}</h5>
-                    <p className={styles.description}>{section.description}</p>
-                    
-                    <h5 className={styles.sectionTitle}>Learning Cards ({section.cards.length})</h5>
-                    <CustomPreviewCardSection cards={section.cards} maxPreviewCards={2} />
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 } 

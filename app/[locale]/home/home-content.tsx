@@ -70,6 +70,7 @@ export function ZeroLandingPageContent(props: ZeroLandingPageProps) {
   const [recommendations, setRecommendations] = useState<RecommendationsResponse | null>(initialRecommendations || null);
   const [interestRecommendations, setInterestRecommendations] = useState<RecommendationsByInterestsResponse | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isPageEntering, setIsPageEntering] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState<string>("string");
   const [initialDataLoaded, setInitialDataLoaded] = useState<boolean>(false);
@@ -77,7 +78,18 @@ export function ZeroLandingPageContent(props: ZeroLandingPageProps) {
   const [noMoreRecommendations, setNoMoreRecommendations] = useState<boolean>(false);
   // Add state to track if load more button is clicked to prevent rapid multiple clicks
   const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
+  const [isNavigating, setIsNavigating] = useState<boolean>(false);
   const router = useRouter();
+
+  // Page entrance animation effect
+  useEffect(() => {
+    // Simulate loading effect for better UX
+    const timer = setTimeout(() => {
+      setIsPageEntering(false);
+    }, 800);
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   // Fetch user's interests and get recommendations - only run once for initial data
   useEffect(() => {
@@ -211,7 +223,14 @@ export function ZeroLandingPageContent(props: ZeroLandingPageProps) {
     if (!locale) {
       return;
     }
-    router.push(`/${locale}/chat?prompt=${encodeURIComponent(submittedQuery)}`);
+    
+    // Set navigating state to trigger transition animation
+    setIsNavigating(true);
+    
+    // Delay the navigation slightly to allow animation to start
+    setTimeout(() => {
+      router.push(`/${locale}/chat?prompt=${encodeURIComponent(submittedQuery)}`);
+    }, 300);
   };
 
   // Function to load more recommendations
@@ -251,57 +270,85 @@ export function ZeroLandingPageContent(props: ZeroLandingPageProps) {
         // No more recommendations to load
         setNoMoreRecommendations(true);
       }
+      
+      // Reset loading state
+      setIsLoadingMore(false);
     } catch (error) {
       console.error('Error loading more recommendations:', error);
-    } finally {
       setIsLoadingMore(false);
+      setError('Failed to load more recommendations. Please try again.');
     }
   };
 
-  return (
-    <main className={styles.container}>
-      <div className={styles.content}>
-        <section className={styles.aiSection}>
-          <h1 className={styles.heading}>What would you like to learn today?</h1>
-          <AiDialog query={query} setQuery={setQuery} onQuerySubmit={handleQuerySubmit} />
-        </section>
+  // Main content render with loading and animations
+  if (isPageEntering || isLoading) {
+    return (
+      <div className={styles.loadingContainer}>
+        <div className={styles.loadingSpinner}></div>
+        <p>{t('common.loading')}</p>
+      </div>
+    );
+  }
 
-        {isLoading && displayPaths.length === 0 ? (
-          <div className={styles.loadingContainer}>
-            <div className={styles.loadingSpinner}></div>
-            <p>{t('landing.loading_recommendations')}</p>
-          </div>
-        ) : error ? (
-          <div className={styles.errorContainer}>
-            <p>{error}</p>
-          </div>
-        ) : (
-          <section className={styles.learningPathsSection}>
-            <h2 className={styles.sectionTitle}>Recommended Learning Paths</h2>
+  // Show error message if there was a problem
+  if (error) {
+    return (
+      <div className={styles.errorContainer}>
+        <p>{error}</p>
+      </div>
+    );
+  }
+
+  // Main content with fade-in animation
+  return (
+    <div className={`${styles.container} ${isNavigating ? styles.fadeOut : styles.fadeIn}`}>
+      <div className={styles.content}>
+        <div className={styles.aiSection}>
+          <h2 className={styles.heading}>{t('home.prompt_heading', 'What are you looking to learn today?')}</h2>
+          <AiDialog
+            query={query}
+            setQuery={setQuery}
+            onQuerySubmit={handleQuerySubmit}
+          />
+        </div>
+        
+        {displayPaths && displayPaths.length > 0 && (
+          <div className={styles.learningPathsSection}>
+            <h3 className={styles.sectionTitle}>
+              {t('home.recommended_learning_paths', 'Recommended Learning Paths')}
+            </h3>
             <div className={styles.learningPathGrid}>
               {displayPaths.map((path) => (
-                <LearningPathCard key={path.id} path={path} locale={locale ?? 'en'} />
+                <LearningPathCard
+                  key={path.id}
+                  path={path}
+                  locale={locale ?? 'en'}
+                />
               ))}
             </div>
             
-            {interestRecommendations && interestRecommendations.learning_paths.length > 0 && (
+            {/* Load more button */}
+            {!noMoreRecommendations && interestRecommendations && (
               <div className={styles.loadMoreContainer}>
-                {noMoreRecommendations ? (
-                  <p className={styles.noMoreMessage}>No more recommendations available</p>
-                ) : (
-                  <button 
-                    className={styles.loadMoreButton} 
-                    onClick={handleLoadMore}
-                    disabled={isLoadingMore}
-                  >
-                    {isLoadingMore ? 'Loading...' : 'Load More Recommendations'}
-                  </button>
-                )}
+                <button 
+                  className={styles.loadMoreButton}
+                  onClick={handleLoadMore}
+                  disabled={isLoadingMore}
+                >
+                  {isLoadingMore ? t('common.loading') : t('home.load_more', 'Load More')}
+                </button>
               </div>
             )}
-          </section>
+            
+            {/* No more recommendations message */}
+            {noMoreRecommendations && (
+              <div className={styles.noMoreMessage}>
+                {t('home.no_more_recommendations', 'No more recommendations available.')}
+              </div>
+            )}
+          </div>
         )}
       </div>
-    </main>
+    </div>
   );
 } 

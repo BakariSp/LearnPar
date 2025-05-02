@@ -24,7 +24,7 @@ interface ExtendedDailyUsageData extends DailyUsageData {
   };
 }
 
-// Add this interface to the top of the file with the other interface definitions
+// Extend the API interface to include the usage data
 interface ExtendedSubscriptionData extends SubscriptionData {
   usage?: {
     paths: {
@@ -52,12 +52,14 @@ export default function DashboardPage() {
   const [subscriptionInfo, setSubscriptionInfo] = useState<ExtendedSubscriptionData | null>(null);
   const [dailyUsage, setDailyUsage] = useState<ExtendedDailyUsageData | null>(null);
   const [subLoading, setSubLoading] = useState(true);
+  const [usageLoading, setUsageLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [promoCode, setPromoCode] = useState('');
   const [upgradeSuccess, setUpgradeSuccess] = useState(false);
   const [upgradeMessage, setUpgradeMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [showPromoSection, setShowPromoSection] = useState(false);
+  const [showSubscriptionTable, setShowSubscriptionTable] = useState(false);
 
   // Check if setup is complete based on cookie status
   useEffect(() => {
@@ -280,7 +282,7 @@ export default function DashboardPage() {
       
       // If limits are not reached, navigate to the appropriate creation page
       if (type === 'path') {
-        router.push(`/${locale}/create-learning-path`);
+        router.push(`/${locale}/home`);
       } else {
         router.push(`/${locale}/create-flashcard`);
       }
@@ -544,11 +546,11 @@ export default function DashboardPage() {
                         (subscriptionInfo?.plan?.type) || 'free';
     
     return (
-      <div className={styles.subscriptionSection}>
+      <div className={`${styles.subscriptionSection} card`}>
         <div className={styles.subscriptionHeader}>
-          <h3>Your Subscription</h3>
-          <div className={styles.currentSubscriptionBadge}>
-            {currentPlan === 'free' ? 'Free Tier' : 
+          <h3 className="heading-md">Your Subscription</h3>
+          <div className={styles.currentSubscriptionBadge} style={{ backgroundColor: 'var(--primary-accent)' }}>
+            {currentPlan === 'free' ? 'Basic Tier' : 
              currentPlan === 'standard' ? 'Standard Tier' : 
              'Premium Tier'}
           </div>
@@ -560,15 +562,15 @@ export default function DashboardPage() {
         {/* Fallback information if stats can't be loaded */}
         {(!subscriptionInfo?.usage || !dailyUsage) && (
           <div className={styles.fallbackSubscriptionInfo}>
-            <h4>Your Current Plan: {currentPlan === 'free' ? 'Free Tier' : 
+            <h4 className="heading-md">Your Current Plan: {currentPlan === 'free' ? 'Basic Tier' : 
              currentPlan === 'standard' ? 'Standard Tier' : 
              'Premium Tier'}</h4>
-            <p>Daily limits based on your current plan:</p>
+            <p className="text-regular">Daily limits based on your current plan:</p>
             <ul>
               <li>Learning Paths: {currentPlan === 'free' ? '3' : currentPlan === 'standard' ? '10' : 'Unlimited'} per day</li>
               <li>Flashcards: {currentPlan === 'free' ? '20' : currentPlan === 'standard' ? '50' : 'Unlimited'} per day</li>
             </ul>
-            <p>For more detailed usage statistics, please refresh the page.</p>
+            <p className="text-small">For more detailed usage statistics, please refresh the page.</p>
           </div>
         )}
         
@@ -589,100 +591,102 @@ export default function DashboardPage() {
         <div className={styles.subscriptionActions}>
           {currentPlan !== 'premium' && (
             <button 
-              className={styles.upgradeButton}
+              className="button-primary"
               onClick={() => setShowPromoSection(!showPromoSection)}
+              style={{ marginRight: '1rem' }}
             >
-              {showPromoSection ? 'Use Promotion Code' : 'Enter Promotion Code'}
+              {showPromoSection ? 'Hide Upgrade Options' : 'Upgrade Your Plan'}
             </button>
           )}
+          <button 
+            className={styles.logoutButton}
+            onClick={() => setShowSubscriptionTable(!showSubscriptionTable)}
+          >
+            {showSubscriptionTable ? 'Hide Details' : 'Show Plan Details'}
+          </button>
         </div>
         
         {showPromoSection && (
           <div className={styles.upgradeContainer}>
             <div className={styles.promoCodeContainer}>
-              <h4>Enter your promotion code to upgrade</h4>
+              <h4 className="heading-md">Enter your special code to upgrade</h4>
               <div className={styles.promoCodeForm}>
                 <input
                   type="text"
                   value={promoCode}
                   onChange={(e) => setPromoCode(e.target.value)}
-                  placeholder="e.g., zeroai#0430"
+                  placeholder="Enter your special code"
                   className={styles.promoCodeInput}
                 />
                 <button
                   onClick={handleUpgradeSubscription}
                   disabled={submitting}
-                  className={styles.applyButton}
+                  className="button-primary"
                 >
                   {submitting ? 'Processing...' : 'Apply Code'}
                 </button>
               </div>
               <p className={styles.promoInfo}>
-                Use a valid promotion code to instantly upgrade your subscription tier and unlock more features.
+                Use your special code to instantly upgrade your subscription tier and unlock more features.
               </p>
-              <div className={styles.demoNote}>
-                <strong>Demo Note:</strong> For testing, try these codes:
-                <ul>
-                  <li><code>zeroai#0430</code> - Upgrade to Standard</li>
-                  <li><code>zeroultra#2025</code> - Upgrade to Premium</li>
-                </ul>
-              </div>
             </div>
           </div>
         )}
         
-        {/* Feature comparison table */}
-        <div className={styles.featureTable}>
-          <h3>Subscription Features</h3>
-          <table className={styles.subscriptionTable}>
-            <thead>
-              <tr>
-                <th>Feature</th>
-                <th>Free</th>
-                <th>Standard</th>
-                <th>Premium</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>Daily Learning Paths</td>
-                <td>3</td>
-                <td>10</td>
-                <td>Unlimited</td>
-              </tr>
-              <tr>
-                <td>Daily Flashcards</td>
-                <td>20</td>
-                <td>50</td>
-                <td>Unlimited</td>
-              </tr>
-              <tr>
-                <td>Custom Sections</td>
-                <td>✓</td>
-                <td>✓</td>
-                <td>✓</td>
-              </tr>
-              <tr>
-                <td>AI Learning Assistant</td>
-                <td>Limited</td>
-                <td>✓</td>
-                <td>✓</td>
-              </tr>
-              <tr>
-                <td>Priority Support</td>
-                <td>✗</td>
-                <td>✓</td>
-                <td>✓</td>
-              </tr>
-              <tr>
-                <td>Advanced Analytics</td>
-                <td>✗</td>
-                <td>✗</td>
-                <td>✓</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        {/* Feature comparison table - now collapsible */}
+        {showSubscriptionTable && (
+          <div className={styles.featureTable}>
+            <h3 className="heading-md">Plan Comparison</h3>
+            <table className={styles.subscriptionTable}>
+              <thead>
+                <tr>
+                  <th>Feature</th>
+                  <th>Basic</th>
+                  <th>Standard</th>
+                  <th>Premium</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Daily Learning Paths</td>
+                  <td>3</td>
+                  <td>10</td>
+                  <td>Unlimited</td>
+                </tr>
+                <tr>
+                  <td>Daily Flashcards</td>
+                  <td>20</td>
+                  <td>50</td>
+                  <td>Unlimited</td>
+                </tr>
+                <tr>
+                  <td>Custom Sections</td>
+                  <td>✓</td>
+                  <td>✓</td>
+                  <td>✓</td>
+                </tr>
+                <tr>
+                  <td>AI Learning Assistant</td>
+                  <td>Limited</td>
+                  <td>✓</td>
+                  <td>✓</td>
+                </tr>
+                <tr>
+                  <td>Priority Support</td>
+                  <td>✗</td>
+                  <td>✓</td>
+                  <td>✓</td>
+                </tr>
+                <tr>
+                  <td>Advanced Analytics</td>
+                  <td>✗</td>
+                  <td>✗</td>
+                  <td>✓</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     );
   };
@@ -690,13 +694,13 @@ export default function DashboardPage() {
   return (
     <div className={styles.dashboardContainer}>
       <div className={styles.dashboardHeader}>
-        <h1>{t('dashboard.welcome')}</h1>
+        <h1 className="heading-xl">{t('dashboard.welcome')}</h1>
         <button onClick={handleLogout} className={styles.logoutButton}>
           {t('sidebar.logout')}
         </button>
       </div>
 
-      <div className={styles.userInfoCard}>
+      <div className={`${styles.userInfoCard} card`}>
         <div className={styles.userProfile}>
           {user.profile_picture ? (
             <img src={user.profile_picture} alt={user.username} className={styles.profilePicture} />
@@ -706,7 +710,7 @@ export default function DashboardPage() {
             </div>
           )}
           <div className={styles.userDetails}>
-            <h2>{user.full_name || user.username}</h2>
+            <h2 className="heading-lg">{user.full_name || user.username}</h2>
             <p className={styles.userEmail}>{user.email}</p>
             {user.oauth_provider && (
               <span className={styles.oauthBadge}>{user.oauth_provider}</span>
@@ -738,10 +742,10 @@ export default function DashboardPage() {
           <div className={styles.infoItem}>
             <span className={styles.infoLabel}>Subscription</span>
             <span className={styles.infoValue}>
-              {(subscriptionInfo?.subscription_type === 'free' || subscriptionInfo?.plan?.type === 'free') && 'Free Tier'}
+              {(subscriptionInfo?.subscription_type === 'free' || subscriptionInfo?.plan?.type === 'free') && 'Basic Tier'}
               {(subscriptionInfo?.subscription_type === 'standard' || subscriptionInfo?.plan?.type === 'standard') && 'Standard Tier'}
               {(subscriptionInfo?.subscription_type === 'premium' || subscriptionInfo?.plan?.type === 'premium') && 'Premium Tier'}
-              {(!subscriptionInfo?.subscription_type && !subscriptionInfo?.plan?.type) && 'Free Tier'}
+              {(!subscriptionInfo?.subscription_type && !subscriptionInfo?.plan?.type) && 'Basic Tier'}
             </span>
           </div>
         </div>
@@ -751,33 +755,27 @@ export default function DashboardPage() {
       {renderSubscriptionSection()}
 
       <div className={styles.dashboardContent}>
-        <div className={styles.dashboardCard}>
-          <h3>{t('dashboard.recent_activity')}</h3>
+        <div className={`${styles.dashboardCard} card`}>
+          <h3 className="heading-md">{t('dashboard.recent_activity')}</h3>
           <p className={styles.emptyState}>{t('dashboard.no_activity')}</p>
         </div>
 
-        <div className={styles.dashboardCard}>
-          <h3>{t('dashboard.your_courses')}</h3>
+        <div className={`${styles.dashboardCard} card`}>
+          <h3 className="heading-md">{t('dashboard.learning_resources')}</h3>
           <p className={styles.emptyState}>{t('dashboard.no_courses')}</p>
           <div className={styles.cardActions}>
             <button 
-              className={styles.actionButton}
+              className="button-primary"
               onClick={() => handleCreateNew('path')}
             >
               Create Learning Path
             </button>
-            <button 
-              className={styles.actionButton}
-              onClick={() => handleCreateNew('card')}
-            >
-              Create Flashcard
-            </button>
           </div>
         </div>
 
-        <div className={styles.dashboardCard}>
-          <h3>{t('dashboard.learning_progress')}</h3>
-          <p className={styles.emptyState}>{t('dashboard.no_progress')}</p>
+        <div className={`${styles.dashboardCard} card`}>
+          <h3 className="heading-md">{t('dashboard.learning_progress')}</h3>
+          <p className={styles.emptyState}>{t('dashboard.start_course')}</p>
         </div>
       </div>
     </div>

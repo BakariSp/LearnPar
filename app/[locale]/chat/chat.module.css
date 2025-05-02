@@ -8,6 +8,28 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Page transition animations */
+.fadeIn {
+  animation: fadeIn 0.3s ease-in-out;
+  opacity: 1;
+}
+
+.fadeOut {
+  animation: fadeOut 0.3s ease-in-out;
+  opacity: 0;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-10px); }
 }
 
 .title {
@@ -414,13 +436,13 @@
 /* --- Add/Update Styles for Two-Column Layout --- */
 .twoColumnLayout {
   display: flex;
-  gap: 2rem; /* Space between columns */
+  width: 100%;
+  max-width: 1200px; 
+  margin: 0 auto;
   padding: 2rem;
-  max-width: 1600px; /* Allow wider layout */
-  margin: 1rem auto; /* Adjust margin */
-  align-items: flex-start; /* Align columns to the top */
-  /* Ensure it takes up height */
-  min-height: calc(100vh - 80px); /* Example: Adjust based on header height */
+  gap: 2rem;
+  min-height: 90vh;
+  animation: fadeIn 0.3s ease-in-out;
 }
 
 /* Left Column Styles */

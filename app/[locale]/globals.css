@@ -6,6 +6,7 @@
 :root {
   /* --- New Palette --- */
   --primary-accent: #FFA336; /* Bright orange */
+  --primary-accent-dark: #D67D13; /* Darker orange for better contrast */
   --background: #FFFFFF;     /* White */
   --card-background: #FFFFFF; /* White */
   --heading-color: #4A5744;  /* Dark green-gray */
@@ -17,6 +18,7 @@
   /* --- Existing Variables (Update if necessary) --- */
   --foreground: #1f1f1f; /* Or use --heading-color? */
   --primary-color: var(--primary-accent); /* Use new accent */
+  --primary-color-dark: var(--primary-accent-dark); /* Darker primary for contrast */
   --primary-text-color: #FFFFFF; /* Added: Text color for primary background */
   --primary-color-light: #FFF2E5; /* Lighter shade of orange */
   --secondary-color: var(--text-secondary); /* Use new secondary gray */
@@ -40,6 +42,7 @@
   :root {
     /* --- Dark Mode Palette --- */
     --primary-accent: #FFB766; /* Lighter orange for dark mode (kept as accent) */
+    --primary-accent-dark: #CC7D26; /* Darker orange for dark mode */
     --background: #121212;     /* Very dark gray */
     --card-background: #1E1E1E; /* Slightly lighter dark gray */
     --heading-color: #E0E0E0;  /* Light gray for headings */
@@ -48,7 +51,8 @@
     --border-color: #333333;   /* Darker border */
     --background-color: #0a0a0a; /* Dark page background */
     --foreground: #ededed; /* Keep existing dark foreground or adjust */
-    --primary-color: #2563eb; /* Overridden: Use blue for primary actions in dark mode */
+    --primary-color: #4D84F3; /* Brighter blue for better contrast in dark mode */
+    --primary-color-dark: #2563eb; /* Darker blue for contrast in dark mode */
     --primary-text-color: #FFFFFF; /* Added: Text color for primary background in dark mode */
     --primary-color-light: #4D3219; /* Darker shade for light orange */
     --secondary-color: var(--text-secondary); /* Use dark secondary gray */
