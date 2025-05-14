@@ -2,6 +2,20 @@ import type { NextConfig } from 'next';
 import type { Rewrite } from 'next/dist/lib/load-custom-routes';
 
 const nextConfig: NextConfig = {
+  async headers() {
+    return [
+      {
+        // Apply these headers to all routes
+        source: '/:path*',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' *; img-src 'self' data: *;"
+          }
+        ],
+      },
+    ];
+  },
 
   async rewrites(): Promise<Rewrite[]> {
     // Use the environment variable directly for the destination

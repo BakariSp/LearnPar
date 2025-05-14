@@ -56,16 +56,28 @@ At Zero AI, we believe that the beginning of every journey is the most important
 
 4.  **Run the development server:**
     ```bash
+    # With local backend
+    npm run dev:local-api
+    
+    # OR with remote backend (for debugging frontend without local backend)
+    npm run dev:remote-api
+    
+    # OR default development mode
     npm run dev
-    # or
-    yarn dev
-    # or
-    pnpm dev
-    # or
-    bun dev
     ```
 
 5.  Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+### Local Development with Remote Backend
+
+We've added a special development mode that allows you to connect to the remote API while running the frontend locally:
+
+1. The `dev:remote-api` script will:
+   - Connect to the production/staging backend API
+   - Prevent redirects to the production frontend
+   - Allow you to debug your local frontend with real data
+
+2. See [local-development-with-remote-api.md](./local-development-with-remote-api.md) for detailed instructions.
 
 ### Backend Setup
 
@@ -100,3 +112,24 @@ The interaction between the frontend and backend is documented in the `/doc` dir
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out the [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details. Remember to configure the backend API URL environment variable for your Vercel deployment.
+
+## API Endpoints
+
+### Learning Path Endpoints
+
+The application uses different API endpoints depending on the context:
+
+1. **My Paths Page** - Uses `/api/users/me/learning-paths/{id}` 
+   - Returns basic structure with progress tracking
+   - Used for the path list and summary view
+
+2. **Learning Path Detail Page** - Uses `/api/users/me/learning-paths/{id}/full`
+   - Returns complete nested structure with all courses, sections, and cards
+   - Includes progress information for the user
+   - Used for detailed view with card content
+
+3. **Section Cards** - Uses `/api/users/me/sections/{id}` 
+   - Fetches detailed card information for a specific section
+   - Used when expanding a section to view its cards
+
+For more details on API endpoints, see the documentation in `doc/learning_path.md`.

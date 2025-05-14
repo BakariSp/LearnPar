@@ -43,6 +43,15 @@ const ALLOWED_NEW_USER_PATHS = [
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   
+  // Add Content Security Policy headers to all responses
+  const response = NextResponse.next();
+  
+  // Set Content Security Policy headers with unsafe-eval allowed
+  response.headers.set(
+    'Content-Security-Policy',
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' *; img-src 'self' data: *;"
+  );
+  
   // Logic to determine if a request is for a static asset
   const isStaticAsset = (path: string) => {
     // Check for file extensions (.svg, .png, .jpg, etc.)
@@ -83,17 +92,17 @@ export function middleware(request: NextRequest) {
   
   // Skip locale redirection for static assets
   if (isStaticAsset(pathname)) {
-    return;
+    return response;
   }
   
   // Skip i18n paths
   if (pathname.startsWith('/locales/')) {
-    return;
+    return response;
   }
   
   // Skip Next.js internal paths
   if (pathname.startsWith('/_next/') || pathname.startsWith('/api/')) {
-    return;
+    return response;
   }
   
   // Check if the pathname has any locale
@@ -101,7 +110,7 @@ export function middleware(request: NextRequest) {
     (locale) => pathname.startsWith(`/${locale}/`) || pathname === `/${locale}`
   );
 
-  if (pathnameHasLocale) return;
+  if (pathnameHasLocale) return response;
 
   // Redirect if there is no locale
   const locale = request.cookies.get('NEXT_LOCALE')?.value || fallbackLng;

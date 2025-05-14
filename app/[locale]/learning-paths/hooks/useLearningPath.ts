@@ -1,5 +1,24 @@
-import { useState, useEffect } from 'react';
-import { apiGetFullLearningPath, FullLearningPathResponse, CardResponse } from '@/services/api';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { 
+  apiGetFullLearningPath, 
+  apiGetUserLearningPath,
+  apiGetFullUserLearningPath,
+  FullLearningPathResponse, 
+  UserLearningPathResponse,
+  CardResponse,
+  CourseResponse,
+  SectionResponse,
+  apiUpdateCardCompletion,
+  apiUpdateCardCompletionInSection,
+  apiUpdateSectionProgress,
+  apiUpdateCourseProgress,
+  apiUpdateLearningPathProgress,
+  apiCheckAchievements,
+  apiGetSectionWithCards
+} from '@/services/api';
+
+// Added ViewMode type
+export type InternalViewMode = 'card' | 'sectionCompletion' | 'learningPathCompletion';
 
 export interface UseLearningPathProps {
   id: string | number;
@@ -7,14 +26,32 @@ export interface UseLearningPathProps {
 
 export interface UseLearningPathResult {
   learningPathData: FullLearningPathResponse | null;
-  expandedItems: Record<string, boolean>;
-  expandedSections: Record<string, boolean>;
-  selectedCard: CardResponse | null;
-  currentSectionId: number | null;
-  currentSectionCards: CardResponse[];
-  currentCardIndex: number;
   isLoading: boolean;
   error: string | null;
+  learningPathId: number | null;
+  taskId: string | null;
+  courseCards: Record<number, CardResponse[]>;
+  sectionCards: Record<number, CardResponse[]>;
+  allCardsById: Record<number, CardResponse>;
+  selectedCard: CardResponse | null;
+  currentCardIndex: number;
+  expandedItems: Record<string, boolean>;
+  expandedSections: Record<string, boolean>;
+  setSelectedCard: (card: CardResponse | null) => void;
+  setCurrentCardIndex: (index: number) => void;
+  setExpandedItems: (items: Record<string, boolean>) => void;
+  setExpandedSections: (sections: Record<string, boolean>) => void;
+  toggleCardCompletion: (cardId: string | number) => Promise<void>;
+  calculateSectionProgress: (sectionId: number) => number;
+  calculateCourseProgress: (courseId: number) => number;
+  calculateLearningPathProgress: () => number;
+  updateProgressData: () => void;
+  toggleCourseExpanded: (courseId: number) => void;
+  toggleSectionExpanded: (sectionId: number) => void;
+  nextCard: () => void;
+  prevCard: () => void;
+  currentSectionId: number | null;
+  currentSectionCards: CardResponse[];
   toggleCourseExpand: (courseId: number) => void;
   toggleSectionExpand: (sectionId: number) => void;
   handleCardSelect: (card: CardResponse, sectionId: number, sectionCards: CardResponse[]) => void;
@@ -22,10 +59,36 @@ export interface UseLearningPathResult {
   navigateToNextCard: () => void;
   hasPreviousCard: boolean;
   hasNextCard: boolean;
-  setExpandedItems: (items: Record<string, boolean>) => void;
-  setExpandedSections: (sections: Record<string, boolean>) => void;
+  fetchLearningPathData?: () => Promise<void>;
+  achievements: any[];
+  showAchievementNotification: boolean;
+  dismissAchievementNotification: () => void;
+  internalViewMode: InternalViewMode;
+  proceedToNextContent: () => void;
+  resetToCardView: () => void;
 }
 
+/**
+ * Custom hook for managing learning path functionality.
+ * 
+ * ## Overall Page Strategy:
+ * 
+ * 1. Initial Load:
+ *    - Fetch complete learning path data using apiGetFullUserLearningPath (includes all courses, sections, cards)
+ *    - Display full structure in navigation pane and selected card details
+ * 
+ * 2. Card Interactions:
+ *    - When user selects a card, update UI to show that card's details
+ *    - When user marks a card as complete, optimistically update UI first, then sync with server
+ * 
+ * 3. Progress Updates:
+ *    - Server calculates progress percentages for sections/courses/learning path
+ *    - After card completion toggle, fetch updated progress data from server
+ * 
+ * 4. API Structure Handling:
+ *    - API returns cards either directly or nested inside wrapper objects with additional metadata
+ *    - The hook handles both formats transparently for the UI components
+ */
 export function useLearningPath({ id }: UseLearningPathProps): UseLearningPathResult {
   const [learningPathData, setLearningPathData] = useState<FullLearningPathResponse | null>(null);
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
@@ -36,6 +99,13 @@ export function useLearningPath({ id }: UseLearningPathProps): UseLearningPathRe
   const [currentCardIndex, setCurrentCardIndex] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [allCards, setAllCards] = useState<CardResponse[]>([]);
+  const hasCalculatedProgress = useRef(false);
+  const [achievements, setAchievements] = useState<any[]>([]);
+  const [showAchievementNotification, setShowAchievementNotification] = useState(false);
+  const [internalViewMode, setInternalViewMode] = useState<InternalViewMode>('card');
+  const [pendingCardToggles, setPendingCardToggles] = useState<Set<number>>(new Set()); // Track cards being toggled
+  const [cardCompletionErrors, setCardCompletionErrors] = useState<Record<number, Error | null>>({}); // Track errors per card
 
   // Toggle the expanded state of a course
   const toggleCourseExpand = (courseId: number) => {
@@ -54,17 +124,52 @@ export function useLearningPath({ id }: UseLearningPathProps): UseLearningPathRe
   };
 
   // Select a card to display
-  const handleCardSelect = (card: CardResponse, sectionId: number, sectionCards: CardResponse[]) => {
-    setSelectedCard(card);
-    setCurrentSectionId(sectionId);
-    setCurrentSectionCards(sectionCards);
+  const handleCardSelect = useCallback((card: CardResponse, sectionId: number, sectionWrapperCardsFromProp: CardResponse[]) => {
+    // card can be an inner card (if clicked from main view) or a wrapper (if from nav)
+    // actualCard is the inner card.
+    const actualCard = card.card ? card.card : card;
     
-    // Find the index of the selected card in the section cards
-    const cardIndex = sectionCards.findIndex(c => c.id === card.id);
+    // Ensure sectionWrapperCards is an array, default to empty if undefined/null
+    const sectionWrapperCards = Array.isArray(sectionWrapperCardsFromProp) ? sectionWrapperCardsFromProp : [];
+
+    // Sort the wrapper cards from the section by order_index
+    const sortedSectionWrapperCards = [...sectionWrapperCards].sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+
+    // Process into inner cards, ensuring is_completed is from the wrapper
+    const processedInnerSectionCards = sortedSectionWrapperCards.map(wrapper => {
+      const innerC = wrapper.card ? wrapper.card : wrapper;
+      // If nested and wrapper has is_completed, apply it to the inner card
+      if (wrapper.card && wrapper.is_completed !== undefined) {
+        return { ...innerC, is_completed: wrapper.is_completed };
+      }
+      // For direct cards or nested where wrapper.is_completed is undefined,
+      // use inner card's own is_completed (which might have been optimistically set or from initial load)
+      return innerC;
+    });
+    
+    // Update state
+    // Ensure the actualCard passed to setSelectedCard also has its is_completed status aligned if it came from a wrapper
+    let finalSelectedCard = actualCard;
+    if (card.card && card.is_completed !== undefined) { // If original 'card' was a wrapper
+        finalSelectedCard = { ...actualCard, is_completed: card.is_completed };
+    } else if (!card.card && card.is_completed !== undefined) { // If original 'card' was an inner card but used as a wrapper in some contexts
+         finalSelectedCard = { ...actualCard, is_completed: card.is_completed};
+    }
+
+
+    setSelectedCard(finalSelectedCard);
+    setCurrentSectionId(sectionId);
+    setCurrentSectionCards(processedInnerSectionCards);
+    
+    const cardIndex = processedInnerSectionCards.findIndex(c => c.id === finalSelectedCard.id);
     if (cardIndex !== -1) {
       setCurrentCardIndex(cardIndex);
+    } else {
+      console.warn(`Selected card (id: ${finalSelectedCard.id}) not found in processed section cards. Resetting index.`);
+      setCurrentCardIndex(0); // Or select first card if list not empty
     }
-  };
+    setInternalViewMode('card'); // Ensure card view on selection
+  }, []);
 
   // Navigate to the previous card
   const navigateToPreviousCard = () => {
@@ -73,87 +178,737 @@ export function useLearningPath({ id }: UseLearningPathProps): UseLearningPathRe
     const previousCard = currentSectionCards[currentCardIndex - 1];
     setSelectedCard(previousCard);
     setCurrentCardIndex(currentCardIndex - 1);
+    setInternalViewMode('card'); // Ensure view mode is card
   };
 
   // Navigate to the next card
   const navigateToNextCard = () => {
-    if (!currentSectionCards || currentCardIndex >= currentSectionCards.length - 1) return;
-    
-    const nextCard = currentSectionCards[currentCardIndex + 1];
-    setSelectedCard(nextCard);
-    setCurrentCardIndex(currentCardIndex + 1);
+    if (!learningPathData || !currentSectionCards || currentSectionId === null) {
+      // console.warn("navigateToNextCard: Prerequisites not met", {learningPathData, currentSectionCards, currentSectionId});
+      return;
+    }
+
+    const isLastCardInSection = currentCardIndex >= currentSectionCards.length - 1;
+
+    if (isLastCardInSection) {
+      // Find current course and section indices
+      let currentCourseIndex = -1;
+      let currentSectionInCourseIndex = -1;
+      let currentCourseRef = null;
+
+      for (let i = 0; i < learningPathData.courses.length; i++) {
+        const course = learningPathData.courses[i];
+        const sectionIdx = course.sections.findIndex(s => s.id === currentSectionId);
+        if (sectionIdx !== -1) {
+          currentCourseIndex = i;
+          currentSectionInCourseIndex = sectionIdx;
+          currentCourseRef = course;
+          break;
+        }
+      }
+
+      if (currentCourseRef && currentSectionInCourseIndex !== -1) {
+        const isLastSectionInCourse = currentSectionInCourseIndex === currentCourseRef.sections.length - 1;
+        if (isLastSectionInCourse) {
+          const isLastCourseInPath = currentCourseIndex === learningPathData.courses.length - 1;
+          if (isLastCourseInPath) {
+            setInternalViewMode('learningPathCompletion');
+          } else {
+            // Last card of a section that is the last in its course, but not the last course in the path
+            setInternalViewMode('sectionCompletion'); 
+          }
+        } else {
+          // Last card of a section, but not the last section in the course
+          setInternalViewMode('sectionCompletion');
+        }
+      } else {
+        // Should not happen if currentSectionId is valid
+        console.error("Could not determine current course/section position for navigation.");
+        // Fallback to learning path completion as a safe state if structure is unclear
+        setInternalViewMode('learningPathCompletion');
+      }
+    } else {
+      // Navigate to the next card in the current section
+      const nextCard = currentSectionCards[currentCardIndex + 1];
+      setSelectedCard(nextCard);
+      setCurrentCardIndex(currentCardIndex + 1);
+      setInternalViewMode('card'); // Ensure view mode is card
+    }
   };
+
+  // Update progress data from the backend
+  const updateProgressData = useCallback(async (): Promise<void> => {
+    if (!learningPathData) return;
+    
+    try {
+      const pathId = typeof id === 'string' ? parseInt(id, 10) : id;
+      if (isNaN(pathId)) {
+        throw new Error("Invalid Learning Path ID.");
+      }
+
+      console.log(`Fetching updated progress data for path ${pathId}...`);
+      
+      let userData;
+      try {
+        userData = await apiGetUserLearningPath(pathId);
+      } catch (apiError) {
+        console.error(`API error while fetching progress data:`, apiError);
+        return;
+      }
+      
+      if (!userData) {
+        console.error("Failed to get updated progress data: No data returned");
+        return;
+      }
+      
+      console.log(`Successfully fetched progress data for path ${pathId}`);
+      
+      if (learningPathData) {
+        try {
+          setLearningPathData(prevLpData => {
+            if (!prevLpData) return null;
+            // Create a deep copy to modify, ensuring we don't mutate the previous state directly.
+            const updatedData = JSON.parse(JSON.stringify(prevLpData));
+
+            updatedData.progress = userData.progress;
+            console.log(`Updated learning path progress: ${userData.progress}%`);
+            
+            for (const course of updatedData.courses) {
+              const updatedCourseFromServer = userData.learning_path.courses.find(c => c.id === course.id);
+              if (updatedCourseFromServer) {
+                course.progress = updatedCourseFromServer.progress;
+                
+                for (const section of course.sections) { 
+                  const updatedSectionFromServer = updatedCourseFromServer.sections.find(s => s.id === section.id);
+                  if (updatedSectionFromServer) {
+                    section.progress = updatedSectionFromServer.progress;
+                    
+                    if (updatedSectionFromServer.cards && updatedSectionFromServer.cards.length > 0) {
+                      const serverCardCompletionMap = new Map(
+                        updatedSectionFromServer.cards.map(cardFromServer => [cardFromServer.id, cardFromServer.is_completed])
+                      );
+                      
+                      for (const cardItemWrapper of section.cards) {
+                        const innerCardId = cardItemWrapper.card ? cardItemWrapper.card.id : cardItemWrapper.id;
+                        
+                        // **** CRITICAL CHANGE HERE ****
+                        // Only update from server if card is NOT in pendingCardToggles
+                        if (!pendingCardToggles.has(innerCardId) && serverCardCompletionMap.has(innerCardId)) {
+                          const freshIsCompleted = serverCardCompletionMap.get(innerCardId);
+                          cardItemWrapper.is_completed = freshIsCompleted;
+                          if (cardItemWrapper.card) {
+                            cardItemWrapper.card.is_completed = freshIsCompleted;
+                          }
+                        } else if (pendingCardToggles.has(innerCardId)) {
+                          console.log(`DEBUG - updateProgressData: Skipping update for pending card ${innerCardId}. Will retain optimistic state.`);
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            return updatedData;
+          });
+        } catch (structureError) {
+          console.error("Error processing progress data structure:", structureError);
+        }
+      }
+    } catch (error) {
+      console.error("Error updating progress data wrapper:", error);
+    }
+  }, [id, learningPathData, pendingCardToggles]); // Added pendingCardToggles dependency
+
+  // New function to proceed from completion view to next content
+  const proceedToNextContent = useCallback(() => {
+    if (!learningPathData || currentSectionId === null) {
+      console.warn("proceedToNextContent: Prerequisites not met");
+      return;
+    }
+
+    let currentCourseIdx = -1;
+    let currentSectionIdxInCourse = -1;
+
+    // Find current course and section indices
+    for (let i = 0; i < learningPathData.courses.length; i++) {
+      const course = learningPathData.courses[i];
+      const sectionIdx = course.sections.findIndex(s => s.id === currentSectionId);
+      if (sectionIdx !== -1) {
+        currentCourseIdx = i;
+        currentSectionIdxInCourse = sectionIdx;
+        break;
+      }
+    }
+
+    if (currentCourseIdx === -1 || currentSectionIdxInCourse === -1) {
+      console.error("proceedToNextContent: Could not find current course or section for proceeding.");
+      setInternalViewMode('learningPathCompletion'); // Fallback
+      return;
+    }
+
+    const currentCourse = learningPathData.courses[currentCourseIdx];
+
+    // Try to find the next section in the current course
+    if (currentSectionIdxInCourse < currentCourse.sections.length - 1) {
+      const nextSection = currentCourse.sections[currentSectionIdxInCourse + 1];
+      if (nextSection && nextSection.cards && nextSection.cards.length > 0) {
+        // section.cards are already sorted wrappers from fetchLearningPathData
+        const firstCardOfNextSection = nextSection.cards[0]; // This is a wrapper
+        handleCardSelect(firstCardOfNextSection, nextSection.id, nextSection.cards);
+        setInternalViewMode('card');
+        setExpandedItems(prev => ({ ...prev, [currentCourse.id]: true }));
+        setExpandedSections(prev => ({ ...prev, [nextSection.id]: true }));
+        updateProgressData(); // Call after successful navigation
+        return;
+      }
+    }
+
+    // If no next section in current course, or next section is empty, try next course
+    for (let i = currentCourseIdx + 1; i < learningPathData.courses.length; i++) {
+      const nextCourse = learningPathData.courses[i];
+      if (nextCourse.sections && nextCourse.sections.length > 0) {
+        for (const section of nextCourse.sections) { // Iterate to find first non-empty section
+          if (section.cards && section.cards.length > 0) {
+            // section.cards are already sorted wrappers
+            const firstCardOfNextCourseSection = section.cards[0]; // Wrapper
+            handleCardSelect(firstCardOfNextCourseSection, section.id, section.cards);
+            setInternalViewMode('card');
+            setExpandedItems(prev => ({ ...prev, [nextCourse.id]: true }));
+            setExpandedSections(prev => ({ ...prev, [section.id]: true }));
+            updateProgressData(); // Call after successful navigation
+            return;
+          }
+        }
+      }
+    }
+    
+    // If no next section or course with cards is found, it's the end of the learning path
+    // Still call updateProgressData to ensure the final path completion status is recorded/fetched.
+    updateProgressData();
+    setInternalViewMode('learningPathCompletion');
+
+  }, [learningPathData, currentSectionId, handleCardSelect, setExpandedItems, setExpandedSections, updateProgressData]);
+
+  // Calculate section progress based on completed cards
+  const calculateSectionProgress = useCallback((sectionId: number): number => {
+    if (!learningPathData) return 0;
+
+    // Find the section in the learning path data
+    let foundSection = null;
+    
+    // Search through courses and sections to find the section
+    for (const course of learningPathData.courses) {
+      foundSection = course.sections.find(s => s.id === sectionId);
+      if (foundSection) break;
+    }
+
+    if (!foundSection || !foundSection.cards || foundSection.cards.length === 0) return 0;
+
+    // If the section already has a progress value, use it
+    if (typeof foundSection.progress === 'number' && !isNaN(foundSection.progress)) {
+      return foundSection.progress;
+    }
+
+    // Otherwise calculate the percentage of completed cards
+    const totalCards = foundSection.cards.length;
+    const completedCards = foundSection.cards.filter(cardItem => {
+      // Handle both nested and direct structure
+      if (cardItem.card) {
+        return cardItem.is_completed || cardItem.card.is_completed;
+      }
+      return cardItem.is_completed;
+    }).length;
+    
+    return Math.round((completedCards / totalCards) * 100);
+  }, [learningPathData]);
+
+  // Calculate course progress based on section progress
+  const calculateCourseProgress = useCallback((courseId: number): number => {
+    if (!learningPathData) return 0;
+
+    // Find the course in the learning path data
+    const course = learningPathData.courses.find(c => c.id === courseId);
+    if (!course || !course.sections || course.sections.length === 0) return 0;
+
+    // If the course already has a progress value, use it
+    if (typeof course.progress === 'number' && !isNaN(course.progress)) {
+      return course.progress;
+    }
+
+    // Calculate the average progress of all sections
+    const sectionProgressValues = course.sections.map(section => 
+      section.progress !== undefined ? section.progress : calculateSectionProgress(section.id)
+    );
+    
+    if (sectionProgressValues.length === 0) return 0;
+    
+    const totalProgress = sectionProgressValues.reduce((sum, progress) => sum + progress, 0);
+    return Math.round(totalProgress / sectionProgressValues.length);
+  }, [learningPathData, calculateSectionProgress]);
+
+  // Calculate learning path progress based on course progress
+  const calculateLearningPathProgress = useCallback((): number => {
+    if (!learningPathData || !learningPathData.courses || learningPathData.courses.length === 0) return 0;
+
+    // If the learning path already has a progress value, use it
+    if (typeof learningPathData.progress === 'number' && !isNaN(learningPathData.progress)) {
+      return learningPathData.progress;
+    }
+
+    // Calculate the average progress of all courses
+    const courseProgressValues = learningPathData.courses.map(course => 
+      course.progress !== undefined ? course.progress : calculateCourseProgress(course.id)
+    );
+    
+    if (courseProgressValues.length === 0) return 0;
+    
+    const totalProgress = courseProgressValues.reduce((sum, progress) => sum + progress, 0);
+    return Math.round(totalProgress / courseProgressValues.length);
+  }, [learningPathData, calculateCourseProgress]);
+
+  // Check for achievements after card completion
+  const checkForAchievements = async () => {
+    try {
+      const newAchievements = await apiCheckAchievements();
+      if (newAchievements && newAchievements.length > 0) {
+        setAchievements(newAchievements);
+        setShowAchievementNotification(true);
+      }
+    } catch (error) {
+      console.error("Error checking for achievements:", error);
+    }
+  };
+
+  // Fetch the learning path data from the API
+  const fetchLearningPathData = useCallback(async (): Promise<void> => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const pathId = typeof id === 'string' ? parseInt(id, 10) : id;
+      if (isNaN(pathId)) {
+        throw new Error("Invalid Learning Path ID.");
+      }
+      
+      console.log(`Fetching learning path data for path ${pathId}...`);
+      
+      // Attempt to get user learning path first (with progress data)
+      let data = null;
+      
+      try {
+        data = await apiGetFullUserLearningPath(pathId);
+        console.log(`Successfully fetched user learning path data: ${data ? 'Data received' : 'No data'}`);
+      } catch (userPathError) {
+        console.error(`Error fetching user learning path:`, userPathError);
+        // Continue to try the regular endpoint
+      }
+      
+      // If that fails, try the regular learning path endpoint (no progress data)
+      if (!data) {
+        try {
+          console.log(`Attempting to fetch regular learning path data...`);
+          data = await apiGetFullLearningPath(pathId);
+          console.log(`Successfully fetched regular learning path data: ${data ? 'Data received' : 'No data'}`);
+        } catch (error) {
+          console.error(`Error fetching regular learning path:`, error);
+          throw new Error(`Failed to load learning path data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      }
+      
+      if (data) {
+        // Log high-level structure for debugging
+        console.log(`Learning path structure:`, {
+          id: data.id,
+          title: data.title,
+          courseCount: data.courses?.length || 0,
+          progress: data.progress
+        });
+        
+        // Process courses and sections to ensure cards are sorted and completion status is correct from wrappers
+        const processedCourses = (data.courses || []).map(course => ({
+          ...course,
+          sections: (course.sections || []).map(section => {
+            // Sort wrapper cards by order_index
+            const sortedWrapperCards = [...(section.cards || [])].sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+            
+            // Ensure inner cards reflect wrapper's completion status
+            const cardsWithCorrectedCompletion = sortedWrapperCards.map(wrapper => {
+              if (wrapper.card && wrapper.is_completed !== undefined) {
+                // If there's an inner card and the wrapper has an 'is_completed' status,
+                // update the inner card's 'is_completed' status.
+                return {
+                  ...wrapper,
+                  card: { ...wrapper.card, is_completed: wrapper.is_completed }
+                };
+              }
+              // If there's no inner card, or wrapper.is_completed is undefined,
+              // return the wrapper as is. The UI might then use wrapper.is_completed directly.
+              return wrapper;
+            });
+
+            return {
+              ...section,
+              // Store sorted WRAPPER cards, where inner cards now have corrected completion status
+              cards: cardsWithCorrectedCompletion 
+            };
+          })
+        }));
+
+        const processedData = { ...data, courses: processedCourses };
+        setLearningPathData(processedData);
+        
+        // Extract all cards for easier access (mainly for allCards state, not direct UI rendering)
+        // This can still be flat, but individual sections in learningPathData now have sorted wrapper cards
+        const extractedCards = processedData.courses.flatMap(course => 
+          course.sections.flatMap(section => section.cards) // these are sorted wrapper cards
+        );
+        setAllCards(extractedCards);
+        
+        // Set initial selection: first card of first section of first course
+        if (processedData.courses.length > 0 && 
+            processedData.courses[0].sections.length > 0 && 
+            processedData.courses[0].sections[0].cards.length > 0) {
+          
+          const firstCourse = processedData.courses[0];
+          const firstSection = firstCourse.sections[0]; // This is the section object, contains section.id (user_section_id)
+          // firstSection.cards are sorted WRAPPER cards
+          const firstSectionWrapperCards = firstSection.cards;
+
+          // The card to select is the first WRAPPER card from the sorted list
+          const firstWrapperCardToSelect = firstSectionWrapperCards[0];
+          
+          // Call handleCardSelect with the wrapper card, the user_section_id (firstSection.id), 
+          // and the full list of sorted wrapper cards for that section
+          handleCardSelect(firstWrapperCardToSelect, firstSection.id, firstSectionWrapperCards);
+
+          // Expand the first course and first section by default
+          setExpandedItems(prev => ({ ...prev, [firstCourse.id]: true }));
+          setExpandedSections(prev => ({ ...prev, [firstSection.id]: true }));
+        } else {
+          // No cards to select initially
+          setSelectedCard(null);
+          setCurrentSectionId(null);
+          setCurrentSectionCards([]);
+          setCurrentCardIndex(0);
+        }
+
+      } else {
+        setError("Failed to load learning path data: No data returned from API.");
+      }
+    } catch (error: any) {
+      console.error("Error fetching learning path:", error);
+      setError(error.message || "An error occurred while loading the learning path.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [id]); // Only depend on id
+
+  // Toggle card completion status
+  const toggleCardCompletion = useCallback(async (cardId: string | number): Promise<void> => {
+    const numericCardId = typeof cardId === 'string' ? parseInt(cardId, 10) : cardId;
+    const capturedCurrentSectionId = currentSectionId; // Capture currentSectionId at the moment of call
+    const capturedLearningPathData = learningPathData; // Capture learningPathData
+    const capturedCurrentSectionCards = currentSectionCards; // Capture current section cards
+    const capturedSelectedCard = selectedCard; // Capture selected card
+
+    if (capturedCurrentSectionId === null || isNaN(numericCardId) || !capturedLearningPathData) {
+      console.error("toggleCardCompletion: Missing critical data (sectionId, cardId, or learningPathData).");
+      return;
+    }
+    
+    if (pendingCardToggles.has(numericCardId)) {
+        console.warn(`toggleCardCompletion: Card ${numericCardId} is already being processed.`);
+        return;
+    }
+
+    setPendingCardToggles(prev => new Set(prev).add(numericCardId));
+    // Clear any previous error for this card
+    setCardCompletionErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[numericCardId];
+        return newErrors;
+    });
+
+    let originalCompletionStatus: boolean | undefined;
+    let targetCardIdentifier = `card ${numericCardId} in section ${capturedCurrentSectionId}`;
+
+    // Find from captured states
+    const cardInCurrentSecList = capturedCurrentSectionCards.find(c => (c.card?.id || c.id) === numericCardId);
+    const cardInSelected = capturedSelectedCard?.id === numericCardId ? capturedSelectedCard : null;
+
+    if (cardInCurrentSecList) {
+        originalCompletionStatus = cardInCurrentSecList.is_completed ?? cardInCurrentSecList.card?.is_completed;
+        targetCardIdentifier = `wrapper/card ${numericCardId} in capturedCurrentSectionCards`;
+    } else if (cardInSelected) {
+        originalCompletionStatus = cardInSelected.is_completed;
+        targetCardIdentifier = `selectedCard ${numericCardId}`;
+    } else {
+        for (const course of capturedLearningPathData.courses) {
+            for (const section of course.sections) {
+                if (section.id === capturedCurrentSectionId) {
+                    const wrapper = section.cards.find(w => (w.card?.id || w.id) === numericCardId);
+                    if (wrapper) {
+                        originalCompletionStatus = wrapper.is_completed ?? wrapper.card?.is_completed;
+                        targetCardIdentifier = `wrapper/card ${numericCardId} found deep in capturedLearningPathData section ${capturedCurrentSectionId}`;
+                        break;
+                    }
+                }
+            }
+            if (originalCompletionStatus !== undefined) break;
+        }
+    }
+
+    if (typeof originalCompletionStatus === 'undefined') {
+      console.error(`toggleCardCompletion: Could not find ${targetCardIdentifier} to determine original status. Aborting.`);
+      setPendingCardToggles(prev => { 
+        const newSet = new Set(prev);
+        newSet.delete(numericCardId);
+        return newSet;
+      });
+      return;
+    }
+
+    const newCompletionStatus = !originalCompletionStatus;
+    console.log(`DEBUG - Optimistic Update START for ${targetCardIdentifier} from ${originalCompletionStatus} to ${newCompletionStatus}`);
+
+    // OPTIMISTIC UI UPDATES (sync, happens before API call returns)
+    const applyOptimisticUpdate = (status: boolean) => {
+        const updateCardState = (card: CardResponse | null, newStatus: boolean): CardResponse | null => {
+            if (!card) return null;
+            const updatedCard = { ...card, is_completed: newStatus, isToggling: status === newCompletionStatus }; // isToggling true only during actual pending toggle
+            if (updatedCard.card) {
+                updatedCard.card = { ...updatedCard.card, is_completed: newStatus, isToggling: status === newCompletionStatus };
+            }
+            return updatedCard;
+        };
+
+        if (selectedCard?.id === numericCardId) {
+            setSelectedCard(prev => updateCardState(prev, status));
+        }
+        setCurrentSectionCards(prevCards =>
+            prevCards.map(c => {
+                const cardToCheckId = c.card?.id || c.id;
+                return cardToCheckId === numericCardId ? updateCardState(c, status)! : c;
+            })
+        );
+        setLearningPathData(prevLpData => {
+            if (!prevLpData) return null;
+            const newLpData = JSON.parse(JSON.stringify(prevLpData));
+            let cardUpdatedInLp = false;
+            for (const course of newLpData.courses) {
+                for (const section of course.sections) {
+                    // Iterate through all sections for global update, not just capturedCurrentSectionId
+                    for (const cardWrapper of section.cards) {
+                        const innerCard = cardWrapper.card || cardWrapper;
+                        if (innerCard.id === numericCardId) {
+                            cardWrapper.is_completed = status;
+                            cardWrapper.isToggling = status === newCompletionStatus; // isToggling if current op makes it pending
+                            if (cardWrapper.card) { 
+                                cardWrapper.card.is_completed = status;
+                                cardWrapper.card.isToggling = status === newCompletionStatus;
+                            }
+                            cardUpdatedInLp = true;
+                            break; 
+                        }
+                    }
+                    // If card was updated in this section, we can break from iterating further sections of this course
+                    if (cardUpdatedInLp && section.cards.some((cw: CardResponse) => (cw.card?.id || cw.id) === numericCardId)) break; 
+                }
+                // If card was updated in any section of this course, we can break from iterating further courses
+                if (cardUpdatedInLp && course.sections.some((s: SectionResponse) => s.cards.some((cw: CardResponse) => (cw.card?.id || cw.id) === numericCardId))) break; 
+            }
+            return cardUpdatedInLp ? newLpData : prevLpData; 
+        });
+    };
+
+    applyOptimisticUpdate(newCompletionStatus); // Apply optimistic "completed" or "incomplete"
+
+    // API Call (Fire and forget style for parallel execution)
+    // Find the template_section_id from the original data capture, not live state
+    const originalSectionForApi = capturedLearningPathData.courses
+        .flatMap((c: CourseResponse) => c.sections)
+        .find((s: SectionResponse) => s.id === capturedCurrentSectionId);
+
+    let templateSectionIdToUseForApi = capturedCurrentSectionId; // Fallback
+    if (originalSectionForApi && typeof originalSectionForApi.section_template_id === 'number') {
+        templateSectionIdToUseForApi = originalSectionForApi.section_template_id;
+    } else {
+        console.warn("ToggleCardCompletion API: Failed to find template_section_id from captured data. Using capturedCurrentSectionId as fallback.");
+    }
+
+    apiUpdateCardCompletionInSection(
+        capturedLearningPathData.id,       
+        templateSectionIdToUseForApi,    
+        numericCardId,             
+        newCompletionStatus
+    ).then(response => {
+        if (!response || !response.ok) {
+            let errorDetail = 'Unknown server error during toggle';
+            if (response) {
+                 return response.json().then(errData => {
+                    errorDetail = errData.detail || JSON.stringify(errData);
+                    throw new Error(`Server error: ${response.status} - ${errorDetail}`);
+                 }).catch(() => {
+                    throw new Error(`Server error: ${response.status} - ${response.statusText || 'Failed to parse error response'}`);
+                 });
+            } else {
+                throw new Error(errorDetail + ' (no response)');
+            }
+        }
+        // SUCCESS
+        console.log(`DEBUG - API Success for card ${numericCardId}.`);
+        setPendingCardToggles(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(numericCardId);
+            return newSet;
+        });
+        // Clear isToggling on success explicitly in learningPathData
+        setLearningPathData(prevLpData => {
+            if (!prevLpData) return null;
+            const newLpData = JSON.parse(JSON.stringify(prevLpData));
+            let modified = false;
+            for (const course of newLpData.courses) {
+                for (const section of course.sections) {
+                    for (const cardWrapper of section.cards) {
+                        const innerCard = cardWrapper.card || cardWrapper;
+                        if (innerCard.id === numericCardId) {
+                            if (cardWrapper.isToggling || (innerCard.card && innerCard.card.isToggling)) {
+                                cardWrapper.isToggling = false;
+                                if (cardWrapper.card) cardWrapper.card.isToggling = false;
+                                modified = true;
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+            return modified ? newLpData : prevLpData;
+        });
+
+        updateProgressData(); // Fetch updated progress
+        if (newCompletionStatus) {
+            checkForAchievements();
+        }
+    }).catch(error => {
+        // FAILURE
+        console.error(`DEBUG - API Failure for card ${numericCardId}. Reverting. Error:`, error);
+        setCardCompletionErrors(prev => ({ ...prev, [numericCardId]: error as Error }));
+        
+        // Rollback this specific card to originalCompletionStatus
+        applyOptimisticUpdate(originalCompletionStatus!);
+        
+        setPendingCardToggles(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(numericCardId);
+            return newSet;
+        });
+        // Ensure isToggling is also cleared on rollback from learningPathData
+         setLearningPathData(prevLpData => {
+            if (!prevLpData) return null;
+            const newLpData = JSON.parse(JSON.stringify(prevLpData));
+            let modified = false;
+            for (const course of newLpData.courses) {
+                for (const section of course.sections) {
+                    for (const cardWrapper of section.cards) {
+                        const innerCard = cardWrapper.card || cardWrapper;
+                        if (innerCard.id === numericCardId) {
+                            if (cardWrapper.isToggling || (innerCard.card && innerCard.card.isToggling)) {
+                                cardWrapper.isToggling = false;
+                                if (cardWrapper.card) cardWrapper.card.isToggling = false;
+                                modified = true;
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+            return modified ? newLpData : prevLpData;
+        });
+        // Optionally call updateProgressData on failure too if rollback affects percentages
+        // updateProgressData(); 
+    });
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentSectionId, selectedCard, currentSectionCards, learningPathData, updateProgressData, fetchLearningPathData, checkForAchievements, pendingCardToggles]); 
+
+  // Dismiss achievement notification
+  const dismissAchievementNotification = useCallback(() => {
+    setShowAchievementNotification(false);
+  }, []);
+
+  // Use effect to fetch updated progress data when learning path is loaded
+  // useEffect(() => {
+  //   if (learningPathData && !hasCalculatedProgress.current && allCards.length > 0) {
+  //     hasCalculatedProgress.current = true;
+  //     // No need to calculate progress locally, just fetch the latest from backend
+  //     setTimeout(() => {
+  //       updateProgressData();
+  //     }, 1000);
+  //   }
+  // }, [learningPathData, allCards, updateProgressData]);
 
   // Fetch the learning path data
   useEffect(() => {
-    const fetchLearningPath = async () => {
-      if (!id) return;
-
-      try {
-        setIsLoading(true);
-        const pathId = typeof id === 'string' ? parseInt(id, 10) : id;
-        if (isNaN(pathId)) {
-          throw new Error("Invalid Learning Path ID.");
-        }
-
-        const pathData = await apiGetFullLearningPath(pathId);
-        
-        if (pathData) {
-          setLearningPathData(pathData);
-          setError(null);
-
-          // Expand first course and section by default
-          const initialCourseState: Record<string, boolean> = {};
-          const initialSectionState: Record<string, boolean> = {};
-          
-          if (pathData.courses && pathData.courses.length > 0) {
-            const firstCourse = pathData.courses[0];
-            initialCourseState[firstCourse.id] = true;
-            
-            if (firstCourse.sections && firstCourse.sections.length > 0) {
-              const firstSection = firstCourse.sections[0];
-              initialSectionState[firstSection.id] = true;
-              
-              // Select the first card of the first section
-              if (firstSection.cards && firstSection.cards.length > 0) {
-                setSelectedCard(firstSection.cards[0]);
-                setCurrentSectionId(firstSection.id);
-                setCurrentSectionCards(firstSection.cards);
-                setCurrentCardIndex(0);
-              }
-            }
-          }
-          
-          setExpandedItems(initialCourseState);
-          setExpandedSections(initialSectionState);
-        } else {
-          setError('Failed to load learning path. Please try again later.');
-        }
-      } catch (err: any) {
-        console.error('Error fetching learning path:', err);
-        setError(err.message || 'Error loading learning path');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchLearningPath();
-  }, [id]);
+    // Only fetch data on initial mount or if id changes
+    fetchLearningPathData();
+    
+    // Note: fetchLearningPathData is memoized with useCallback and only depends on 'id',
+    // so this effect will only run when 'id' changes, preventing infinite loops
+  }, [id]); // Only depend on id to prevent circular dependencies
 
   // Determine if there are previous/next cards
   const hasPreviousCard = currentCardIndex > 0;
-  const hasNextCard = currentSectionCards && currentCardIndex < currentSectionCards.length - 1;
+  // const hasNextCard = currentSectionCards && currentCardIndex < currentSectionCards.length - 1; // Old logic
+  // New logic: The "Next" button in LearningPathLayout should be enabled if navigateToNextCard can perform an action.
+  // This is true if we have learning path data, cards for the current section, and a current section ID.
+  const hasNextCard = !!(learningPathData && currentSectionCards && currentSectionCards.length > 0 && currentSectionId !== null);
 
+  // New function to reset view to card (e.g., from a completion message)
+  const resetToCardView = useCallback(() => {
+    // Ensure there's a selected card to return to, or select the first card if none.
+    // This logic might need refinement based on desired behavior if selectedCard is null.
+    if (!selectedCard && learningPathData && learningPathData.courses.length > 0 && learningPathData.courses[0].sections.length > 0 && learningPathData.courses[0].sections[0].cards.length > 0) {
+      // If no card is selected, try to select the first card of the first section
+      const firstCourse = learningPathData.courses[0];
+      const firstSection = firstCourse.sections[0];
+      const firstWrapperCard = firstSection.cards[0];
+      if (firstWrapperCard) {
+         // section.cards are already sorted wrappers from fetchLearningPathData
+        handleCardSelect(firstWrapperCard, firstSection.id, firstSection.cards);
+      }
+    } // else if selectedCard is already set, we just switch the view.
+    setInternalViewMode('card');
+  }, [selectedCard, learningPathData, handleCardSelect]);
+
+  // Return all the data and functions needed by components
   return {
     learningPathData,
-    expandedItems,
-    expandedSections,
-    selectedCard,
-    currentSectionId,
-    currentSectionCards,
-    currentCardIndex,
     isLoading,
     error,
+    learningPathId: learningPathData?.id || null,
+    taskId: null, // Learning paths don't have task IDs in this context
+    courseCards: {}, // Placeholder for now
+    sectionCards: {}, // Placeholder for now
+    allCardsById: {}, // Placeholder for now
+    selectedCard,
+    currentCardIndex,
+    expandedItems,
+    expandedSections,
+    setSelectedCard,
+    setCurrentCardIndex,
+    setExpandedItems,
+    setExpandedSections,
+    toggleCardCompletion,
+    calculateSectionProgress,
+    calculateCourseProgress,
+    calculateLearningPathProgress,
+    updateProgressData,
+    toggleCourseExpanded: toggleCourseExpand,
+    toggleSectionExpanded: toggleSectionExpand,
+    nextCard: navigateToNextCard,
+    prevCard: navigateToPreviousCard,
+    currentSectionId,
+    currentSectionCards,
     toggleCourseExpand,
     toggleSectionExpand,
     handleCardSelect,
@@ -161,7 +916,12 @@ export function useLearningPath({ id }: UseLearningPathProps): UseLearningPathRe
     navigateToNextCard,
     hasPreviousCard,
     hasNextCard,
-    setExpandedItems,
-    setExpandedSections,
+    fetchLearningPathData,
+    achievements,
+    showAchievementNotification,
+    dismissAchievementNotification,
+    internalViewMode,
+    proceedToNextContent,
+    resetToCardView,
   };
-} 
+}

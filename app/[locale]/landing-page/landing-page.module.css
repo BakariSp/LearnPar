@@ -12,6 +12,42 @@
   --shadow-hover: 0 8px 15px rgba(0, 0, 0, 0.1);
 }
 
+/* Keyframe Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Utility class for elements to be animated on scroll */
+.animateOnScroll {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out; /* Smooth transition */
+}
+
+/* Class to trigger the animation */
+.isVisible {
+  opacity: 1;
+  transform: translateY(0);
+  /* We can re-add a keyframe animation here if we want a more complex sequence than just transition */
+  /* For example: animation: fadeInUp 0.6s ease-out forwards; */
+}
+
 /* Layout and Container */
 .pageContainer {
   min-height: 100vh;
@@ -78,7 +114,7 @@
 
 /* Hero Section */
 .heroSection {
-  padding: 80px 0 40px;
+  padding: 64px 0 40px;
   text-align: center;
   position: relative;
 }
@@ -86,6 +122,7 @@
 .heroContent {
   max-width: 800px;
   margin: 0 auto 40px;
+  /* animation: fadeInUp 0.8s ease-out forwards; */ /* Will be handled by JS if needed, or keep for initial load */
 }
 
 .subTitle {
@@ -96,7 +133,7 @@
 }
 
 .mainHeading {
-  font-size: 40px;
+  font-size: 48px;
   line-height: 1.2;
   font-weight: 700;
   color: #111111;
@@ -105,13 +142,17 @@
 
 .accentText {
   color: #F5A623;
+  font-style: italic;
+
 }
 
 .heroButtons {
   display: flex;
   gap: 16px;
   justify-content: center;
-  margin-bottom: 48px;
+  margin-bottom: 64px;
+  /* animation: fadeInUp 0.8s ease-out 0.2s forwards; */ /* Will be handled by JS */
+  /* opacity: 0; */ /* Will be handled by .animateOnScroll */
 }
 
 .primaryButton {
@@ -148,8 +189,8 @@
 }
 
 .heroImageContainer {
-  max-width: 800px;
-  margin: 0 auto 32px;
+  max-width: 960px;
+  margin: 0 auto 24px;
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -185,6 +226,8 @@
 /* Features Section */
 .featuresSection {
   padding: 80px 0;
+  /* animation: fadeInUp 0.8s ease-out forwards; */ /* To be replaced by scroll animation */
+  /* opacity: 0; */ /* Initial state handled by .animateOnScroll */
 }
 
 .sectionHeader {
@@ -228,11 +271,13 @@
   border: 1px solid #EEEEEE;
   border-radius: 12px;
   padding: 24px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.3s ease, box-shadow 0.3s ease; /* Keep existing hover transition */
+  /* animation: fadeInUp 0.5s ease-out forwards; */ /* To be replaced by scroll animation */
+  /* opacity: 0; */ /* Initial state handled by .animateOnScroll */
 }
 
 .featureCard:hover {
-  transform: translateY(-5px);
+  transform: translateY(-5px) scale(1.03);
   box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
 }
 
@@ -272,7 +317,8 @@
 /* Use Cases Section */
 .useCasesSection {
   padding: 80px 0;
-  background-color: #F9F9F9;
+  /* animation: fadeInUp 0.8s ease-out forwards; */ /* To be replaced by scroll animation */
+  /* opacity: 0; */ /* Initial state handled by .animateOnScroll */
 }
 
 .useCaseGrid {
@@ -282,15 +328,17 @@
 }
 
 .useCaseCard {
-  background-color: #FFFFFF;
+  background-color: #F9F9F9;
   border: 1px solid #EEEEEE;
   border-radius: 12px;
   padding: 24px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.3s ease, box-shadow 0.3s ease; /* Keep existing hover transition */
+  /* animation: fadeInUp 0.5s ease-out forwards; */ /* To be replaced by scroll animation */
+  /* opacity: 0; */ /* Initial state handled by .animateOnScroll */
 }
 
 .useCaseCard:hover {
-  transform: translateY(-5px);
+  transform: translateY(-5px) scale(1.03);
   box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
 }
 

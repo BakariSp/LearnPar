@@ -15,6 +15,7 @@ import {
 } from '@/services/api'; // Import these from your central types file (adjust path if needed)
 import { LearningPathCourseItem } from '@/components/Course/LearningPathCourseItem'; // Import the new component
 import { useTranslation } from 'react-i18next';
+import { useState } from 'react';
 
 // Define the props the component will receive
 interface PathDetailViewProps {
@@ -101,7 +102,11 @@ export const PathDetailView: React.FC<PathDetailViewProps> = ({
 
     // Render card resources
     const renderResources = (resources: CardResource): JSX.Element => {
-        const resourceEntries = Object.entries(resources).filter(([, value]) => value && value.length > 0);
+        if (!resources) {
+            return <p>No additional resources provided.</p>;
+        }
+        
+        const resourceEntries = Object.entries(resources).filter(([, value]) => value && (Array.isArray(value) ? value.length > 0 : !!value));
 
         if (resourceEntries.length === 0) {
             return <p>No additional resources provided.</p>;
@@ -278,7 +283,7 @@ export const PathDetailView: React.FC<PathDetailViewProps> = ({
                 <div className={styles.detailContent}>
                     {currentViewMode === 'structure' && (
                         <div className={styles.structureView}>
-                            {learningPathData.courses.map((course, courseIndex) => {
+                            {learningPathData.courses && Array.isArray(learningPathData.courses) ? learningPathData.courses.map((course, courseIndex) => {
                                 const courseItemId = `course-${course.id}`;
                                 const isCourseExpanded = !!expandedItems[courseItemId];
                                 return (
@@ -298,7 +303,11 @@ export const PathDetailView: React.FC<PathDetailViewProps> = ({
                                         sectionReadyStatus={sectionReadyStatus}
                                     />
                                 );
-                            })}
+                            }) : (
+                                <div className={styles.noCourses}>
+                                    <p>No courses found in this learning path.</p>
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -308,7 +317,7 @@ export const PathDetailView: React.FC<PathDetailViewProps> = ({
                                 {/* Card Header */}
                                 <div className={styles.cardHeader}>
                                     <div className={styles.cardTags}>
-                                        {selectedCard.tags?.map(tag => <span key={tag} className={styles.tag}>{tag}</span>)}
+                                        {selectedCard.tags && Array.isArray(selectedCard.tags) ? selectedCard.tags.map(tag => <span key={tag} className={styles.tag}>{tag}</span>) : null}
                                     </div>
                                 </div>
                                 {/* Card Title */}
@@ -354,6 +363,31 @@ export const PathDetailView: React.FC<PathDetailViewProps> = ({
                         </div>
                     )}
                 </div>
+
+                {/* Debug Information */}
+                {isDevEnvironment() && (
+                    <div className={styles.debugInfo}>
+                        <h3>Debug Information</h3>
+                        <details>
+                            <summary>Learning Path Structure</summary>
+                            <pre>
+                                {JSON.stringify({
+                                    id: learningPathData?.id,
+                                    title: learningPathData?.title,
+                                    courses: learningPathData?.courses?.map(course => ({
+                                        id: course.id,
+                                        title: course.title,
+                                        sections: course.sections?.map(section => ({
+                                            id: section.id,
+                                            title: section.title,
+                                            cardsCount: section.cards?.length || 0
+                                        }))
+                                    }))
+                                }, null, 2)}
+                            </pre>
+                        </details>
+                    </div>
+                )}
             </div>
         );
     }
@@ -361,4 +395,9 @@ export const PathDetailView: React.FC<PathDetailViewProps> = ({
     // Fallback if none of the above conditions are met (should ideally not happen)
     return <div className={styles.detailPlaceholder}>Select a path to view details.</div>;
 
-}; 
+};
+
+// Add the dev environment check helper function
+function isDevEnvironment() {
+    return process.env.NODE_ENV === 'development';
+} 

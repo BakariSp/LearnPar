@@ -1,5 +1,4 @@
-import React from 'react';
-// Import necessary types - adjust paths as needed
+import React, { useEffect } from 'react';
 import { CourseResponse, SectionResponse, CardResponse, TaskStatusResponse } from '@/services/api'; // Assuming types are here
 import styles from './LearningPathCourseItem.module.css'; // Import the new CSS module
 import myPathsStyles from '@/app/[locale]/my-paths/my-paths.module.css'; // Import the my-paths styles for animations
@@ -71,6 +70,24 @@ export const LearningPathCourseItem: React.FC<LearningPathCourseItemProps> = ({
         );
     };
 
+    // Initialize section readiness for sections with cards
+    useEffect(() => {
+        if (course.sections && Array.isArray(course.sections)) {
+            // For any section that has cards in the API response, mark it as ready
+            const readySections = course.sections.reduce((acc, section) => {
+                if (section.cards && Array.isArray(section.cards) && section.cards.length > 0) {
+                    acc[section.id] = true;
+                }
+                return acc;
+            }, {} as Record<number, boolean>);
+            
+            // Log what we're doing for debugging
+            if (Object.keys(readySections).length > 0) {
+                console.log('Marking sections with cards as ready:', readySections);
+            }
+        }
+    }, [course.sections]);
+
     return (
         <div className={styles.courseItemContainer}>
             {/* Course Header */}
@@ -95,12 +112,38 @@ export const LearningPathCourseItem: React.FC<LearningPathCourseItemProps> = ({
                 aria-labelledby={courseItemId}
             >
                 <ul className={styles.sectionList}>
-                    {course.sections.map(section => {
+                    {course.sections && Array.isArray(course.sections) ? course.sections.map(section => {
                         const sectionItemId = `section-${section.id}`;
                         const isSectionExpanded = !!expandedItems[sectionItemId];
                         const isLoadingThisSection = currentSectionIdForFetch === section.id && isFetchingSection;
-                        const cards = sectionCardsCache[section.id] || [];
-                        const isSectionReady = sectionReadyStatus[section.id];
+                        
+                        // First try to get cards from the cache, then fallback to the API response
+                        let cards: CardResponse[] = [];
+                        if (sectionCardsCache.hasOwnProperty(section.id)) {
+                            cards = sectionCardsCache[section.id] || [];
+                        } else if (section.cards && Array.isArray(section.cards)) {
+                            cards = section.cards;
+                        }
+                        
+                        // Add debug logging for section data
+                        console.log(`DEBUG Section ${section.id} (${section.title}):`, {
+                            sectionId: section.id,
+                            hasSectionCards: section.cards && Array.isArray(section.cards),
+                            sectionCardsLength: section.cards?.length,
+                            sectionCardsData: section.cards?.map(card => ({
+                                id: card.id,
+                                keyword: card.keyword || 'No keyword',
+                                hasQuestionField: !!card.question,
+                                isCompleted: card.is_completed
+                            })),
+                            hasCardsInCache: sectionCardsCache.hasOwnProperty(section.id),
+                            cacheCardsLength: sectionCardsCache[section.id]?.length,
+                            finalCardsLength: cards.length,
+                            isSectionReady: sectionReadyStatus[section.id] || false
+                        });
+                        
+                        const hasCards = cards.length > 0;
+                        const isSectionReady = sectionReadyStatus[section.id] || hasCards;
                         const overallTaskActive = isTaskActive(taskStatus);
                         const canInteract = isSectionReady || !overallTaskActive;
 
@@ -138,8 +181,8 @@ export const LearningPathCourseItem: React.FC<LearningPathCourseItemProps> = ({
                                         </div>
                                     )}
 
-                                    {/* Show cards if expanded, not loading, and cards are available in cache */}
-                                    {isSectionExpanded && !isLoadingThisSection && sectionCardsCache.hasOwnProperty(section.id) && cards.length > 0 && (
+                                    {/* Show cards if expanded, not loading, and cards are available */}
+                                    {isSectionExpanded && !isLoadingThisSection && hasCards && (
                                         <ul className={`${styles.cardList} ${myPathsStyles.fadeIn}`}>
                                             {cards.map(card => (
                                                 <li key={card.id} className={`${styles.cardListItem} ${selectedCard?.id === card.id ? styles.selected : ''}`}>
@@ -155,8 +198,8 @@ export const LearningPathCourseItem: React.FC<LearningPathCourseItemProps> = ({
                                         </ul>
                                     )}
 
-                                    {/* Show "No cards" if expanded, not loading, cache entry exists, but is empty */}
-                                    {isSectionExpanded && !isLoadingThisSection && sectionCardsCache.hasOwnProperty(section.id) && cards.length === 0 && (
+                                    {/* Show "No cards" if expanded, not loading, no cards available */}
+                                    {isSectionExpanded && !isLoadingThisSection && !hasCards && (
                                         <p className={styles.noCardsMessage}>No cards found for this section.</p>
                                     )}
 
@@ -171,7 +214,9 @@ export const LearningPathCourseItem: React.FC<LearningPathCourseItemProps> = ({
                                 </div>
                             </li>
                         );
-                    })}
+                    }) : (
+                        <li className={styles.noSectionsMessage}>No sections found for this course.</li>
+                    )}
                 </ul>
             </div>
         </div>

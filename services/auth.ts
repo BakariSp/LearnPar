@@ -127,11 +127,8 @@ export const getToken = () => {
   if (typeof window !== 'undefined') {
     const token = localStorage.getItem(AUTH_TOKEN_KEY);
     if (token) {
-      // Log the first few characters for debugging (not the whole token for security)
-      console.log(`🔍 DEBUG TOKEN - Retrieved token from localStorage, starts with: ${token.substring(0, 10)}...`);
       return token;
     } else {
-      console.log('🔍 DEBUG TOKEN - No token found in localStorage');
       return null;
     }
   }
@@ -151,141 +148,83 @@ export const logout = () => {
     deleteCookie('new_user');
     deleteCookie('setup_complete');
     
-    // Use utility function to get localized URL
-    window.location.href = getLocalizedUrl('login');
+    // Check if we're forcing local frontend
+    if (process.env.NEXT_PUBLIC_FORCE_LOCAL_FRONTEND === 'true') {
+      console.log('Forcing redirect to local login page (NEXT_PUBLIC_FORCE_LOCAL_FRONTEND)');
+      // Use local redirect instead of potentially redirecting to production
+      const locale = typeof window !== 'undefined' && 
+        document.documentElement.lang ? document.documentElement.lang : 'en';
+      window.location.href = `/${locale}/login`;
+    } else {
+      // Use utility function to get localized URL
+      window.location.href = getLocalizedUrl('login');
+    }
   }
 };
 
-export const apiClient = async (url: string, options: RequestInit = {}) => {
+export const apiClient = async (endpoint: string, options: RequestInit = {}): Promise<Response | null> => {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+  const MAX_RETRIES = 3;
+
+  const url = endpoint.startsWith('http') ? endpoint : `${API_URL}${endpoint}`;
+  
+  // Add auth token if available
   const token = getToken();
-  console.log(`🔍 DEBUG AUTH - API request initiated for: ${url}`);
-  console.log(`🔍 DEBUG AUTH - Token exists: ${!!token}`);
-  console.log(`🔍 DEBUG AUTH - Request method: ${options.method || 'GET'}`);
-
-  if (!token && !url.includes('/token')) { // Skip token check for login requests
-    console.warn(`🔍 DEBUG AUTH - API request to ${url} made without authentication token`);
+  if (token) {
+    options.headers = {
+      ...options.headers,
+      'Authorization': `Bearer ${token}`
+    };
   }
 
-  // Initialize headers safely to prevent undefined errors
-  const headers = {
-    'Authorization': token ? `Bearer ${token}` : '',
-    // Default to application/json if no Content-Type specified
-    'Content-Type': 'application/json',
-    // Then add any existing headers from options, which will override defaults if present
-    ...(options.headers || {}),
-  };
-
-  console.log(`🔍 DEBUG AUTH - Headers set:`, Object.keys(headers));
-  console.log(`🔍 DEBUG AUTH - Authorization header present: ${!!headers['Authorization']}`);
-
-  // Use the relative URL directly, assuming it starts with /api/ or similar
-  // Let the Next.js rewrite handle the destination
-  const relativeUrl = url;
-  console.log(`🔍 DEBUG AUTH - Making API request to: ${relativeUrl} with method: ${options.method || 'GET'}`);
-  
-  // Get the env variable for the API URL to check configuration
-  const apiUrl = typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL;
-  console.log(`🔍 DEBUG AUTH - NEXT_PUBLIC_API_URL env variable: ${apiUrl || 'Not set'}`);
-  
-  // Log request body for debugging if it exists and isn't a file upload
-  if (options.body && typeof options.body === 'string' && 
-      !(headers['Content-Type']?.includes('multipart/form-data'))) {
-    try {
-      // Try to parse and log the body as JSON, but only if it's not too large
-      const bodyStr = options.body.length > 1000 ? 
-        `${options.body.substring(0, 1000)}... (truncated)` : options.body;
-      console.log(`🔍 DEBUG AUTH - Request body: ${bodyStr}`);
-    } catch (e) {
-      // If it's not valid JSON, just log it as is
-      console.log('🔍 DEBUG AUTH - Request has non-JSON body');
-    }
+  // Add custom header to prevent redirection to production frontend when using production API
+  if (process.env.NEXT_PUBLIC_FORCE_LOCAL_FRONTEND === 'true') {
+    options.headers = {
+      ...options.headers,
+      'X-Force-Local-Frontend': 'true'
+    };
+    console.log('Using remote API with local frontend (forced by NEXT_PUBLIC_FORCE_LOCAL_FRONTEND)');
   }
 
-  // Set a timeout for fetch requests to prevent hanging
-  const timeoutMs = 10000; // 10 seconds timeout
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-  // Implement retry logic
-  const maxRetries = 1; // Reduced from 2 to 1 to avoid too many retries
+  // Implement retry logic with exponential backoff
   let retryCount = 0;
   let lastError = null;
 
-  while (retryCount <= maxRetries) {
+  while (retryCount < MAX_RETRIES) {
     try {
-      console.log(`🔍 DEBUG AUTH - Sending fetch request to ${relativeUrl} (attempt ${retryCount + 1})`);
-      // Fetch using the relative path with abort signal
-      const response = await fetch(relativeUrl, {
-        ...options,
-        headers: headers as HeadersInit,
-        signal: controller.signal
-      });
+      // Add increasing delay for each retry attempt
+      if (retryCount > 0) {
+        const delay = Math.pow(2, retryCount) * 300; // Exponential backoff: 600ms, 1200ms, 2400ms
+        await new Promise(resolve => setTimeout(resolve, delay));
+        console.log(`Retry ${retryCount} for ${endpoint} after ${delay}ms delay`);
+      }
 
-      // Clear the timeout since the request completed
-      clearTimeout(timeoutId);
-
-      // Log response information for debugging
-      console.log(`🔍 DEBUG AUTH - Response received: status ${response.status} for ${relativeUrl}`);
+      const response = await fetch(url, options);
       
-      // Add special handling for common error codes
-      if (response.status === 401) {
-        console.error('🔍 DEBUG AUTH - Unauthorized API request - token may be invalid or expired');
-        // Only log out on the first 401 error to avoid endless redirects
-        if (retryCount === 0) {
-          console.log('🔍 DEBUG AUTH - Logging out user due to 401 response');
-          logout(); // Consider redirecting within logout or letting caller handle redirect
-        }
-        return null;
-      } 
-      else if (response.status === 403) {
-        console.error('🔍 DEBUG AUTH - Forbidden: You lack permission to access this resource');
-      }
-      else if (response.status === 404) {
-        console.error(`🔍 DEBUG AUTH - Resource not found: ${relativeUrl}`);
-      }
-      else if (response.status === 500) {
-        console.error(`🔍 DEBUG AUTH - Server error on ${relativeUrl}`);
-        
-        // For server errors, retry the request
-        if (retryCount < maxRetries) {
-          retryCount++;
-          const retryDelay = 1000 * retryCount; // Exponential backoff: 1s
-          console.log(`🔍 DEBUG AUTH - Retrying in ${retryDelay}ms (attempt ${retryCount}/${maxRetries})...`);
-          await new Promise(resolve => setTimeout(resolve, retryDelay));
-          continue; // Skip to next retry iteration
-        }
+      // If we get a 429 (too many requests), implement backoff
+      if (response.status === 429) {
+        const retryAfter = response.headers.get('Retry-After') || Math.pow(2, retryCount + 1) * 500;
+        const delay = typeof retryAfter === 'string' ? parseInt(retryAfter, 10) * 1000 : retryAfter;
+        console.log(`Rate limited. Retrying after ${delay}ms`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        retryCount++;
+        continue;
       }
       
       return response;
-    } catch (error: any) {
-      // Clear the timeout
-      clearTimeout(timeoutId);
-      
+    } catch (error) {
       lastError = error;
+      console.warn(`Request to ${endpoint} failed (attempt ${retryCount + 1}/${MAX_RETRIES}):`, error);
+      retryCount++;
       
-      // Check if this was a timeout
-      if (error.name === 'AbortError') {
-        console.error(`🔍 DEBUG AUTH - Request timeout after ${timeoutMs}ms for ${relativeUrl}`);
-        return null;
-      }
-      
-      console.error(`🔍 DEBUG AUTH - API request failed for ${relativeUrl}:`, error);
-      
-      // For network errors, retry the request
-      if (retryCount < maxRetries) {
-        retryCount++;
-        const retryDelay = 1000 * retryCount;
-        console.log(`🔍 DEBUG AUTH - Network error. Retrying in ${retryDelay}ms (attempt ${retryCount}/${maxRetries})...`);
-        await new Promise(resolve => setTimeout(resolve, retryDelay));
-      } else {
-        console.error(`🔍 DEBUG AUTH - All ${maxRetries} retry attempts failed for ${relativeUrl}`);
-        break; // Exit retry loop
+      // Only retry on network errors, not on HTTP errors
+      if (!(error instanceof TypeError && error.message.includes('fetch'))) {
+        break;
       }
     }
   }
 
-  // All retries failed or non-retryable error
-  console.error(`🔍 DEBUG AUTH - API request ultimately failed after retries: ${relativeUrl}`);
+  console.error(`Failed to connect to ${endpoint} after ${MAX_RETRIES} attempts:`, lastError);
   return null;
 };
 

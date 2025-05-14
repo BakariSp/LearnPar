@@ -11,6 +11,8 @@ interface CardDetailViewProps {
   hasPreviousCard: boolean;
   hasNextCard: boolean;
   showDeleteButton?: boolean;
+  toggleCardCompletion?: (cardId: string | number) => Promise<void>;
+  currentSectionId?: number | null;
 }
 
 const CardDetailView: React.FC<CardDetailViewProps> = ({
@@ -21,10 +23,13 @@ const CardDetailView: React.FC<CardDetailViewProps> = ({
   navigateToNextCard,
   hasPreviousCard,
   hasNextCard,
-  showDeleteButton = true
+  showDeleteButton = true,
+  toggleCardCompletion,
+  currentSectionId
 }) => {
   const [isCardChanging, setIsCardChanging] = useState(false);
   const [animationDirection, setAnimationDirection] = useState('next');
+  const [isTogglingCompletion, setIsTogglingCompletion] = useState(false);
 
   // Reset animation state when a new card is selected
   useEffect(() => {
@@ -44,6 +49,30 @@ const CardDetailView: React.FC<CardDetailViewProps> = ({
         navigateToNextCard();
       }
     }, 200);
+  };
+
+  // Handle card completion toggle with added debugging
+  const handleToggleCompletion = async () => {
+    if (!selectedCard || !toggleCardCompletion || selectedCard.isToggling) return;
+    
+    // Add debug logging before toggling completion
+    console.log('DEBUG - Card Completion Toggle:', {
+      cardId: selectedCard.id,
+      cardKeyword: selectedCard.keyword,
+      currentCompletionStatus: selectedCard.is_completed,
+      currentSectionId,
+      currentCardIndex,
+      totalCardsInSection: currentSectionCards.length
+    });
+    
+    setIsTogglingCompletion(true);
+    try {
+      await toggleCardCompletion(selectedCard.id);
+    } catch (error) {
+      console.error("Error toggling card completion:", error);
+    } finally {
+      setIsTogglingCompletion(false);
+    }
   };
 
   if (!selectedCard) {
@@ -81,7 +110,7 @@ const CardDetailView: React.FC<CardDetailViewProps> = ({
     return (
       <ul className={styles.resourceList}>
         {resourcesArray.map((resource, index) => (
-          <li key={index}>
+          <li key={`resource-${index}-${resource.url || ''}`}>
             <a
               href={resource.url || '#'}
               target="_blank"
@@ -101,18 +130,22 @@ const CardDetailView: React.FC<CardDetailViewProps> = ({
       <div className={styles.cardDetailContainer}>
         {/* Card Progress Indicator */}
         <div className={styles.cardProgressIndicator}>
-          {currentSectionCards.map((_, index) => (
-            <div
-              key={index}
-              className={`${styles.progressTab} ${
-                index === currentCardIndex
-                  ? styles.active
-                  : index < currentCardIndex
-                  ? styles.completed
-                  : ''
-              }`}
-            ></div>
-          ))}
+          {currentSectionCards.map((cardItem, index) => {
+            // Handle both nested and direct card structure
+            const card = cardItem.card ? cardItem.card : cardItem;
+            return (
+              <div
+                key={card.id ? `progress-tab-${card.id}-${index}` : `progress-tab-index-${index}`}
+                className={`${styles.progressTab} ${
+                  index === currentCardIndex
+                    ? styles.active
+                    : index < currentCardIndex
+                    ? styles.completed
+                    : ''
+                }`}
+              ></div>
+            );
+          })}
         </div>
 
         {/* Card Main Content */}
@@ -127,18 +160,57 @@ const CardDetailView: React.FC<CardDetailViewProps> = ({
         >
           <div className={styles.cardHeader}>
             <h2 className={styles.cardTitle}>{selectedCard.keyword}</h2>
-            {canDeleteCard && (
-              <button
-                className={styles.cardDeleteButton}
-                aria-label="Delete card"
-                title="Delete this card"
-                onClick={() => {/* Delete logic would go here */}}
-              >
-                &times;
-              </button>
-            )}
+            
+            <div className={styles.cardActions}>
+              {/* Display completion status */}
+              {selectedCard.is_completed ? (
+                <div className={`${styles.cardCompletionStatus} ${styles.completed}`}>
+                  Completed
+                </div>
+              ) : (
+                toggleCardCompletion && (
+                  <button
+                    onClick={handleToggleCompletion}
+                    disabled={isTogglingCompletion || selectedCard.isToggling}
+                    className={`${styles.navButton} ${styles.nextAction}`}
+                    style={{ padding: '0.3rem 0.7rem', fontSize: '0.85rem' }}
+                  >
+                    {isTogglingCompletion || selectedCard.isToggling ? 
+                      "Processing..." : "Mark as completed"}
+                  </button>
+                )
+              )}
+              
+              {canDeleteCard && (
+                <button
+                  className={styles.cardDeleteButton}
+                  aria-label="Delete card"
+                  title="Delete this card"
+                  onClick={() => {/* Delete logic would go here */}}
+                >
+                  &times;
+                </button>
+              )}
+            </div>
           </div>
 
+          {/* Question section */}
+          {selectedCard.question && (
+            <div className={styles.cardSection}>
+              <h3>Question</h3>
+              <p>{selectedCard.question}</p>
+            </div>
+          )}
+
+          {/* Answer section */}
+          {selectedCard.answer && (
+            <div className={styles.cardSection}>
+              <h3>Answer</h3>
+              <p>{selectedCard.answer}</p>
+            </div>
+          )}
+
+          {/* Explanation section */}
           <div className={styles.cardSection}>
             <h3>Explanation</h3>
             <p>{selectedCard.explanation}</p>

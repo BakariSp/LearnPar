@@ -1,42 +1,65 @@
-.learnAssistant {
+.assistantContainer {
   display: flex;
   flex-direction: column;
-  background-color: var(--card-background, white);
-  border-radius: 12px;
   height: 100%;
-  width: 100%;
   overflow: hidden;
+  background-color: var(--card-background, #fff);
+  border-radius: 12px;
+  width: 100%;
 }
 
 .header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--border-color, #e9ecef);
+  background-color: var(--background-color, #f8f9fa);
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
 }
 
-.header h3 {
-  font-size: 16px;
+.title {
+  font-size: 1rem;
   font-weight: 600;
-  color: var(--text-color, #212529);
+  color: var(--heading-color, #4A5744);
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.clearButton {
-  background: none;
-  border: none;
-  color: var(--text-secondary, #6c757d);
-  font-size: 12px;
+.tabs {
+  display: flex;
+  background-color: var(--background-color, #f8f9fa);
+  position: sticky;
+  top: 49px;
+  z-index: 10;
+}
+
+.tab {
+  padding: 8px 16px;
+  font-size: 0.875rem;
+  color: var(--text-secondary, #6F736E);
   cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 4px;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
+  flex: 1;
+  text-align: center;
+  border-bottom: 2px solid transparent;
 }
 
-.clearButton:hover {
-  background-color: rgba(0, 0, 0, 0.05);
-  color: var(--text-color, #212529);
+.tab:hover {
+  color: var(--text-color, #4A5744);
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
+.tab.active {
+  color: var(--primary-accent, #FFA336);
+  border-bottom-color: var(--primary-accent, #FFA336);
+  font-weight: 500;
 }
 
 .content {
@@ -44,16 +67,20 @@
   flex-direction: column;
   flex: 1;
   overflow: hidden;
+  padding: 16px 16px 76px 16px;
   position: relative;
+  height: calc(100% - 98px);
 }
 
 .messagesContainer {
   flex: 1;
   overflow-y: auto;
-  padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  padding-right: 8px;
+  padding-bottom: 16px;
+  height: 100%;
 }
 
 .messagesContainer::-webkit-scrollbar {
@@ -65,107 +92,122 @@
 }
 
 .messagesContainer::-webkit-scrollbar-thumb {
-  background-color: rgba(0, 0, 0, 0.1);
+  background-color: var(--border-color, #e9ecef);
   border-radius: 3px;
 }
 
 .message {
-  max-width: 85%;
-  padding: 10px 14px;
-  border-radius: 16px;
-  position: relative;
-  animation: fadeIn 0.3s ease;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.user {
-  background-color: var(--primary-color, #3b82f6);
-  color: white;
-  align-self: flex-end;
-  border-bottom-right-radius: 4px;
-}
-
-.assistant {
-  background-color: var(--background-color, #f8f9fa);
-  color: var(--text-color, #212529);
-  align-self: flex-start;
-  border-bottom-left-radius: 4px;
-}
-
-.system {
-  background-color: rgba(0, 0, 0, 0.05);
-  color: var(--text-secondary, #6c757d);
-  align-self: center;
-  font-size: 12px;
-  padding: 6px 10px;
-  max-width: 90%;
-  border-radius: 8px;
-}
-
-.messageContent {
-  font-size: 14px;
-  line-height: 1.5;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-.quickActions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
+  flex-direction: column;
+  max-width: 85%;
+  padding: 12px;
+  border-radius: 12px;
+  animation: fadeIn 0.3s ease;
+  box-shadow: var(--shadow-subtle, 0 2px 4px rgba(0, 0, 0, 0.05));
 }
 
-.actionButton {
-  background-color: var(--card-background);
-  color: var(--primary-color-dark, #D67D13);
-  border: 1.5px solid var(--primary-color-dark, #D67D13);
-  border-radius: 16px;
-  padding: 6px 12px;
-  font-size: 13px;
-  font-weight: 400;
-  cursor: pointer;
+.message.user {
+  align-self: flex-end;
+  background-color: var(--primary-color-light, #FFF2E5);
+  color: var(--text-color, #4A5744);
+}
+
+.message.assistant,
+.message.system {
+  align-self: flex-start;
+  background-color: var(--background-color, #f8f9fa);
+  color: var(--text-color, #4A5744);
+  border: 1px solid var(--border-color, #e0e0e0);
+}
+
+/* Added style for message content for better readability */
+.message .messageContent {
+  line-height: 1.5;
+}
+
+.messageTimestamp {
+  font-size: 0.75rem;
+  color: var(--text-secondary, #6c757d);
+  margin-top: 8px; /* Reduced margin for closer spacing */
+  align-self: flex-start; /* Align to the start (left) */
+}
+
+.inputContainer {
+  display: flex;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: var(--card-background, #fff);
+  padding: 16px;
+  border-top: 1px solid var(--border-color, #e9ecef);
+  z-index: 10;
+  margin: 0;
+  width: 100%;
+  box-sizing: border-box;
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+
+.input {
+  flex: 1;
+  padding: 10px 16px;
+  padding-right: 48px; /* Make room for send button */
+  border: 1px solid var(--border-color, #e9ecef);
+  border-radius: 8px;
+  background-color: var(--card-background, #fff);
+  color: var(--text-color, #212529);
+  resize: none;
+  min-height: 44px;
+  max-height: 120px;
   transition: all 0.2s ease;
-  white-space: nowrap;
-  display: inline-flex;
+  font-family: inherit;
+  font-size: 0.875rem;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--primary-color, #007bff);
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.sendButton {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  width: 28px;
+  height: 28px;
+  display: flex;
   align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background-color: var(--primary-accent, #FFA336);
+  color: var(--primary-text-color, #FFFFFF);
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.2s ease;
 }
 
-.actionButton:hover {
-  background-color: var(--primary-color-dark, #D67D13);
-  color: white;
+.sendButton:hover {
+  background-color: var(--primary-accent-dark, #D67D13);
 }
 
-.generateAction {
-  background-color: rgba(139, 92, 246, 0.2);  /* Slightly more opaque purple background */
-  color: rgb(124, 58, 237);  /* Darker purple text for contrast */
-  border-color: rgb(124, 58, 237);  /* Darker purple border */
-  border-width: 1.5px;
-}
-
-.generateAction:hover {
-  background-color: rgb(124, 58, 237);  /* Darker purple on hover */
-  color: white;
-}
-
-.messageTime {
-  font-size: 10px;
-  opacity: 0.7;
-  margin-top: 4px;
-  text-align: right;
+.sendButton:disabled {
+  background-color: var(--border-color, #e0e0e0);
+  cursor: not-allowed;
 }
 
 .loadingIndicator {
   display: flex;
   gap: 4px;
-  padding: 8px 0;
+  justify-content: center;
+  align-items: center;
+  height: 20px;
 }
 
 .loadingIndicator span {
+  display: inline-block;
   width: 8px;
   height: 8px;
   border-radius: 50%;
@@ -182,223 +224,57 @@
 }
 
 @keyframes bounce {
-  0%, 80%, 100% { transform: scale(0); }
-  40% { transform: scale(1); }
+  0%, 80%, 100% {
+    transform: scale(0);
+  }
+  40% {
+    transform: scale(1);
+  }
 }
 
-.relatedCard {
-  padding: 16px;
-  background-color: var(--background-color, #f8f9fa);
-  border-top: 1px solid var(--border-color, #e9ecef);
-  animation: slideUp 0.3s ease;
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.generatedCards {
-  padding: 16px;
-  background-color: var(--background-color, #f8f9fa);
-  border-top: 1px solid var(--border-color, #e9ecef);
-  animation: slideUp 0.3s ease;
-}
-
-.generatedCards h4 {
-  font-size: 15px;
-  font-weight: 600;
-  margin: 0 0 12px 0;
-  color: var(--text-color, #212529);
-  display: flex;
-  align-items: center;
-}
-
-.generatedCards h4::before {
-  content: '✦';
-  margin-right: 8px;
-  color: var(--primary-color, #3b82f6);
-  font-size: 18px;
-}
-
-.generatedCards .cardContent {
-  margin-bottom: 16px;
-}
-
-.generatedCards .cardContent:last-child {
-  margin-bottom: 0;
-}
-
-@keyframes slideUp {
-  from { transform: translateY(20px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-
-.relatedCard h4 {
-  font-size: 15px;
-  font-weight: 600;
-  margin: 0 0 12px 0;
-  color: var(--text-color, #212529);
-  display: flex;
-  align-items: center;
-}
-
-.relatedCard h4::before {
-  content: '✦';
-  margin-right: 8px;
-  color: var(--primary-color, #3b82f6);
-  font-size: 18px;
+/* Card styling */
+.relatedCard, .cardContent {
+  margin-top: 16px;
+  background-color: var(--card-background, #fff);
+  border: 1px solid var(--border-color, #e9ecef);
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 .cardContent {
-  background-color: white;
-  border: 1px solid var(--border-color, #e9ecef);
-  border-radius: 8px;
-  padding: 14px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.cardKeyword {
-  font-weight: 700;
-  color: var(--primary-color, #3b82f6);
-  margin-bottom: 10px;
-  font-size: 16px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--border-color, #e9ecef);
-}
-
-.cardQuestion {
-  color: var(--text-color, #212529);
-  margin-bottom: 14px;
-  font-size: 14px;
-  line-height: 1.5;
-  font-style: italic;
-}
-
-.addCardButton {
-  width: 100%;
-  padding: 10px;
-  background-color: var(--primary-color, #3b82f6);
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.addCardButton::before {
-  content: '+';
-  font-size: 18px;
-  margin-right: 8px;
-  font-weight: 700;
-}
-
-.addCardButton:hover:not(:disabled) {
-  background-color: var(--primary-color-dark, #2563eb);
-  transform: translateY(-1px);
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
-}
-
-.addCardButton:active:not(:disabled) {
-  transform: translateY(0);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.addCardButton:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.inputContainer {
-  display: flex;
-  padding: 12px 16px;
-  border-top: 1px solid var(--border-color, #e9ecef);
-  background-color: var(--card-background, white);
-}
-
-.input {
-  flex: 1;
-  border: 1px solid var(--border-color, #e9ecef);
-  border-radius: 18px;
-  padding: 10px 14px;
-  font-size: 14px;
-  resize: none;
-  background-color: var(--background-color, #f8f9fa);
-  color: var(--text-color, #212529);
-  transition: border-color 0.2s;
-}
-
-.input:focus {
-  outline: none;
-  border-color: var(--primary-color, #3b82f6);
-}
-
-.input::placeholder {
-  color: var(--text-secondary, #6c757d);
-}
-
-.sendButton {
-  background-color: var(--primary-color, #3b82f6);
-  border: none;
-  border-radius: 50%;
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-left: 8px;
-  cursor: pointer;
-  color: white;
-  transition: background-color 0.2s;
-}
-
-.sendButton:hover:not(:disabled) {
-  background-color: var(--primary-color-dark, #2563eb);
-}
-
-.sendButton:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.cardAnswer {
   margin-bottom: 16px;
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: var(--shadow-subtle, 0 2px 4px rgba(0, 0, 0, 0.05));
+  transition: transform 0.2s, box-shadow 0.2s;
 }
 
-.cardAnswer h5 {
-  font-size: 14px;
-  font-weight: 600;
-  margin: 0 0 8px 0;
-  color: var(--text-color, #212529);
-}
-
-.cardAnswer p {
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--text-secondary, #6c757d);
-  margin: 0 0 8px 0;
-}
-
-.toggleAnswerButton {
-  background: none;
-  border: none;
-  padding: 0;
-  font-size: 13px;
-  color: var(--primary-color, #3b82f6);
-  text-decoration: underline;
-  cursor: pointer;
-  text-align: left;
-}
-
-.toggleAnswerButton:hover {
-  color: var(--primary-color-dark, #2563eb);
+.cardContent:hover {
+  box-shadow: var(--shadow-hover, 0 4px 12px rgba(0, 0, 0, 0.1));
 }
 
 .cardHeader {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 10px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.cardKeyword {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--primary-accent, #FFA336);
 }
 
 .cardActions {
@@ -406,304 +282,463 @@
   gap: 8px;
 }
 
-.unsaveButton,
-.deleteButton {
+.unsaveButton, .deleteButton {
   background: none;
   border: none;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  padding: 4px;
   cursor: pointer;
-  font-size: 12px;
+  border-radius: 4px;
   transition: all 0.2s ease;
-  padding: 0;
-}
-
-.unsaveButton {
-  color: var(--text-secondary, #6c757d);
-  background-color: var(--background-color, #f8f9fa);
-}
-
-.deleteButton {
-  color: #ff4d4f;
-  background-color: var(--background-color, #f8f9fa);
 }
 
 .unsaveButton:hover {
-  color: var(--text-color, #212529);
-  background-color: #e9ecef;
+  background-color: var(--background-color, #f8f9fa);
+  color: #ff4d4f;
 }
 
 .deleteButton:hover {
+  background-color: var(--background-color, #f8f9fa);
   color: #ff4d4f;
-  background-color: #fff1f0;
 }
 
-.unsaveButton:disabled,
-.deleteButton:disabled {
-  opacity: 0.5;
+.cardQuestion {
+  font-weight: 500;
+  margin-bottom: 12px;
+  font-size: 0.9375rem;
+  color: var(--heading-color, #4A5744);
+}
+
+.cardAnswer {
+  margin-bottom: 16px;
+}
+
+.cardAnswer h5 {
+  margin: 0 0 8px;
+  font-size: 0.875rem;
+  color: var(--text-secondary, #6c757d);
+  font-weight: 600;
+}
+
+.cardAnswer p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-color, #212529);
+  line-height: 1.6;
+}
+
+.toggleAnswerButton {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-top: 8px;
+  color: var(--primary-accent, #FFA336);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.toggleAnswerButton:hover {
+  color: var(--primary-accent-dark, #D67D13);
+}
+
+.addCardButton {
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background-color: var(--primary-accent, #FFA336);
+  color: var(--primary-text-color, #FFFFFF);
+  border-radius: 20px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 8px;
+  font-weight: 500;
+  box-shadow: var(--shadow-subtle, 0 2px 4px rgba(0, 0, 0, 0.05));
+}
+
+.addCardButton:hover {
+  background-color: var(--primary-accent-dark, #D67D13);
+  box-shadow: var(--shadow-hover, 0 4px 12px rgba(0, 0, 0, 0.1));
+}
+
+.addCardButton:disabled {
+  background-color: var(--background-disabled, #e9ecef);
   cursor: not-allowed;
+  box-shadow: none;
+}
+
+.generatedCards {
+  margin-bottom: 16px;
+}
+
+.generatedCards h4 {
+  margin: 0 0 12px;
+  font-size: 0.9375rem;
+  color: var(--text-color, #212529);
+}
+
+.relatedCard h4 {
+  margin: 0;
+  padding: 12px 16px;
+  font-size: 0.9375rem;
+  background-color: var(--background-color, #f8f9fa);
+  border-bottom: 1px solid var(--border-color, #e9ecef);
+  color: var(--text-color, #212529);
+}
+
+.relatedCard .cardContent {
+  margin: 0;
+  border: none;
+  border-radius: 0;
 }
 
 .confirmDialog {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
+  width: 100%;
+  height: 100%;
   background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10;
+  z-index: 1000;
 }
 
 .confirmDialogContent {
-  background-color: var(--card-background, white);
+  background-color: var(--card-background, #fff);
   border-radius: 8px;
   padding: 20px;
-  width: 80%;
   max-width: 400px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  width: 90%;
 }
 
 .confirmDialogContent h4 {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-color, #212529);
-  margin: 0 0 16px 0;
-}
-
-.confirmDialogContent p {
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--text-secondary, #6c757d);
-  margin: 0 0 20px 0;
+  margin-top: 0;
+  font-size: 1.125rem;
 }
 
 .confirmDialogActions {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+  margin-top: 20px;
 }
 
-.confirmButton,
-.cancelButton {
+.confirmButton, .cancelButton {
   padding: 8px 16px;
-  border-radius: 4px;
-  font-size: 14px;
-  font-weight: 500;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
 }
 
 .confirmButton {
   background-color: #ff4d4f;
   color: white;
-  border: none;
-}
-
-.cancelButton {
-  background-color: transparent;
-  color: var(--text-secondary, #6c757d);
-  border: 1px solid var(--border-color, #e9ecef);
 }
 
 .confirmButton:hover {
   background-color: #ff7875;
 }
 
-.cancelButton:hover {
+.cancelButton {
   background-color: var(--background-color, #f8f9fa);
+  color: var(--text-color, #212529);
+  border: 1px solid var(--border-color, #e9ecef);
 }
 
-.confirmButton:disabled,
-.cancelButton:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.cancelButton:hover {
+  background-color: var(--background-hover, #e9ecef);
+}
+
+.errorMessage {
+  color: #ff4d4f;
+  margin-bottom: 12px;
+  font-size: 0.875rem;
+  padding: 8px 12px;
+  background-color: #fff2f0;
+  border: 1px solid #ffccc7;
+  border-radius: 4px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+  .assistantContainer {
+    width: 100%;
+  }
+
+  .header, .tabs, .inputContainer {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .message {
+    max-width: 90%;
+  }
+}
+
+@media (max-width: 992px) {
+  .content {
+    padding: 12px 12px 70px 12px;
+  }
+
+  .inputContainer {
+    padding: 12px;
+  }
+
+  .message {
+    max-width: 95%;
+    padding: 10px;
+  }
+}
+
+@media (max-width: 768px) {
+  .header {
+    padding: 10px 12px;
+  }
+
+  .title {
+    font-size: 0.9rem;
+  }
+
+  .tab {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+  }
+
+  .content {
+    padding: 10px 10px 60px 10px;
+  }
+
+  .inputContainer {
+    padding: 10px;
+  }
+
+  .input {
+    min-height: 38px;
+    font-size: 0.8rem;
+  }
+
+  .messagesContainer {
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  
+  .cardHeader, .cardQuestion, .cardAnswer {
+    margin-bottom: 8px;
+  }
+  
+  .addCardButton {
+    padding: 6px 10px;
+  }
+}
+
+@media (max-width: 576px) {
+  .header {
+    padding: 8px 10px;
+  }
+  
+  .title {
+    font-size: 0.9375rem;
+  }
+  
+  .messagesContainer {
+    gap: 6px;
+  }
+  
+  .cardContent {
+    padding: 12px;
+  }
+  
+  .relatedCard h4, .generatedCards h4 {
+    padding: 10px 12px;
+    font-size: 0.875rem;
+  }
+  
+  .cardKeyword, .cardQuestion {
+    font-size: 0.8125rem;
+  }
+  
+  .cardAnswer h5 {
+    font-size: 0.8125rem;
+  }
+  
+  .cardAnswer p {
+    font-size: 0.8125rem;
+  }
 }
 
 /* Dark mode adjustments */
 @media (prefers-color-scheme: dark) {
-  .learnAssistant {
-    background-color: var(--dark-card-background, #1a1b26);
-    border-color: var(--dark-border-color, #2c2e3b);
+  .message.user {
+    background-color: var(--primary-color-light, #4D3219);
+    color: var(--text-color, #CCCCCC);
   }
   
+  .message.assistant, 
+  .message.system {
+    background-color: var(--card-background, #1E1E1E);
+    border-color: var(--border-color, #333333);
+    color: var(--text-color, #CCCCCC);
+  }
+  
+  .input {
+    background-color: #282828;
+    border-color: #444;
+    color: #e0e0e0;
+  }
+  
+  .input:focus {
+    border-color: var(--primary-color, #007bff);
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
+  }
+  
+  .loadingIndicator span {
+    background-color: #888;
+  }
+  
+  .relatedCard h4, 
+  .tabs, 
   .header {
-    border-color: var(--dark-border-color, #2c2e3b);
+    background-color: #303030;
+    border-color: #444;
+    color: #e0e0e0;
   }
   
-  .assistant {
-    background-color: var(--dark-background-color, #2c2e3b);
-    color: var(--dark-text-color, #c9d1d9);
-  }
-  
-  .relatedCard {
-    background-color: var(--dark-background-color, #2c2e3b);
-    border-color: var(--dark-border-color, #2c2e3b);
-  }
-  
-  .generatedCards {
-    background-color: var(--dark-background-color, #2c2e3b);
-    border-color: var(--dark-border-color, #2c2e3b);
-  }
-  
-  .relatedCard h4::before {
-    color: var(--primary-color, #4d84f3);
-  }
-  
-  .generatedCards h4::before {
-    color: var(--primary-color, #4d84f3);
-  }
-  
-  .cardContent {
-    background-color: var(--dark-card-background, #1a1b26);
-    border-color: var(--dark-border-color, #2c2e3b);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  .cardContent, 
+  .relatedCard, 
+  .confirmDialogContent {
+    background-color: #282828;
+    border-color: #444;
   }
   
   .cardKeyword {
-    color: var(--primary-color, #4d84f3);
-    border-color: var(--dark-border-color, #2c2e3b);
+    color: var(--primary-light, #5caefc);
   }
   
-  .input {
-    background-color: var(--dark-card-background, #1a1b26);
-    color: var(--dark-text-color, #c9d1d9);
-    border-color: var(--dark-border-color, #2c2e3b);
-  }
-  
-  .inputContainer {
-    background-color: var(--dark-card-background, #1a1b26);
-    border-color: var(--dark-border-color, #2c2e3b);
-  }
-  
-  .clearButton:hover {
-    background-color: rgba(255, 255, 255, 0.05);
-  }
-  
-  .messagesContainer::-webkit-scrollbar-thumb {
-    background-color: rgba(255, 255, 255, 0.1);
-  }
-  
-  .addCardButton:hover:not(:disabled) {
-    background-color: var(--primary-color-dark, #3570db);
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
-  }
-  
-  .cardAnswer h5 {
-    color: var(--dark-text-color, #c9d1d9);
+  .cardQuestion, 
+  .confirmDialogContent h4 {
+    color: #e0e0e0;
   }
   
   .cardAnswer p {
-    color: var(--dark-text-secondary, #8b949e);
+    color: #ccc;
   }
   
-  .toggleAnswerButton {
-    color: var(--primary-color, #4d84f3);
-  }
-  
-  .toggleAnswerButton:hover {
-    background-color: rgba(255, 255, 255, 0.05);
-  }
-  
-  .unsaveButton {
-    background-color: var(--dark-background-color, #2c2e3b);
-    color: var(--dark-text-color, #c9d1d9);
-  }
-  
-  .deleteButton {
-    background-color: var(--dark-background-color, #2c2e3b);
-    color: var(--dark-text-color, #c9d1d9);
-  }
-  
-  .unsaveButton:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-    color: var(--dark-text-color, #c9d1d9);
-  }
-  
-  .deleteButton:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-    color: var(--dark-text-color, #c9d1d9);
-  }
-  
-  .confirmDialogContent {
-    background-color: var(--dark-card-background, #1a1b26);
-    border-color: var(--dark-border-color, #2c2e3b);
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-  }
-  
-  .confirmDialogContent h4 {
-    color: var(--dark-text-color, #c9d1d9);
-  }
-  
-  .confirmDialogContent p {
-    color: var(--dark-text-secondary, #8b949e);
-  }
-  
-  .confirmButton {
-    background-color: var(--danger-color, #dc3545);
+  .toggleAnswerButton, 
+  .tab.active {
+    color: var(--primary-light, #5caefc);
   }
   
   .cancelButton {
-    background-color: var(--dark-background-color, #2c2e3b);
-    color: var(--dark-text-color, #c9d1d9);
-  }
-  
-  .confirmButton:hover {
-    background-color: var(--danger-color-dark, #b02a37);
+    background-color: #303030;
+    border-color: #444;
+    color: #e0e0e0;
   }
   
   .cancelButton:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: #3a3a3a;
   }
   
-  .actionButton {
-    background-color: rgba(59, 130, 246, 0.15);
-    color: #4D84F3;
-    border-color: #4D84F3;
-    border-width: 1.5px;
-    font-weight: 600;
+  .errorMessage {
+    background-color: rgba(255, 77, 79, 0.1);
+    border-color: rgba(255, 77, 79, 0.3);
   }
   
-  .actionButton:hover {
-    background-color: var(--primary-color-dark, #2563eb);
-    color: white;
+  .message.assistant .quickActionButton.orange {
+    border-color: var(--primary-accent, #FFB766);
+    color: var(--primary-accent, #FFB766);
   }
   
-  .generateAction {
-    background-color: rgba(139, 92, 246, 0.25);
-    color: rgb(167, 139, 250);
-    border-color: rgb(139, 92, 246);
-    border-width: 1.5px;
+  .message.assistant .quickActionButton.orange:hover {
+    background-color: rgba(255, 183, 102, 0.15);
+    color: var(--primary-accent, #FFB766);
+    border-color: var(--primary-accent, #FFB766);
   }
   
-  .generateAction:hover {
-    background-color: rgb(139, 92, 246);
-    color: white;
+  .message.assistant .quickActionButton.purple {
+    border-color: #9B59B6;
+    color: #9B59B6;
+  }
+  
+  .message.assistant .quickActionButton.purple:hover {
+    background-color: rgba(155, 89, 182, 0.15);
+    color: #9B59B6;
+    border-color: #9B59B6;
   }
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .message {
-    max-width: 90%;
-  }
-  
-  .inputContainer {
-    padding: 10px;
-  }
-  
-  .input {
-    padding: 8px 12px;
-  }
-  
-  .sendButton {
-    width: 32px;
-    height: 32px;
-  }
+.clearButton {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary, #6c757d);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.clearButton:hover {
+  color: var(--danger-color, #dc3545);
+  background-color: rgba(220, 53, 69, 0.1);
+}
+
+.cardCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--primary-color-light, rgba(0, 123, 255, 0.2));
+  color: var(--primary-color, #007bff);
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.1rem 0.4rem;
+  border-radius: 50%;
+  margin-left: 0.5rem;
+}
+
+.message.assistant .quickActionButtonsContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  align-items: flex-start;
+}
+
+.message.assistant .quickActionButton {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1.5px solid;
+  background-color: transparent;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 500;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  text-align: center;
+  display: inline-block;
+}
+
+/* Specific styling for orange buttons (e.g., "Tell me more", "Explain section") */
+.message.assistant .quickActionButton.orange {
+  border-color: var(--primary-accent, #FFA336);
+  color: var(--primary-accent, #FFA336);
+}
+
+.message.assistant .quickActionButton.orange:hover {
+  background-color: rgba(255, 163, 54, 0.1);
+  color: var(--primary-accent-dark, #D67D13);
+  border-color: var(--primary-accent-dark, #D67D13);
+}
+
+/* Specific styling for purple buttons (e.g., "Generate example cards") */
+.message.assistant .quickActionButton.purple {
+  border-color: #8E44AD;
+  color: #8E44AD;
+}
+
+.message.assistant .quickActionButton.purple:hover {
+  background-color: rgba(142, 68, 173, 0.1);
+  color: #7D3C98;
+  border-color: #7D3C98;
 } 

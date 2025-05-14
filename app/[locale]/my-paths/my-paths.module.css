@@ -346,7 +346,8 @@
   /* padding: 1rem; */ /* Remove padding here, add to panes if needed */
   /* max-width: 1600px; */ /* Keep if desired, but not essential for layout */
   /* margin: 1rem auto; */ /* Remove margin, let wrapper handle positioning */
-  height: 100%; /* Fill the height provided by LayoutClientWrapper */
+  height: 100vh; /* Force to viewport height */
+  overflow: hidden; /* Prevent this container from scrolling */
   /* Remove fixed height calculation like calc(100vh - 80px) */
 }
 
@@ -355,8 +356,9 @@
   border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
-  overflow-y: auto; /* Allow scrolling within the pane */
+  /* overflow-y: auto; */ /* Allow scrolling within the pane -- REMOVED to let .pathList handle scrolling */
   padding: 1.5rem;
+  height: 100%; /* ADDED to ensure it takes full parent height */
   scrollbar-width: thin; /* For Firefox */
   -ms-overflow-style: auto; /* For Internet Explorer and Edge */
   &::-webkit-scrollbar {
@@ -383,6 +385,8 @@
   background-color: #ffffff; /* Or your desired background */
   padding: 2rem; /* Add padding around the content */
   gap: 1.5rem; /* Space between header and structure */
+  /* height: 100vh; */ /* OLD VALUE */
+  height: 100%;    /* NEW VALUE: Take full height of parent, its content will scroll */
 }
 
 /* --- Styles for Path List Items (Left Pane) --- */

@@ -60,6 +60,7 @@ const LearnAssistant: React.FC<LearnAssistantProps> = ({
   const [isGeneratingCards, setIsGeneratingCards] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const [activeTab, setActiveTab] = useState('chat');
 
   // Initialize with a welcome message
   useEffect(() => {
@@ -123,6 +124,8 @@ const LearnAssistant: React.FC<LearnAssistantProps> = ({
         difficulty_level: difficulty
       };
 
+      console.log('LearnAssistant: Sending generateCards request with:', JSON.stringify(requestData, null, 2));
+
       // Add a system message about generation in progress
       const systemMessage: Message = {
         id: `system-${Date.now()}`,
@@ -155,14 +158,22 @@ const LearnAssistant: React.FC<LearnAssistantProps> = ({
         throw new Error(t('learnAssistant.noCardsGenerated', 'No cards could be generated for this topic.'));
       }
     } catch (error) {
-      console.error('Error generating cards:', error);
+      console.error('Error generating cards (raw error object):', error); 
       
       // Extract a readable error message if possible
       let errorMessage = '';
       if (error instanceof Error) {
         errorMessage = error.message;
+        console.error('Error generating cards (error.message):', error.message);
+        if (typeof error.cause === 'string') { 
+          console.error('Error generating cards (error.cause):', error.cause);
+        } else if (typeof error.cause === 'object' && error.cause !== null) {
+          console.error('Error generating cards (error.cause object):', JSON.stringify(error.cause, null, 2));
+        }
       } else {
         errorMessage = String(error);
+        console.error('Error generating cards (String(error)):', String(error));
+        console.error('Error generating cards (Full non-Error object):', JSON.stringify(error, null, 2));
       }
       
       // Add system error message
@@ -263,7 +274,21 @@ const LearnAssistant: React.FC<LearnAssistantProps> = ({
         setGeneratedCards([]);
       }
     } catch (error) {
-      console.error('Error asking question:', error);
+      console.error('Error asking question (raw error object):', error); 
+      let readableErrorMessage = '';
+      if (error instanceof Error) {
+        readableErrorMessage = error.message;
+        console.error('Error asking question (error.message):', error.message);
+        if (typeof error.cause === 'string') {
+          console.error('Error asking question (error.cause):', error.cause);
+        } else if (typeof error.cause === 'object' && error.cause !== null) {
+          console.error('Error asking question (error.cause object):', JSON.stringify(error.cause, null, 2));
+        }
+      } else {
+        readableErrorMessage = String(error);
+        console.error('Error asking question (String(error)):', String(error));
+        console.error('Error asking question (Full non-Error object):', JSON.stringify(error, null, 2));
+      }
       
       // Add error message
       const errorMessage: Message = {
@@ -355,9 +380,10 @@ const LearnAssistant: React.FC<LearnAssistantProps> = ({
           
           {/* Add quick action buttons to the welcome message */}
           {message.id === 'welcome' && (
-            <div className={styles.quickActions}>
+            <div className={styles.quickActionButtonsContainer}>
               <button 
-                className={styles.actionButton}
+                key="tell-more-action"
+                className={`${styles.quickActionButton} ${styles.orange}`}
                 onClick={() => handleSendPresetMessage('Tell me more about this card')}
               >
                 {t('learnAssistant.tellMeMore', 'Tell me more about this card')}
@@ -365,22 +391,17 @@ const LearnAssistant: React.FC<LearnAssistantProps> = ({
               
               {currentSectionId && (
                 <button 
-                  className={styles.actionButton}
+                  key="explain-section-action"
+                  className={`${styles.quickActionButton} ${styles.orange}`}
                   onClick={() => handleSendPresetMessage(`Tell me about the ${sectionTitle || 'current'} section`)}
                 >
                   {t('learnAssistant.explainSection', 'Explain this section')}
                 </button>
               )}
-              
-              <button 
-                className={styles.actionButton}
-                onClick={() => handleSendPresetMessage('How does this fit into the learning path?')}
-              >
-                {t('learnAssistant.learningPathContext', 'Learning path context')}
-              </button>
 
               <button 
-                className={`${styles.actionButton} ${styles.generateAction}`}
+                key="generate-examples-action"
+                className={`${styles.quickActionButton} ${styles.purple}`}
                 onClick={() => {
                   // Use the topic from the current card or section title if available
                   const topic = courseTitle || sectionTitle || 'this topic';
@@ -392,7 +413,7 @@ const LearnAssistant: React.FC<LearnAssistantProps> = ({
             </div>
           )}
         </div>
-        <div className={styles.messageTime}>
+        <div className={styles.messageTimestamp}>
           {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </div>
       </div>
@@ -464,7 +485,21 @@ const LearnAssistant: React.FC<LearnAssistantProps> = ({
           setGeneratedCards([]);
         }
       } catch (error) {
-        console.error('Error processing preset message:', error);
+        console.error('Error processing preset message (raw error object):', error); 
+        let readablePresetErrorMessage = '';
+        if (error instanceof Error) {
+          readablePresetErrorMessage = error.message;
+          console.error('Error processing preset message (error.message):', error.message);
+          if (typeof error.cause === 'string') {
+            console.error('Error processing preset message (error.cause):', error.cause);
+          } else if (typeof error.cause === 'object' && error.cause !== null) {
+            console.error('Error processing preset message (error.cause object):', JSON.stringify(error.cause, null, 2));
+          }
+        } else {
+          readablePresetErrorMessage = String(error);
+          console.error('Error processing preset message (String(error)):', String(error));
+          console.error('Error processing preset message (Full non-Error object):', JSON.stringify(error, null, 2));
+        }
         
         // Add error message
         const errorMessage: Message = {
@@ -746,100 +781,180 @@ const LearnAssistant: React.FC<LearnAssistantProps> = ({
     }
   };
 
-  return (
-    <div className={styles.learnAssistant}>
-      <div className={styles.header}>
-        <h3>{t('learnAssistant.title', 'Learning Assistant')}</h3>
-        {messages.length > 1 && (
-          <button 
-            className={styles.clearButton} 
-            onClick={clearChat}
-            aria-label={t('learnAssistant.clearChat', 'Clear chat')}
-          >
-            {t('learnAssistant.clearChat', 'Clear chat')}
-          </button>
-        )}
-      </div>
-
-      <div className={styles.content}>
-        <div className={styles.messagesContainer}>
-          {renderMessages()}
-          {isLoading && (
-            <div className={`${styles.message} ${styles.assistant}`}>
-              <div className={styles.loadingIndicator}>
-                <span></span>
-                <span></span>
-                <span></span>
-              </div>
-            </div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
-
-        {relatedCard && (
-          <div className={styles.relatedCard}>
-            <h4>{t('learnAssistant.relatedCard', 'Related Card')}</h4>
-            <div className={styles.cardContent}>
-              <div className={styles.cardHeader}>
-                <div className={styles.cardKeyword}>{relatedCard.keyword}</div>
-                <div className={styles.cardActions}>
-                  {relatedCard.id && (
-                    <button
-                      className={styles.unsaveButton}
-                      onClick={() => handleUnsaveCard(relatedCard.id as number)}
-                      disabled={isUnsaving}
-                      title={t('learnAssistant.unsaveCard', 'Remove from collection')}
-                    >
-                      ✕
-                    </button>
-                  )}
-                  {isAdmin && relatedCard.id && (
-                    <button
-                      className={styles.deleteButton}
-                      onClick={() => setShowConfirmDelete(true)}
-                      disabled={isDeleting}
-                      title={t('learnAssistant.deleteCard', 'Delete from system')}
-                    >
-                      🗑️
-                    </button>
-                  )}
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'chat':
+        return (
+          <>
+            <div className={styles.messagesContainer}>
+              {renderMessages()}
+              {isLoading && (
+                <div className={`${styles.message} ${styles.assistant}`}>
+                  <div className={styles.loadingIndicator}>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                  </div>
                 </div>
-              </div>
-              <div className={styles.cardQuestion}>{relatedCard.question}</div>
-              <div className={styles.cardAnswer}>
-                <h5>{t('learnAssistant.answer', 'Answer')}</h5>
-                <p>
-                  {showFullAnswer 
-                    ? relatedCard.answer 
-                    : truncateText(relatedCard.answer, 100)}
-                </p>
-                {relatedCard.answer.length > 100 && (
-                  <button 
-                    className={styles.toggleAnswerButton}
-                    onClick={() => setShowFullAnswer(!showFullAnswer)}
-                  >
-                    {showFullAnswer 
-                      ? t('learnAssistant.showLess', 'Show less') 
-                      : t('learnAssistant.showMore', 'Show more')}
-                  </button>
-                )}
-              </div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+            <div className={styles.inputContainer}>
+              <textarea
+                ref={inputRef}
+                className={styles.input}
+                value={inputValue}
+                onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
+                placeholder={t('learnAssistant.inputPlaceholder', 'Ask a question about this content...')}
+                disabled={isLoading}
+                rows={1}
+              />
               <button
-                className={styles.addCardButton}
-                onClick={handleAddCard}
-                disabled={!currentSectionId || isLoading}
+                className={styles.sendButton}
+                onClick={handleSendMessage}
+                disabled={isLoading || !inputValue.trim()}
+                aria-label="Send message"
               >
-                {t('learnAssistant.addToStudyMaterials', 'Add to Study Materials')}
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M15.964.686a.5.5 0 0 0-.65-.65L.767 5.855H.766l-.452.18a.5.5 0 0 0-.082.887l.41.26.001.002 4.995 3.178 3.178 4.995.002.002.26.41a.5.5 0 0 0 .886-.083l6-15Zm-1.833 1.89L6.637 10.07l-.215-.338a.5.5 0 0 0-.154-.154l-.338-.215 7.494-7.494 1.178-.471-.47 1.178Z" />
+                </svg>
               </button>
             </div>
-          </div>
-        )}
 
-        {generatedCards.length > 0 && (
+            {relatedCard && (
+              <div className={styles.relatedCard}>
+                <h4>{t('learnAssistant.relatedCard', 'Related Card')}</h4>
+                <div className={styles.cardContent}>
+                  <div className={styles.cardHeader}>
+                    <div className={styles.cardKeyword}>{relatedCard.keyword}</div>
+                    <div className={styles.cardActions}>
+                      {relatedCard.id && (
+                        <button
+                          className={styles.unsaveButton}
+                          onClick={() => handleUnsaveCard(relatedCard.id as number)}
+                          disabled={isUnsaving}
+                          title={t('learnAssistant.unsaveCard', 'Remove from collection')}
+                        >
+                          ✕
+                        </button>
+                      )}
+                      {isAdmin && relatedCard.id && (
+                        <button
+                          className={styles.deleteButton}
+                          onClick={() => setShowConfirmDelete(true)}
+                          disabled={isDeleting}
+                          title={t('learnAssistant.deleteCard', 'Delete from system')}
+                        >
+                          🗑️
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <div className={styles.cardQuestion}>{relatedCard.question}</div>
+                  <div className={styles.cardAnswer}>
+                    <h5>{t('learnAssistant.answer', 'Answer')}</h5>
+                    <p>
+                      {showFullAnswer 
+                        ? relatedCard.answer 
+                        : truncateText(relatedCard.answer, 100)}
+                    </p>
+                    {relatedCard.answer.length > 100 && (
+                      <button 
+                        className={styles.toggleAnswerButton}
+                        onClick={() => setShowFullAnswer(!showFullAnswer)}
+                      >
+                        {showFullAnswer 
+                          ? t('learnAssistant.showLess', 'Show less') 
+                          : t('learnAssistant.showMore', 'Show more')}
+                      </button>
+                    )}
+                  </div>
+                  <button
+                    className={styles.addCardButton}
+                    onClick={handleAddCard}
+                    disabled={!currentSectionId || isLoading}
+                  >
+                    {t('learnAssistant.addToStudyMaterials', 'Add to Study Materials')}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {generatedCards.length > 0 && (
+              <div className={styles.generatedCards}>
+                <h4>{t('learnAssistant.generatedCards', 'Generated Cards')}</h4>
+                {generatedCards.map((card, index) => (
+                  <div key={`chat-tab-generated-${card.id || index}-${index}`} className={styles.cardContent}>
+                    <div className={styles.cardHeader}>
+                      <div className={styles.cardKeyword}>{card.keyword}</div>
+                    </div>
+                    <div className={styles.cardQuestion}>{card.question}</div>
+                    <div className={styles.cardAnswer}>
+                      <h5>{t('learnAssistant.answer', 'Answer')}</h5>
+                      <p>{truncateText(card.answer, 100)}</p>
+                      {card.answer.length > 100 && (
+                        <button 
+                          className={styles.toggleAnswerButton}
+                          onClick={() => {
+                            // Create a copy of the card with expanded answer
+                            setRelatedCard(card);
+                            setShowFullAnswer(true);
+                            // Clear generated cards to focus on the selected one
+                            setGeneratedCards([]);
+                          }}
+                        >
+                          {t('learnAssistant.viewDetails', 'View Details')}
+                        </button>
+                      )}
+                    </div>
+                    <button
+                      className={styles.addCardButton}
+                      onClick={() => {
+                        setRelatedCard(card);
+                        handleAddCard();
+                      }}
+                      disabled={!currentSectionId || isLoading}
+                    >
+                      {t('learnAssistant.addToStudyMaterials', 'Add to Study Materials')}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {showConfirmDelete && relatedCard && relatedCard.id && (
+              <div className={styles.confirmDialog}>
+                <div className={styles.confirmDialogContent}>
+                  <h4>{t('learnAssistant.confirmDelete', 'Confirm Delete')}</h4>
+                  <p>{t('learnAssistant.confirmDeleteMessage', 'Are you sure you want to permanently delete this card?')}</p>
+                  <div className={styles.confirmDialogActions}>
+                    <button 
+                      className={styles.confirmButton}
+                      onClick={() => handleDeleteCard(relatedCard.id as number)}
+                      disabled={isDeleting}
+                    >
+                      {t('learnAssistant.confirmButton', 'Delete')}
+                    </button>
+                    <button 
+                      className={styles.cancelButton}
+                      onClick={() => setShowConfirmDelete(false)}
+                      disabled={isDeleting}
+                    >
+                      {t('learnAssistant.cancelButton', 'Cancel')}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        );
+      case 'cards':
+        return (
           <div className={styles.generatedCards}>
             <h4>{t('learnAssistant.generatedCards', 'Generated Cards')}</h4>
             {generatedCards.map((card, index) => (
-              <div key={`generated-${index}`} className={styles.cardContent}>
+              <div key={`cards-tab-generated-${card.id || index}-${index}`} className={styles.cardContent}>
                 <div className={styles.cardHeader}>
                   <div className={styles.cardKeyword}>{card.keyword}</div>
                 </div>
@@ -875,66 +990,53 @@ const LearnAssistant: React.FC<LearnAssistantProps> = ({
               </div>
             ))}
           </div>
-        )}
+        );
+      default:
+        return null;
+    }
+  };
 
-        {showConfirmDelete && relatedCard && relatedCard.id && (
-          <div className={styles.confirmDialog}>
-            <div className={styles.confirmDialogContent}>
-              <h4>{t('learnAssistant.confirmDelete', 'Confirm Delete')}</h4>
-              <p>{t('learnAssistant.confirmDeleteMessage', 'Are you sure you want to permanently delete this card?')}</p>
-              <div className={styles.confirmDialogActions}>
-                <button 
-                  className={styles.confirmButton}
-                  onClick={() => handleDeleteCard(relatedCard.id as number)}
-                  disabled={isDeleting}
-                >
-                  {t('learnAssistant.confirmButton', 'Delete')}
-                </button>
-                <button 
-                  className={styles.cancelButton}
-                  onClick={() => setShowConfirmDelete(false)}
-                  disabled={isDeleting}
-                >
-                  {t('learnAssistant.cancelButton', 'Cancel')}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div className={styles.inputContainer}>
-          <textarea
-            ref={inputRef}
-            className={styles.input}
-            value={inputValue}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
-            placeholder={t('learnAssistant.askPlaceholder', 'Ask about this topic...')}
-            rows={1}
-            disabled={isLoading}
-          />
-          <button
-            className={styles.sendButton}
-            onClick={handleSendMessage}
-            disabled={!inputValue.trim() || isLoading}
-            aria-label={t('learnAssistant.send', 'Send')}
-          >
-            <svg 
-              xmlns="http://www.w3.org/2000/svg" 
-              width="16" 
-              height="16" 
-              viewBox="0 0 24 24" 
-              fill="none" 
-              stroke="currentColor" 
-              strokeWidth="2" 
-              strokeLinecap="round" 
-              strokeLinejoin="round"
-            >
-              <line x1="22" y1="2" x2="11" y2="13"></line>
-              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-            </svg>
-          </button>
+  return (
+    <div className={styles.assistantContainer}>
+      <div className={styles.header}>
+        <h3 className={styles.title}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
+          </svg>
+          {t('learnAssistant.title', 'Learning Assistant')}
+        </h3>
+        <button 
+          onClick={clearChat}
+          className={styles.clearButton}
+          aria-label={t('learnAssistant.clearChat', 'Clear chat')}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M11.46.146A.5.5 0 0 0 11.107 0H4.893a.5.5 0 0 0-.353.146L.146 4.54A.5.5 0 0 0 0 4.893v6.214a.5.5 0 0 0 .146.353l4.394 4.394a.5.5 0 0 0 .353.146h6.214a.5.5 0 0 0 .353-.146l4.394-4.394a.5.5 0 0 0 .146-.353V4.893a.5.5 0 0 0-.146-.353L11.46.146zm-6.106 4.5L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 1 1 .708-.708z"/>
+          </svg>
+        </button>
+      </div>
+      
+      <div className={styles.tabs}>
+        <div 
+          key="chat-tab"
+          className={`${styles.tab} ${activeTab === 'chat' ? styles.active : ''}`} 
+          onClick={() => setActiveTab('chat')}
+        >
+          {t('learnAssistant.chatTab', 'Chat')}
         </div>
+        <div 
+          key="cards-tab"
+          className={`${styles.tab} ${activeTab === 'cards' ? styles.active : ''}`} 
+          onClick={() => setActiveTab('cards')}
+        >
+          {t('learnAssistant.cardsTab', 'Generated Cards')} 
+          {generatedCards.length > 0 && <span className={styles.cardCount}>{generatedCards.length}</span>}
+        </div>
+      </div>
+      
+      <div className={styles.content}>
+        {/* The dynamic content based on the active tab */}
+        {renderContent()}
       </div>
     </div>
   );

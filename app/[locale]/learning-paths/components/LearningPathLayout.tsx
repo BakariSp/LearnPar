@@ -4,6 +4,8 @@ import LearnAssistant from '../components/LearnAssistant';
 import PathNavigation from './PathNavigation';
 import CardDetailView from './CardDetailView';
 import styles from '../styles';
+import { InternalViewMode } from '../hooks/useLearningPath';
+import { useTranslation } from 'react-i18next';
 
 interface LearningPathLayoutProps {
   isLoading: boolean;
@@ -30,6 +32,13 @@ interface LearningPathLayoutProps {
   statusTag?: ReactNode;
   locale?: string;
   onBack?: () => void;
+  toggleCardCompletion?: (cardId: string | number) => Promise<void>;
+  calculateSectionProgress?: (sectionId: number) => number;
+  calculateCourseProgress?: (courseId: number) => number;
+  calculateLearningPathProgress?: () => number;
+  internalViewMode: InternalViewMode;
+  proceedToNextContent: () => void;
+  resetToCardView: () => void;
 }
 
 export default function LearningPathLayout({
@@ -56,8 +65,16 @@ export default function LearningPathLayout({
   showDeleteButton = true,
   statusTag,
   locale = 'en',
-  onBack
+  onBack,
+  toggleCardCompletion,
+  calculateSectionProgress,
+  calculateCourseProgress,
+  calculateLearningPathProgress,
+  internalViewMode,
+  proceedToNextContent,
+  resetToCardView
 }: LearningPathLayoutProps) {
+  const { t } = useTranslation('common');
   const [isPageEntering, setIsPageEntering] = useState(true);
 
   // Page entrance animation effect
@@ -110,6 +127,105 @@ export default function LearningPathLayout({
     );
   }
 
+  const renderMainContent = () => {
+    if (internalViewMode === 'sectionCompletion') {
+      const currentSection = learningPathData?.courses
+        .flatMap(course => course.sections)
+        .find(section => section.id === currentSectionId);
+      const sectionTitle = currentSection ? currentSection.title : t('learning_path.default_section_title');
+      
+      // Attempt to find the title of the next item
+      let nextItemTitle = t('learning_path.next_part_generic');
+      if (learningPathData && currentSectionId !== null) {
+        let currentCourseIdx = -1;
+        let currentSectionIdxInCourse = -1;
+        for (let i = 0; i < learningPathData.courses.length; i++) {
+          const course = learningPathData.courses[i];
+          const sectionIdx = course.sections.findIndex(s => s.id === currentSectionId);
+          if (sectionIdx !== -1) { currentCourseIdx = i; currentSectionIdxInCourse = sectionIdx; break; }
+        }
+        if (currentCourseIdx !== -1 && currentSectionIdxInCourse !== -1) {
+          const course = learningPathData.courses[currentCourseIdx];
+          if (currentSectionIdxInCourse < course.sections.length - 1) {
+            const nextSection = course.sections[currentSectionIdxInCourse + 1];
+            if (nextSection && nextSection.cards && nextSection.cards.length > 0) {
+              const firstCardWrapper = nextSection.cards[0];
+              nextItemTitle = firstCardWrapper.card?.question || (firstCardWrapper as CardResponse).question || nextSection.title;
+            } else if (nextSection) {
+              nextItemTitle = nextSection.title;
+            }
+          } else if (currentCourseIdx < learningPathData.courses.length - 1) {
+            const nextCourse = learningPathData.courses[currentCourseIdx + 1];
+            const firstSectionOfNextCourse = nextCourse.sections?.find(s => s.cards && s.cards.length > 0) || nextCourse.sections?.[0];
+            if (firstSectionOfNextCourse) {
+              if (firstSectionOfNextCourse.cards && firstSectionOfNextCourse.cards.length > 0) {
+                const firstCardWrapper = firstSectionOfNextCourse.cards[0];
+                nextItemTitle = firstCardWrapper.card?.question || (firstCardWrapper as CardResponse).question || firstSectionOfNextCourse.title;
+              } else {
+                nextItemTitle = firstSectionOfNextCourse.title;
+              }
+            } else {
+              nextItemTitle = nextCourse.title;
+            }
+          }
+        }
+      }
+
+      return (
+        <div className={styles.detailPane}>
+          <div className={styles.completionContainer}>
+            <h2 className={styles.completionTitle}>{t('learning_path.section_completed_title')}</h2>
+            <p className={styles.completionMessage}>
+              {t('learning_path.section_completed_message_short', { sectionTitle })}
+            </p>
+            <p className={styles.completionMessage}>{t('learning_path.whats_next', { nextItemTitle })}</p>
+            <button onClick={proceedToNextContent} className={styles.proceedButton}>
+              {t('learning_path.proceed_to_next')}
+            </button>
+            <button onClick={resetToCardView} className={styles.backButton} style={{ marginTop: '0.5rem' }}>
+              {t('learning_path.back_to_path_view')}
+            </button>
+          </div>
+        </div>
+      );
+    } else if (internalViewMode === 'learningPathCompletion') {
+      return (
+        <div className={styles.detailPane}>
+          <div className={styles.completionContainer}>
+            <h2 className={styles.completionTitle}>{t('learning_path.path_completed_title')}</h2>
+            <p className={styles.completionMessage}>
+              {t('learning_path.path_completed_message', { pathTitle: learningPathData?.title || '' })}
+            </p>
+            {onBack && (
+              <button onClick={onBack} className={styles.proceedButton}>
+                {t('learning_path.back_to_dashboard')}
+              </button>
+            )}
+            <button onClick={resetToCardView} className={styles.backButton} style={{ marginTop: '0.5rem' }}>
+              {t('learning_path.review_path')}
+            </button>
+          </div>
+        </div>
+      );
+    } else {
+      // Default: Card view (internalViewMode === 'card')
+      return (
+        <CardDetailView
+          selectedCard={selectedCard}
+          currentSectionCards={currentSectionCards}
+          currentCardIndex={currentCardIndex}
+          navigateToPreviousCard={navigateToPreviousCard}
+          navigateToNextCard={navigateToNextCard}
+          hasPreviousCard={hasPreviousCard}
+          hasNextCard={hasNextCard}
+          showDeleteButton={showDeleteButton}
+          toggleCardCompletion={toggleCardCompletion}
+          currentSectionId={currentSectionId}
+        />
+      );
+    }
+  };
+
   return (
     <div className={`${styles.pageContainer} ${isPageEntering ? styles.fadeIn : ''}`}>
       {/* Left navigation pane */}
@@ -127,19 +243,13 @@ export default function LearningPathLayout({
         statusTag={statusTag}
         locale={locale}
         onAddSuccess={onAddSuccess}
+        calculateSectionProgress={calculateSectionProgress}
+        calculateCourseProgress={calculateCourseProgress}
+        calculateLearningPathProgress={calculateLearningPathProgress}
       />
 
-      {/* Main content area */}
-      <CardDetailView
-        selectedCard={selectedCard}
-        currentSectionCards={currentSectionCards}
-        currentCardIndex={currentCardIndex}
-        navigateToPreviousCard={navigateToPreviousCard}
-        navigateToNextCard={navigateToNextCard}
-        hasPreviousCard={hasPreviousCard}
-        hasNextCard={hasNextCard}
-        showDeleteButton={showDeleteButton}
-      />
+      {/* Main content area - now calls renderMainContent */}
+      {renderMainContent()}
 
       {/* Learning Assistant */}
       <div className={styles.assistantContainer}>

@@ -60,6 +60,12 @@ export interface CardResponse {
   tags: string[];
   created_at: string;
   updated_at: string;
+  is_completed?: boolean; // Track card completion status
+  isToggling?: boolean; // Track if a toggle operation is in progress
+  // Support for nested card structure
+  card?: CardResponse; // Self-referential to support nested structure
+  order_index?: number; // Support order_index from wrapper
+  is_custom?: boolean; // Support is_custom from wrapper
 }
 
 export interface SectionResponse {
@@ -71,6 +77,8 @@ export interface SectionResponse {
   cards: CardResponse[];
   created_at: string;
   updated_at: string;
+  progress?: number; // Track section progress percentage
+  section_template_id?: number; // Added to support differentiating user section ID from template ID
 }
 
 export interface CourseResponse {
@@ -81,6 +89,7 @@ export interface CourseResponse {
   sections: SectionResponse[];
   created_at: string;
   updated_at: string;
+  progress?: number; // Track course progress percentage
 }
 
 // Interface for the response of the /full endpoint
@@ -97,6 +106,7 @@ export interface FullLearningPathResponse {
   updated_at: string;
   is_admin?: boolean; // Optional property to indicate if the current user is an admin
   user_token?: string; // Optional property for the user's token
+  progress?: number; // Track learning path progress percentage
 }
 
 // --- Deprecated Interface (No longer returned by initial chat generation) ---
@@ -153,6 +163,46 @@ export interface UserLearningPathResponseItem {
   learning_path: NestedLearningPath; // The actual learning path details
 }
 
+// Interface for a single user learning path response
+export interface UserLearningPathResponse {
+  learning_path_id: number;
+  id: number;
+  user_id: number;
+  progress: number;
+  start_date: string | null;
+  completed_at: string | null;
+  learning_path: {
+    title: string;
+    description: string;
+    category: string;
+    difficulty_level: string;
+    estimated_days: number;
+    is_template: boolean;
+    id: number;
+    sections: any[];
+    created_at: string;
+    updated_at: string;
+    courses: {
+      id: number;
+      title: string;
+      description: string;
+      progress: number;
+      completed_at: string | null;
+      sections: {
+        id: number;
+        title: string;
+        description: string;
+        progress: number;
+        cards: {
+          id: number;
+          title: string;
+          is_completed: boolean;
+        }[];
+      }[];
+    }[];
+  };
+}
+
 // Interface for the courses structure sent from the chat page
 export interface ChatCourseStructure {
   id?: string | number; // Allow optional ID
@@ -201,7 +251,7 @@ export interface LearningPathBasicInfo {
 
 // Fetch details for a single learning path (Basic)
 export const apiGetLearningPathById = async (id: number): Promise<LearningPath | null> => {
-  const response = await apiClient(`/api/learning-paths/learning-paths/${id}`);
+  const response = await apiClient(`/api/users/me/learning-paths/${id}`);
   if (response && response.ok) {
     return response.json();
   }
@@ -231,7 +281,7 @@ export const apiGetCourseById = async (id: number): Promise<Course | null> => {
 
 // Fetch the FULL learning path structure (Used after polling completes)
 export const apiGetFullLearningPath = async (id: number): Promise<FullLearningPathResponse | null> => {
-  const response = await apiClient(`/api/learning-paths/${id}`);
+  const response = await apiClient(`/api/users/me/learning-paths/${id}`);
   if (response && response.ok) {
     return response.json();
   }
@@ -630,17 +680,58 @@ export const apiDeleteUserLearningPath = async (learningPathId: number): Promise
 // Fetch a section with its cards
 export const apiGetSectionWithCards = async (sectionId: number): Promise<SectionResponse> => {
   try {
-    const response = await apiClient(`/api/sections/${sectionId}`);
-    if (response && response.ok) {
-      return response.json();
+    // Debug logging before making the API call
+    console.log(`DEBUG - apiGetSectionWithCards STARTED for section ${sectionId}`, {
+      sectionId,
+      timestamp: new Date().toISOString(),
+      callStack: new Error().stack // This will capture the call stack to see where this function is being called from
+    });
+    
+    // Updated to use the user-specific endpoint that includes completion status
+    console.log(`DEBUG - Making GET request to: /api/users/me/sections/${sectionId}`);
+    const response = await apiClient(`/api/users/me/sections/${sectionId}`);
+    
+    // Add detailed logging to help diagnose issues
+    console.log(`DEBUG - GET /api/users/me/sections/${sectionId} response:`, {
+      status: response?.status,
+      ok: response?.ok,
+      statusText: response?.statusText,
+      timestamp: new Date().toISOString()
+    });
+    
+    if (!response) {
+      console.error(`No response received from /api/users/me/sections/${sectionId}`);
+      throw new Error(`Failed to get section: No response received`);
     }
-    console.error(`Failed to fetch section ${sectionId} with cards`);
-    if (response && response.status === 404) {
+    
+    if (response.ok) {
+      const data = await response.json();
+      
+      // Log sample card structure for debugging
+      if (data.cards && data.cards.length > 0) {
+        console.log(`DEBUG - Section ${sectionId} data received:`, { 
+          id: data.id,
+          title: data.title,
+          cardCount: data.cards.length,
+          cardFormat: data.cards[0].card ? 'Nested card format' : 'Direct card format',
+          firstCardId: data.cards[0].card ? data.cards[0].card.id : data.cards[0].id
+        });
+      } else {
+        console.log(`DEBUG - Section ${sectionId} has no cards`);
+      }
+      
+      return data;
+    }
+    
+    if (response.status === 404) {
+      console.error(`Section with ID ${sectionId} not found.`);
       throw new Error(`Section with ID ${sectionId} not found.`);
     }
-    throw new Error(`Failed to fetch section details (status: ${response?.status}).`);
+    
+    console.error(`Failed to fetch section ${sectionId} with status: ${response.status} ${response.statusText}`);
+    throw new Error(`Failed to fetch section details (status: ${response.status}).`);
   } catch (error) {
-    console.error("Error in apiGetSectionWithCards:", error);
+    console.error(`Error in apiGetSectionWithCards for section ${sectionId}:`, error);
     throw error;
   }
 };
@@ -876,6 +967,242 @@ export const apiAddToMyLearningPaths = async (learningPathId: number): Promise<b
     return true;
   } catch (error) {
     console.error("🔍 DEBUG API - Error in apiAddToMyLearningPaths:", error);
+    throw error;
+  }
+};
+
+// Progress tracking API functions
+export const apiUpdateLearningPathProgress = async (pathId: number, progress: number): Promise<Response | null> => {
+  try {
+    // Add a small comment noting this is primarily for admin use now
+    // Add a small delay to prevent too many rapid requests
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    const response = await apiClient(`/api/users/me/learning-paths/${pathId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getToken()}`
+      },
+      body: JSON.stringify({ progress })
+    });
+    
+    return response;
+  } catch (error) {
+    // Log errors but don't throw, to prevent cascading failures
+    console.error("Failed to update learning path progress:", error);
+    return null;
+  }
+};
+
+export const apiUpdateCourseProgress = async (courseId: number, progress: number): Promise<Response | null> => {
+  try {
+    // Add a comment noting this is primarily for admin use now
+    // Add a small delay to prevent too many rapid requests
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    const response = await apiClient(`/api/users/me/courses/${courseId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getToken()}`
+      },
+      body: JSON.stringify({ progress })
+    });
+    
+    return response;
+  } catch (error) {
+    console.error("Failed to update course progress:", error);
+    return null;
+  }
+};
+
+export const apiUpdateSectionProgress = async (sectionId: number, progress: number): Promise<Response | null> => {
+  try {
+    // Add a comment noting this is primarily for admin use now
+    // Add a small delay to prevent too many rapid requests
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    const response = await apiClient(`/api/users/me/sections/${sectionId}/progress?progress=${progress}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getToken()}`
+      }
+    });
+    
+    return response;
+  } catch (error) {
+    // Log errors but don't throw, to prevent cascading failures
+    console.error("Failed to update section progress:", error);
+    return null;
+  }
+};
+
+export const apiUpdateCardCompletion = async (cardId: number, isCompleted: boolean): Promise<Response | null> => {
+  try {
+    // THIS FUNCTION IS FOR GENERAL CARD UPDATES.
+    // For updating card completion within an active learning path context (which should trigger progress roll-up),
+    // PLEASE USE apiUpdateCardCompletionInSection.
+    const response = await apiClient(`/api/users/me/cards/${cardId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getToken()}`
+      },
+      body: JSON.stringify({ is_completed: isCompleted })
+    });
+    
+    if (!response || !response.ok) {
+      console.error(`Failed to update card completion: ${response?.status} ${response?.statusText}`);
+    }
+    
+    return response;
+  } catch (error) {
+    console.error("Failed to update card completion:", error);
+    return null;
+  }
+};
+
+// Add new function for section-based card completion
+export const apiUpdateCardCompletionInSection = async (learningPathId: number, sectionId: number, cardId: number, isCompleted: boolean): Promise<Response | null> => {
+  try {
+    // Add debug logging before making the API call
+    console.log(`DEBUG - apiUpdateCardCompletionInSection STARTED:`, {
+      learningPathId, // Added learningPathId to log
+      sectionId,
+      cardId,
+      isCompleted,
+      timestamp: new Date().toISOString(),
+      callStack: new Error().stack 
+    });
+    
+    // Ensure learningPathId is provided
+    if (!learningPathId || isNaN(learningPathId)) {
+      console.error('Invalid learningPathId provided to apiUpdateCardCompletionInSection:', learningPathId);
+      // Optionally, throw an error or return a specific error response
+      // For now, returning null as per original function's error handling style
+      return null;
+    }
+    
+    // Using the new section-context path-based endpoint format
+    // const endpoint = `/api/users/me/learning-paths/${pathId}/sections/${sectionId}/cards/${cardId}?is_completed=${isCompleted}`;
+    // Updated endpoint to use learningPathId from parameters and send is_completed in body
+    const endpoint = `/api/users/me/learning-paths/${learningPathId}/sections/${sectionId}/cards/${cardId}`;
+    console.log(`DEBUG - Making PUT request to: ${endpoint} with body:`, { is_completed: isCompleted });
+    
+    const response = await apiClient(endpoint, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getToken()}`
+      },
+      body: JSON.stringify({ is_completed: isCompleted }) // Send is_completed in the body
+    });
+    
+    if (!response || !response.ok) {
+      console.error(`Failed to update card completion in section: ${response?.status} ${response?.statusText}`);
+    } else {
+      console.log(`DEBUG - Successfully updated card ${cardId} in section ${sectionId} of path ${learningPathId} completion to ${isCompleted}`);
+    }
+    
+    return response;
+  } catch (error) {
+    console.error("Failed to update card completion in section:", error);
+    return null;
+  }
+};
+
+// Add function to check for achievements after card completion
+export const apiCheckAchievements = async (): Promise<any[] | null> => {
+  try {
+    const response = await apiClient('/api/achievements/users/me/check-achievements', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getToken()}`
+      }
+    });
+    
+    if (!response || !response.ok) {
+      console.error('Failed to check for achievements');
+      return [];
+    }
+    
+    return response.json();
+  } catch (error) {
+    console.error("Error checking for achievements:", error);
+    return [];
+  }
+};
+
+// Fetch user-specific learning path with progress information
+export const apiGetUserLearningPath = async (id: number): Promise<UserLearningPathResponse | null> => {
+  try {
+    const response = await apiClient(`/api/users/me/learning-paths/${id}`);
+    
+    // Add detailed logging to help diagnose issues
+    console.log(`GET /api/users/me/learning-paths/${id} response:`, {
+      status: response?.status,
+      ok: response?.ok,
+      statusText: response?.statusText
+    });
+    
+    if (!response) {
+      console.error(`No response received from /api/users/me/learning-paths/${id}`);
+      return null;
+    }
+    
+    if (response.ok) {
+      const data = await response.json();
+      return data;
+    }
+    
+    if (response.status === 404) {
+      console.error(`Learning Path with ID ${id} not found.`);
+      throw new Error(`Learning Path with ID ${id} not found.`);
+    }
+    
+    console.error(`Failed to fetch user learning path ${id} with status: ${response.status} ${response.statusText}`);
+    throw new Error(`Failed to fetch user learning path details (status: ${response.status}).`);
+  } catch (error) {
+    console.error(`Error in apiGetUserLearningPath for path ${id}:`, error);
+    throw error;
+  }
+};
+
+// Fetch FULL user-specific learning path with complete nested structure
+export const apiGetFullUserLearningPath = async (id: number): Promise<FullLearningPathResponse | null> => {
+  try {
+    // Use the /full endpoint as documented in learning_path.md
+    const response = await apiClient(`/api/users/me/learning-paths/${id}/full`);
+    
+    // Add detailed logging to help diagnose issues
+    console.log(`GET /api/users/me/learning-paths/${id}/full response:`, {
+      status: response?.status,
+      ok: response?.ok,
+      statusText: response?.statusText
+    });
+    
+    if (!response) {
+      console.error(`No response received from /api/users/me/learning-paths/${id}/full`);
+      return null;
+    }
+    
+    if (response.ok) {
+      const data = await response.json();
+      return data;
+    }
+    
+    if (response.status === 404) {
+      console.error(`Learning Path with ID ${id} not found.`);
+      throw new Error(`Learning Path with ID ${id} not found.`);
+    }
+    
+    console.error(`Failed to fetch full user learning path ${id} with status: ${response.status} ${response.statusText}`);
+    throw new Error(`Failed to fetch full user learning path details (status: ${response.status}).`);
+  } catch (error) {
+    console.error(`Error in apiGetFullUserLearningPath for path ${id}:`, error);
     throw error;
   }
 }; 

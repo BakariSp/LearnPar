@@ -1,0 +1,115 @@
+/* Global responsive fixes */
+
+/* Improve content fitting on small screens */
+@media (max-width: 1400px) {
+  .learning-path-content {
+    max-width: 100%;
+    padding: 0.75rem;
+  }
+}
+
+/* Adjustments for medium screens */
+@media (max-width: 1200px) {
+  .learning-path-content {
+    padding: 0.5rem;
+  }
+  
+  /* Reduce font sizes slightly */
+  .card-title {
+    font-size: 1.5rem !important;
+  }
+  
+  .section-title {
+    font-size: 1rem !important;
+  }
+}
+
+/* Small screens / tablets */
+@media (max-width: 768px) {
+  /* Force layout to be more vertical */
+  .learning-path-container {
+    flex-direction: column !important;
+    height: auto !important;
+  }
+  
+  /* Ensure sidebar is collapsed on mobile */
+  .sidebar-collapsed {
+    width: 60px !important;
+  }
+  
+  /* Make content area take full width */
+  .content-area {
+    width: 100% !important;
+    margin-left: 0 !important;
+    padding: 0.5rem !important;
+  }
+  
+  /* Reduce padding and spacing */
+  .card-content {
+    padding: 0.75rem !important;
+  }
+  
+  /* Stack navigation buttons */
+  .card-navigation {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  /* Adjust font sizes */
+  .card-title {
+    font-size: 1.25rem !important;
+  }
+  
+  .card-content p {
+    font-size: 0.9rem !important;
+  }
+}
+
+/* Extra small screens / mobile */
+@media (max-width: 576px) {
+  /* Further reduce padding */
+  .learning-path-content {
+    padding: 0.25rem !important;
+  }
+  
+  /* Smaller font sizes */
+  .card-title {
+    font-size: 1.1rem !important;
+  }
+  
+  .card-content p {
+    font-size: 0.85rem !important;
+  }
+  
+  /* Compact buttons */
+  .navigation-button {
+    padding: 0.5rem 0.75rem !important;
+    font-size: 0.8rem !important;
+  }
+}
+
+/* Override sidebar styles when on learning path pages */
+body.on-learning-path-page .sidebar {
+  width: 80px !important;
+}
+
+body.on-learning-path-page .sidebar .logo-text,
+body.on-learning-path-page .sidebar .nav-text,
+body.on-learning-path-page .sidebar .admin-info,
+body.on-learning-path-page .sidebar .logout-text {
+  display: none !important;
+}
+
+/* On small screens, adjust spacing for content to breathe */
+@media (max-width: 992px) {
+  .card-main-content, 
+  .detail-content {
+    max-height: none !important;
+    height: auto !important;
+  }
+  
+  .assistant-container {
+    height: auto !important;
+    max-height: 400px !important;
+  }
+} 

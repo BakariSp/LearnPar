@@ -67,6 +67,9 @@ export type GenerateCardsResponse = RelatedCard[];
 export const askQuestion = async (request: AskQuestionRequest): Promise<AskQuestionResponse> => {
   const response = await apiClient('/api/learning-assistant/ask', {
     method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify(request),
   });
 
@@ -77,19 +80,28 @@ export const askQuestion = async (request: AskQuestionRequest): Promise<AskQuest
   if (!response.ok) {
     const errorStatus = response.status;
     let errorMessage = `Failed to get response from learning assistant (${errorStatus})`;
-    
+    let errorCause: any = null; // To store the parsed error body
+
     try {
       // Try to get more detailed error information
       const errorData = await response.json();
+      errorCause = errorData; // Store the full error data
       if (errorData && errorData.detail) {
         errorMessage = `API Error: ${errorData.detail}`;
+      } else if (typeof errorData === 'object' && errorData !== null) {
+        // If no 'detail' but we have an object, stringify it for the main message
+        errorMessage = `API Error (${errorStatus}): ${JSON.stringify(errorData)}`;
       }
     } catch (e) {
       // Unable to parse JSON response, use default error message
-      console.error('Could not parse error response as JSON');
+      errorCause = await response.text().catch(() => 'Could not read error response text.');
+      console.error('Could not parse error response as JSON. Raw text:', errorCause);
     }
     
-    throw new Error(errorMessage);
+    // Throw a new error, attaching the cause
+    const errorToThrow = new Error(errorMessage);
+    (errorToThrow as any).cause = errorCause;
+    throw errorToThrow;
   }
 
   return await response.json();
@@ -135,6 +147,9 @@ export const addCard = async (request: AddCardRequest): Promise<AddCardResponse>
 export const generateCards = async (request: GenerateCardsRequest): Promise<GenerateCardsResponse> => {
   const response = await apiClient('/api/learning-assistant/generate-cards', {
     method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify(request),
   });
 
@@ -145,19 +160,28 @@ export const generateCards = async (request: GenerateCardsRequest): Promise<Gene
   if (!response.ok) {
     const errorStatus = response.status;
     let errorMessage = `Failed to generate cards (${errorStatus})`;
+    let errorCause: any = null; // To store the parsed error body
     
     try {
       // Try to get more detailed error information
       const errorData = await response.json();
+      errorCause = errorData; // Store the full error data
       if (errorData && errorData.detail) {
         errorMessage = `API Error: ${errorData.detail}`;
+      } else if (typeof errorData === 'object' && errorData !== null) {
+        // If no 'detail' but we have an object, stringify it for the main message
+        errorMessage = `API Error (${errorStatus}): ${JSON.stringify(errorData)}`;
       }
     } catch (e) {
       // Unable to parse JSON response, use default error message
-      console.error('Could not parse error response as JSON');
+      errorCause = await response.text().catch(() => 'Could not read error response text.');
+      console.error('Could not parse error response as JSON. Raw text:', errorCause);
     }
     
-    throw new Error(errorMessage);
+    // Throw a new error, attaching the cause
+    const errorToThrow = new Error(errorMessage);
+    (errorToThrow as any).cause = errorCause;
+    throw errorToThrow;
   }
 
   return await response.json();

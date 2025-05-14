@@ -3,17 +3,17 @@ import { useTranslation } from 'react-i18next';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useIsClient } from '@/hooks/useIsClient';
 import React, { useState, useEffect, useCallback, useRef, JSX } from 'react';
-import { useRouter } from 'next/navigation'; // Keep if needed elsewhere, remove if not
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   apiGetUserLearningPaths,
   UserLearningPathResponseItem, // Import the new type
   apiDeleteUserLearningPath, // Import the new delete function
   // --- Imports from learning-path-detail ---
-  apiGetFullLearningPath,
   apiGetLatestTaskForLearningPath,
   apiGetSectionWithCards,
   FullLearningPathResponse,
+  UserLearningPathResponse, // <<< ADDED IMPORT
   TaskStatusResponse,
   CourseResponse, // Keep if used directly, otherwise FullLearningPathResponse might suffice
   SectionResponse, // Keep if used directly
@@ -23,6 +23,8 @@ import {
   CompletionInfo, // Ensure this type is defined or imported
   apiGetUserLearningPathsBasic, // Import the basic fetch function
   LearningPathBasicInfo,        // Import the basic info type
+  apiGetUserLearningPath,
+  apiGetFullLearningPath,
 } from '@/services/api'; // Adjust path if needed
 import styles from './my-paths.module.css'; // Create this CSS module
 import { useNotificationContext } from '@/context/NotificationContext'; // Import the context hook
@@ -142,46 +144,274 @@ export default function MyLearningPathsPage() {
     let fetchedPathData: FullLearningPathResponse | null = null;
 
     try {
-      // 1. Fetch the FULL learning path structure
-      fetchedPathData = await apiGetFullLearningPath(pathId);
-      setLearningPathData(fetchedPathData);
+      // 1. Fetch the FULL learning path structure.
+      // Note: apiGetFullLearningPath currently returns a UserLearningPathResponse structure.
+      const rawPathDataFromApi = await apiGetFullLearningPath(pathId) as unknown as UserLearningPathResponse | null;
+
+      if (rawPathDataFromApi && rawPathDataFromApi.learning_path) {
+        const lp = rawPathDataFromApi.learning_path; // Alias for cleaner access
+        fetchedPathData = {
+          id: lp.id,
+          title: lp.title,
+          description: lp.description,
+          category: lp.category,
+          difficulty_level: lp.difficulty_level,
+          estimated_days: lp.estimated_days,
+          courses: Array.isArray(lp.courses) ? 
+            lp.courses.map(course => {
+              // Map course from UserLearningPathResponse.learning_path.courses to CourseResponse
+              return {
+                id: course.id,
+                title: course.title,
+                description: course.description,
+                progress: course.progress || 0,
+                estimated_days: 0, // Default, as not in UserLearningPathResponse.course
+                created_at: new Date().toISOString(), // Default
+                updated_at: new Date().toISOString(), // Default
+                sections: Array.isArray(course.sections) ? course.sections.map(section => {
+                  // Map section from UserLearningPathResponse.learning_path.courses.sections to SectionResponse
+                  return {
+                    id: section.id,
+                    title: section.title,
+                    description: section.description,
+                    order_index: 0, // Default, as not in UserLearningPathResponse.section
+                    estimated_days: 0, // Default
+                    progress: section.progress || 0,
+                    created_at: new Date().toISOString(), // Default
+                    updated_at: new Date().toISOString(), // Default
+                    cards: Array.isArray(section.cards) ? section.cards.map(card => {
+                      // Map card from UserLearningPathResponse.learning_path.courses.sections.cards to CardResponse
+                      return {
+                        id: card.id,
+                        keyword: card.title, // card.title from UserLearningPathResponse is used as keyword
+                        question: '', // Default, to be filled by merge or specific fetch later
+                        answer: '',     // Default
+                        explanation: '', // Default
+                        resources: {}, // Default
+                        level: 'beginner', // Default
+                        tags: [], // Default
+                        created_at: new Date().toISOString(), // Default
+                        updated_at: new Date().toISOString(), // Default
+                        is_completed: card.is_completed || false,
+                      };
+                    }) : [],
+                  };
+                }) : [],
+              };
+            }) : [],
+          sections: Array.isArray(lp.sections) ? lp.sections.map(section => {
+            // This maps the top-level sections if any, similar to course sections
+            return {
+              id: section.id,
+              title: section.title,
+              description: section.description,
+              order_index: 0, // Default
+              estimated_days: 0, // Default
+              progress: section.progress || 0,
+              created_at: new Date().toISOString(), // Default
+              updated_at: new Date().toISOString(), // Default
+              cards: Array.isArray(section.cards) ? section.cards.map((card: { id: number; title: string; is_completed: boolean; question?: string; answer?: string; explanation?: string; resources?: any; level?: string; tags?: string[], created_at?: string; updated_at?: string }) => ({
+                id: card.id,
+                keyword: card.title, 
+                question: card.question || '', 
+                answer: card.answer || '', 
+                explanation: card.explanation || '', 
+                resources: card.resources || {}, 
+                level: card.level || 'beginner', 
+                tags: card.tags || [], 
+                created_at: card.created_at || new Date().toISOString(), 
+                updated_at: card.updated_at || new Date().toISOString(),
+                is_completed: card.is_completed || false,
+              })) : [],
+            };
+          }) : [],
+          created_at: lp.created_at,
+          updated_at: lp.updated_at,
+        };
+        console.log("Transformed data for fetchedPathData from apiGetFullLearningPath:", 
+          JSON.stringify({
+            id: fetchedPathData?.id,
+            title: fetchedPathData?.title,
+            coursesLength: fetchedPathData?.courses?.length,
+            firstCourse: fetchedPathData?.courses?.[0] ? {
+              id: fetchedPathData.courses[0].id,
+              title: fetchedPathData.courses[0].title,
+              sectionsLength: fetchedPathData.courses[0].sections?.length,
+            } : null
+          }, null, 2)
+        );
+      } else {
+        console.error(`Failed to get valid learning_path object from apiGetFullLearningPath for pathId: ${pathId}. Response:`, rawPathDataFromApi);
+        setDetailError(`Failed to load initial path structure for path ${pathId}. The response might be malformed.`);
+        setIsLoadingDetails(false);
+        return; // Exit if primary data fetch failed or was malformed
+      }
+      
+      // Enhance the fetchedPathData by adding sections directly from user-specific data
+      // At this point, fetchedPathData should have a valid .courses array.
+      try {
+        const userPathData = await apiGetUserLearningPath(pathId); // This is UserLearningPathResponse
+        console.log("Raw user learning path data from apiGetUserLearningPath:", 
+          JSON.stringify({
+            id: userPathData?.learning_path?.id,
+            title: userPathData?.learning_path?.title,
+            coursesLength: userPathData?.learning_path?.courses?.length,
+            firstCourse: userPathData?.learning_path?.courses?.[0] ? {
+              id: userPathData.learning_path.courses[0].id,
+              title: userPathData.learning_path.courses[0].title,
+              sectionsLength: userPathData.learning_path.courses[0].sections?.length,
+            } : null
+          }, null, 2)
+        );
+        
+        // Check if fetchedPathData and its courses are valid before proceeding with merge
+        if (fetchedPathData && Array.isArray(fetchedPathData.courses) &&
+            userPathData && userPathData.learning_path && Array.isArray(userPathData.learning_path.courses)) {
+          
+          fetchedPathData.courses = fetchedPathData.courses.map(course => { 
+            const userCourse = userPathData.learning_path.courses.find(c => c.id === course.id);
+            
+            const originalSectionsOfThisCourse = Array.isArray(course.sections) ? course.sections : [];
+
+            if (userCourse && Array.isArray(userCourse.sections)) {
+              console.log(`Found matching userCourse ${userCourse.id} with ${userCourse.sections.length} sections for course ${course.id}`);
+              
+              course.sections = userCourse.sections.map(userSection => { 
+                const originalSection = originalSectionsOfThisCourse.find(s => s.id === userSection.id);
+                const cardsFromUserSection = Array.isArray(userSection.cards) ? userSection.cards : [];
+                
+                const mappedCards = cardsFromUserSection.map(userCard => { 
+                  const cardsFromOriginalSection = (originalSection && Array.isArray(originalSection.cards)) ? originalSection.cards : [];
+                  const originalCard = cardsFromOriginalSection.find(c => c.id === userCard.id);
+                  return {
+                    id: userCard.id,
+                    keyword: userCard.title, // Assuming userCard.title is the keyword
+                    question: originalCard?.question ?? '',
+                    answer: originalCard?.answer ?? '',
+                    explanation: originalCard?.explanation ?? '',
+                    resources: originalCard?.resources ?? {},
+                    level: originalCard?.level ?? 'beginner',
+                    tags: originalCard?.tags ?? [],
+                    created_at: originalCard?.created_at ?? '', 
+                    updated_at: originalCard?.updated_at ?? '', 
+                    is_completed: userCard.is_completed || false, 
+                  };
+                });
+                
+                return {
+                  id: userSection.id,
+                  title: userSection.title,
+                  description: userSection.description || (originalSection?.description || ''),
+                  order_index: originalSection?.order_index ?? 0, 
+                  estimated_days: originalSection?.estimated_days ?? 1, 
+                  cards: mappedCards,
+                  created_at: originalSection?.created_at ?? '', 
+                  updated_at: originalSection?.updated_at ?? '', 
+                  progress: userSection.progress || 0 
+                };
+              });
+              
+              userCourse.sections.forEach(userSection => { 
+                const cardsToConsiderForCache = Array.isArray(userSection.cards) ? userSection.cards : [];
+                if (cardsToConsiderForCache.length > 0) {
+                  const populatedSection = course.sections.find(s => s.id === userSection.id);
+                  if (populatedSection && Array.isArray(populatedSection.cards) && populatedSection.cards.length > 0) { 
+                    setSectionCardsCache(prev => ({ ...prev, [userSection.id]: populatedSection.cards }));
+                    setSectionReadyStatus(prev => ({ ...prev, [userSection.id]: true }));
+                  }
+                }
+              });
+            } else if (userCourse) {
+              console.warn(`User course ${userCourse.id} (for course ${course.id}) has 'sections' data that is not an array or is missing. Using sections from fetched path data.`);
+              course.sections = originalSectionsOfThisCourse;
+            } else {
+              console.warn(`No matching user course data found for course ${course.id}, or user course sections problematic. Using sections from fetched path data.`);
+              course.sections = originalSectionsOfThisCourse;
+            }
+            return course;
+          });
+        } else {
+          console.warn("Course data merging was skipped. Conditions not met. Details:", {
+            fetchedPathDataExists: !!fetchedPathData,
+            fetchedPathDataCoursesIsArray: fetchedPathData ? Array.isArray(fetchedPathData.courses) : 'N/A',
+            userPathDataExists: !!userPathData,
+            userPathLearningPathExists: userPathData ? !!userPathData.learning_path : 'N/A',
+            userPathLearningPathCoursesIsArray: userPathData && userPathData.learning_path ? Array.isArray(userPathData.learning_path.courses) : 'N/A',
+          });
+          // If fetchedPathData.courses is still not an array here, it means the initial transformation failed or was incomplete.
+          // The earlier check `if (rawPathDataFromApi && rawPathDataFromApi.learning_path)` and the assignment to `fetchedPathData.courses`
+          // should ensure `fetchedPathData.courses` is an array.
+          if (fetchedPathData && !Array.isArray(fetchedPathData.courses)) {
+             console.log(`Corrective action: fetchedPathData.courses was not an array (type: ${typeof fetchedPathData.courses}). Initializing to [].`);
+             fetchedPathData.courses = [];
+          }
+        }
+      } catch (err) {
+        console.error("Could not fetch or merge user-specific learning path data:", err);
+        // Potentially set an error state here or allow to proceed with partially fetched data if desired.
+      }
+      
+      setLearningPathData(fetchedPathData); // This should now have the correct title and courses structure
+      
+      console.log("DEBUG: Enhanced learning path data (after potential merge):", {
+        id: fetchedPathData?.id,
+        title: fetchedPathData?.title, // Should be defined now
+        hasCoursesArray: Array.isArray(fetchedPathData?.courses),
+        coursesLength: fetchedPathData?.courses?.length, // Should reflect actual courses
+        courses: fetchedPathData?.courses?.map(course => ({
+          id: course.id,
+          title: course.title,
+          hasSectionsArray: Array.isArray(course.sections),
+          sectionsLength: course.sections?.length,
+          sectionTitles: course.sections?.map(s => s.title)
+        }))
+      });
 
       // 2. Fetch the latest task status
-      if (fetchedPathData) {
+      if (fetchedPathData) { // Check if fetchedPathData is not null
         setIsFetchingStatus(true);
         try {
           initialTaskStatus = await apiGetLatestTaskForLearningPath(pathId);
           setTaskStatus(initialTaskStatus);
         } catch (taskError: any) {
           console.error("Failed to fetch latest task status:", taskError);
+          // Optionally set an error state for task status
         } finally {
           setIsFetchingStatus(false);
         }
       }
 
-      // 3. Initialize sectionReadyStatus based on initial task status
-      if (fetchedPathData && initialTaskStatus && !isTaskActive(initialTaskStatus)) {
-         // If task is already completed/failed, mark all sections as ready initially
-         const initialReadyStatus: Record<number, boolean> = {};
-         fetchedPathData.courses.forEach(course => {
-             course.sections.forEach(section => {
-                 initialReadyStatus[section.id] = true; // Mark as ready
-             });
-         });
-         setSectionReadyStatus(initialReadyStatus);
-         console.log("Initial task status is terminal, marking all sections as ready:", initialReadyStatus);
+      // 3. Initialize sectionReadyStatus based on initial task status and existing cards
+      if (fetchedPathData && Array.isArray(fetchedPathData.courses)) { // Ensure courses array exists
+        const initialReadyStatus: Record<number, boolean> = {};
+        const taskComplete = initialTaskStatus && !isTaskActive(initialTaskStatus);
+        
+        fetchedPathData.courses.forEach(course => {
+          if (course.sections && Array.isArray(course.sections)) {
+            course.sections.forEach(section => {
+              const hasCards = section.cards && Array.isArray(section.cards) && section.cards.length > 0;
+              if (taskComplete || hasCards) {
+                initialReadyStatus[section.id] = true;
+                if (hasCards) {
+                  setSectionCardsCache(prev => ({ ...prev, [section.id]: section.cards }));
+                }
+              }
+            });
+          }
+        });
+        setSectionReadyStatus(initialReadyStatus);
+        console.log("Initialized section ready status based on task status and existing cards:", initialReadyStatus);
       } else {
-          // Task is active or unknown, initialize as empty
-          setSectionReadyStatus({});
-          console.log("Initial task status is active or unknown, starting with empty section ready status.");
+        setSectionReadyStatus({});
+        console.log("No path data or courses array for initializing section ready status.");
       }
 
     } catch (err: any) {
       console.error(`Failed to load details for path ${pathId}:`, err);
       setDetailError(err.message || `Failed to load details for path ${pathId}. Please try again.`);
-      setLearningPathData(null); // Ensure data is null on error
-      setSectionReadyStatus({}); // Clear readiness on error
-      if (pollingIntervalRef.current) { // Stop polling on error
+      setLearningPathData(null); 
+      setSectionReadyStatus({}); 
+      if (pollingIntervalRef.current) { 
         clearInterval(pollingIntervalRef.current);
         pollingIntervalRef.current = null;
       }
@@ -254,45 +484,38 @@ export default function MyLearningPathsPage() {
         setTaskStatus(latestTask); // Update status state
 
         if (!isTaskActive(latestTask)) {
-          // Generation finished (completed, failed, timeout, unknown) or no task found
           console.log(`Polling stopped for path ${selectedPathId}. Final status: ${latestTask?.status}`);
           if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
           pollingIntervalRef.current = null;
 
-          // Mark all sections as ready if task is complete/failed
-          if (learningPathData && latestTask) { // Check latestTask exists
+          if (learningPathData && latestTask && Array.isArray(learningPathData.courses)) {
              const finalReadyStatus: Record<number, boolean> = {};
              learningPathData.courses.forEach(course => {
-                 course.sections.forEach(section => {
-                     finalReadyStatus[section.id] = true; // Mark all as ready/checked
-                 });
+                 if (course.sections && Array.isArray(course.sections)) {
+                     course.sections.forEach(section => {
+                         finalReadyStatus[section.id] = true; 
+                     });
+                 }
              });
              setSectionReadyStatus(finalReadyStatus);
              console.log("Task finished polling, marking all sections as ready:", finalReadyStatus);
           }
-          // Optional: Force re-fetch details if needed on completion?
-          // await fetchPathDetails(selectedPathId); // Careful of loops
         } else {
            console.log(`Task for path ${selectedPathId} is still active: ${latestTask?.status}`);
-           // Task still active, continue polling (interval handles this)
-           // We don't update sectionReadyStatus here, toggleExpand handles individual checks
         }
       } catch (error) {
         console.error(`Error polling task status for path ${selectedPathId}:`, error);
-        // Stop polling on error
         if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
         pollingIntervalRef.current = null;
-        setTaskStatus(prev => ({ ...prev, status: 'unknown' } as TaskStatusResponse)); // Indicate error?
+        setTaskStatus(prev => ({ ...prev, status: 'unknown' } as TaskStatusResponse)); 
       }
     };
 
-    // Start polling only if taskStatus is initially active and a path is selected
     if (isTaskActive(taskStatus) && selectedPathId) {
       if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
       pollingIntervalRef.current = setInterval(checkStatus, POLLING_INTERVAL);
       console.log(`Polling started for path ${selectedPathId} (initial status: ${taskStatus?.status})`);
     } else {
-        // If task not active or no path selected, ensure polling is stopped
         if (pollingIntervalRef.current) {
             console.log(`Clearing polling interval (task active: ${isTaskActive(taskStatus)}, pathId: ${selectedPathId})`);
             clearInterval(pollingIntervalRef.current);
@@ -300,7 +523,6 @@ export default function MyLearningPathsPage() {
         }
     }
 
-    // Cleanup function
     return () => {
       if (pollingIntervalRef.current) {
         console.log(`Clearing polling interval on cleanup (pathId: ${selectedPathId})`);
@@ -308,7 +530,6 @@ export default function MyLearningPathsPage() {
         pollingIntervalRef.current = null;
       }
     };
-    // Run when taskStatus changes (to start/stop polling) or selectedPathId changes
   }, [taskStatus, selectedPathId, learningPathData]);
 
   // --- Toggle expand/collapse for courses/sections ---
@@ -316,11 +537,9 @@ export default function MyLearningPathsPage() {
     const isCurrentlyExpanded = !!expandedItems[itemId];
     setExpandedItems(prev => ({ ...prev, [itemId]: !isCurrentlyExpanded }));
 
-    // Logic for fetching/checking section cards on EXPAND
     if (itemType === 'section' && sectionId && !isCurrentlyExpanded) {
-        // Determine if we need to fetch: True if not in cache OR cache entry is empty array.
         const needsFetch = !sectionCardsCache.hasOwnProperty(sectionId) || sectionCardsCache[sectionId]?.length === 0;
-        const isSectionMarkedReady = sectionReadyStatus[sectionId]; // Check current ready status
+        const isSectionMarkedReady = sectionReadyStatus[sectionId]; 
 
         console.log(`Expanding section ${sectionId}. Needs Fetch: ${needsFetch}, Already Marked Ready: ${isSectionMarkedReady}`);
 
@@ -332,12 +551,9 @@ export default function MyLearningPathsPage() {
                 const sectionData = await apiGetSectionWithCards(sectionId);
                 const cards = sectionData.cards || [];
                 console.log(`Fetch successful for section ${sectionId}. Cards: ${cards.length}. Marking as ready.`);
-                // Mark as ready on successful fetch
                 setSectionReadyStatus(prev => ({ ...prev, [sectionId]: true }));
-                // Cache the result (even if empty)
                 setSectionCardsCache(prevCache => ({ ...prevCache, [sectionId]: cards }));
 
-                // Handle auto-select after successful fetch
                 if (autoSelectFirstCardInSectionId === sectionId) {
                     if (cards.length > 0 && selectedPathId && locale) {
                         router.push(`/${locale}/learning-paths/${selectedPathId}?section=${sectionId}&card=${cards[0].id}`);
@@ -347,43 +563,34 @@ export default function MyLearningPathsPage() {
                 }
             } catch (err: any) {
                 console.error(`Fetch/check failed for section ${sectionId}:`, err);
-                // Fetch failed - DO NOT mark as ready. DO NOT cache.
-                // UI will show generating state based on sectionReadyStatus[sectionId] being false/undefined.
-
-                // Clear auto-select if the check failed
                 if (autoSelectFirstCardInSectionId === sectionId) {
                     setSelectedCard(null);
                     setAutoSelectFirstCardInSectionId(null);
                 }
             } finally {
                 setIsFetchingSection(false);
-                // Only clear currentSectionIdForFetch if it's the one we just finished
                 setCurrentSectionIdForFetch(prev => (prev === sectionId ? null : prev));
             }
         } else {
-            // Already have cards in cache, just handle auto-select if needed
              console.log(`Section ${sectionId} already has >0 cards in cache. Handling auto-select if necessary.`);
              if (autoSelectFirstCardInSectionId === sectionId) {
-                 const cachedCards = sectionCardsCache[sectionId]; // We know this exists and is non-empty
+                 const cachedCards = sectionCardsCache[sectionId]; 
                  if (cachedCards.length > 0 && selectedPathId && locale) {
                     router.push(`/${locale}/learning-paths/${selectedPathId}?section=${sectionId}&card=${cachedCards[0].id}`);
                  }
-                 else setSelectedCard(null); // Should not happen based on needsFetch logic, but safe fallback
+                 else setSelectedCard(null); 
                  setAutoSelectFirstCardInSectionId(null);
              }
         }
     }
-    // If collapsing a section that was actively loading, clear the fetch trigger
      else if (itemType === 'section' && sectionId && isCurrentlyExpanded) {
          if (currentSectionIdForFetch === sectionId) {
            setCurrentSectionIdForFetch(null);
            setIsFetchingSection(false);
          }
      }
-  // Dependencies: Include everything read or called inside
-  }, [expandedItems, sectionReadyStatus, sectionCardsCache, autoSelectFirstCardInSectionId, currentSectionIdForFetch, router, locale, selectedPathId]); // Removed isFetchingSection and taskStatus
+  }, [expandedItems, sectionReadyStatus, sectionCardsCache, autoSelectFirstCardInSectionId, currentSectionIdForFetch, router, locale, selectedPathId]);
 
-  // --- Card Navigation Logic (wrapped in useCallback) ---
   const handleCardSelect = useCallback((card: CardResponse, sectionId: number, sectionCards: CardResponse[], autoSelect: boolean = false) => {
     if (selectedPathId && locale) {
       const targetUrl = `/${locale}/learning-paths/${selectedPathId}?section=${sectionId}&card=${card.id}`;
@@ -395,8 +602,13 @@ export default function MyLearningPathsPage() {
   }, [selectedPathId, locale, router]);
 
    const renderResources = useCallback((resources: CardResource): JSX.Element => {
-     const resourceEntries = Object.entries(resources).filter(([, value]) => value && value.length > 0);
+     if (!resources) {
+       return <p>No additional resources provided.</p>;
+     }
+     
+     const resourceEntries = Object.entries(resources).filter(([, value]) => value && (Array.isArray(value) ? value.length > 0 : !!value));
      if (resourceEntries.length === 0) return <p>No additional resources provided.</p>;
+    
     return (
       <ul className={styles.resourceList}>
         {resourceEntries.map(([key, value]) => (
@@ -434,10 +646,11 @@ export default function MyLearningPathsPage() {
    }, [isFetchingStatus, taskStatus, learningPathData]);
 
    const findNextItem = useCallback((currentSectionId: number): NextItemInfo | null => {
-    if (!learningPathData) return null;
+    if (!learningPathData || !Array.isArray(learningPathData.courses)) return null;
     let currentCourseIndex = -1;
     let currentSectionIndex = -1;
     for (let i = 0; i < learningPathData.courses.length; i++) {
+      if (!learningPathData.courses[i] || !Array.isArray(learningPathData.courses[i].sections)) continue;
       const sectionIndex = learningPathData.courses[i].sections.findIndex(s => s.id === currentSectionId);
       if (sectionIndex !== -1) {
         currentCourseIndex = i;
@@ -500,6 +713,7 @@ export default function MyLearningPathsPage() {
       const nextInfo = findNextItem(selectedCardSectionId);
       let completedTitle = "Section";
       learningPathData?.courses.forEach(course => {
+        if (!course || !Array.isArray(course.sections)) return;
         const section = course.sections.find(s => s.id === selectedCardSectionId);
         if (section) completedTitle = section.title;
       });
@@ -509,7 +723,7 @@ export default function MyLearningPathsPage() {
    }, [getCurrentCardIndex, selectedCardSectionCards, selectedCard, selectedCardSectionId, findNextItem, learningPathData]);
 
     const handleNavigateNext = useCallback(() => {
-     if (!completionInfo || !completionInfo.nextItem || !learningPathData) return;
+     if (!completionInfo || !completionInfo.nextItem || !learningPathData || !Array.isArray(learningPathData.courses)) return;
     const nextItem = completionInfo.nextItem;
 
     if (nextItem.type === 'end') {
@@ -522,54 +736,30 @@ export default function MyLearningPathsPage() {
 
      setCurrentViewMode('structure');
     setCompletionInfo(null);
-     setSelectedCard(null); // Deselect card when moving between sections/courses
+     setSelectedCard(null); 
 
     if (nextItem.sectionId) {
       const courseContainingNextSection = learningPathData.courses.find(course =>
-        course.sections.some(section => section.id === nextItem.sectionId)
+        course && Array.isArray(course.sections) && course.sections.some(section => section.id === nextItem.sectionId)
       );
 
       if (courseContainingNextSection) {
         const courseItemId = `course-${courseContainingNextSection.id}`;
         const sectionItemId = `section-${nextItem.sectionId}`;
          setExpandedItems(prev => ({ ...prev, [courseItemId]: true, [sectionItemId]: true }));
-         setAutoSelectFirstCardInSectionId(nextItem.sectionId); // Set flag to auto-select
+         setAutoSelectFirstCardInSectionId(nextItem.sectionId); 
 
-         // Trigger the check/fetch logic within toggleExpand manually if needed,
-         // but since we set expandedItems, the next render might handle it.
-         // However, toggleExpand handles the readiness check, so let's call it indirectly?
-         // OR rely on the fact that the section *should* be ready if we finished the previous one?
-         // Let's assume the polling marked it ready, or the upcoming toggleExpand call will handle it.
-         // If section is not in cache yet, call toggleExpand to trigger the fetch/check
         if (!sectionCardsCache[nextItem.sectionId]) {
              console.log(`Navigating next to section ${nextItem.sectionId}, not in cache. Triggering expand.`);
-             // We need to ensure toggleExpand runs *after* state updates for expansion/auto-select
-             // Using a small timeout might work, or relying on useEffect dependencies.
-             // Let's call toggleExpand directly here, assuming state updates synchronously enough for its logic
-             // Note: This might double-call if expansion itself triggers toggleExpand via UI event simulation, but needed here
-              toggleExpand(sectionItemId, 'section', nextItem.sectionId);
+             toggleExpand(sectionItemId, 'section', nextItem.sectionId);
         } else {
-             // Already cached, proceed with auto-select logic (now inside toggleExpand)
              console.log(`Navigating next to section ${nextItem.sectionId}, already in cache. Relying on auto-select.`);
-             // handleCardSelect might be called inside toggleExpand if autoSelectFirstCardInSectionId is set
          }
-
       } else {
         console.warn(`Could not find course containing section ID: ${nextItem.sectionId}`);
       }
     }
-   }, [completionInfo, learningPathData, sectionCardsCache, toggleExpand]); // Added toggleExpand dependency
-
-  // --- Helper for Path List Item Status (Simplified from original my-paths) ---
-  // const getPathDisplayStatus = useCallback((pathItem: LearningPathBasicInfo): { text: string; className: string } => {
-  //   if (pathItem.completed_at) {
-  //     return { text: t('my_paths.completed'), className: styles.statusCompleted }
-  //   }
-  //   if (pathItem.progress > 0) {
-  //     return { text: t('my_paths.in_progress', { percent: Math.round(pathItem.progress * 100) }), className: styles.statusInProgress }
-  //   }
-  //   return { text: t('my_paths.ready_to_start'), className: styles.statusReady }
-  // }, []);
+   }, [completionInfo, learningPathData, sectionCardsCache, toggleExpand]);
 
   // --- Main Render ---
   return (
@@ -604,7 +794,6 @@ export default function MyLearningPathsPage() {
               const listItemKey = pathItem.id;
               const isDeleting = deletingPathId === pathDetailId;
               const isSelected = selectedPathId === pathDetailId;
-              // Use the title directly from the basic info
               const displayTitle = pathItem.title || 'Untitled Path';
               return (
                 <li key={listItemKey} className={`${styles.pathListItem} ${isDeleting ? styles.deleting : ''} ${isSelected ? styles.selected : ''}`}>
@@ -638,17 +827,17 @@ export default function MyLearningPathsPage() {
           learningPathData={learningPathData}
           isLoadingDetails={isLoadingDetails}
           detailError={detailError}
-          taskStatus={taskStatus} // Pass overall task status
+          taskStatus={taskStatus} 
           isFetchingStatus={isFetchingStatus}
           currentViewMode={currentViewMode}
           selectedCard={selectedCard}
-          selectedCardSectionId={selectedCardSectionId} // Keep passing these for card view logic
-          selectedCardSectionCards={selectedCardSectionCards} // Keep passing these for card view logic
+          selectedCardSectionId={selectedCardSectionId} 
+          selectedCardSectionCards={selectedCardSectionCards} 
           completionInfo={completionInfo}
           expandedItems={expandedItems}
           sectionCardsCache={sectionCardsCache}
           isFetchingSection={isFetchingSection}
-          currentSectionIdForFetch={currentSectionIdForFetch} // Pass for loading indicator
+          currentSectionIdForFetch={currentSectionIdForFetch} 
           toggleExpand={toggleExpand}
           navigateToPreviousCard={navigateToPreviousCard}
           navigateToNextCard={navigateToNextCard}
@@ -658,9 +847,9 @@ export default function MyLearningPathsPage() {
           hasNextCardInSection={hasNextCardInSection()}
           handleDeletePath={handleDeletePath}
           deletingPathId={deletingPathId}
-          sectionReadyStatus={sectionReadyStatus} // NEW: Pass section readiness map
+          sectionReadyStatus={sectionReadyStatus} 
         />
       </main>
     </div>
   );
-} 
+}
