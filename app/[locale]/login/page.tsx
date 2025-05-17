@@ -69,12 +69,15 @@ export default function LoginPage() {
   
   // For OAuth endpoints, use the appropriate URL based on environment
   const getOAuthUrl = (provider: string) => {
+    // Get the current frontend URL
+    const frontendUrl = typeof window !== 'undefined' ? window.location.origin : '';
+    
     // Check if we're in development mode
     if (process.env.NODE_ENV === 'development' && backendBaseUrl.includes('localhost')) {
-      return `${backendBaseUrl}/oauth/${provider}`;
+      return `${backendBaseUrl}/oauth/${provider}?frontend_url=${encodeURIComponent(frontendUrl)}`;
     }
     // In production, use the Azure URL
-    return `https://zero-ai-d9e8f5hgczgremge.westus-01.azurewebsites.net/oauth/${provider}`;
+    return `https://zero-ai-d9e8f5hgczgremge.westus-01.azurewebsites.net/oauth/${provider}?frontend_url=${encodeURIComponent(frontendUrl)}`;
   };
 
   const handleGoogleLogin = () => {
