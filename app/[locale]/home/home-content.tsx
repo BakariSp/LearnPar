@@ -93,63 +93,76 @@ export function ZeroLandingPageContent(props: ZeroLandingPageProps) {
 
   // Fetch user's interests and get recommendations - only run once for initial data
   useEffect(() => {
-    // Skip if we've already loaded initial data
-    if (initialDataLoaded) return;
-    
-    // Track if the component is mounted
     let isMounted = true;
     
+    // Function to fetch user data and recommendations
     async function fetchUserAndRecommendations() {
-      try {
-        // First get the user profile to determine interests
-        const user = await getUserProfile();
-        
-        // Check if component is still mounted before updating state
-        if (!isMounted) return;
-        
-        if (user && user.interests && user.interests.length > 0) {
-          // Fetch recommendations based on user interests
-          const interestRecs = await apiGetRecommendationsByInterests(
-            user.interests,
-            5, // Limit to 5 learning paths
-            [],  // No exclusions by default
-            refreshToken
-          );
+      if (!initialDataLoaded && isMounted) {
+        try {
+          setIsLoading(true);
           
-          // Check if component is still mounted before updating state
-          if (!isMounted) return;
+          // Get user profile first to check interests
+          const userData = await getUserProfile();
           
-          if (interestRecs) {
-            setInterestRecommendations(interestRecs);
-            // Save the refresh token for pagination/future requests
-            // This won't trigger the useEffect again due to our initialDataLoaded flag
-            setRefreshToken(interestRecs.refresh_token);
+          if (!isMounted) return; // Stop if component unmounted
+          
+          if (userData && userData.interests && userData.interests.length > 0) {
+            // If user has interests, fetch personalized recommendations
+            const interestIds = userData.interests.map((i: any) => i.id);
+            const interestRecsData = await apiGetRecommendationsByInterests(
+              interestIds,
+              5, // Limit to 5 learning paths
+              [], // No exclusions by default
+              refreshToken
+            );
+            
+            if (!isMounted) return; // Stop if component unmounted
+
+            if (interestRecsData) {
+              setInterestRecommendations(interestRecsData);
+              setRefreshToken(interestRecsData.refresh_token);
+              setInitialDataLoaded(true);
+              setIsLoading(false);
+            } else {
+              fallbackToStandardRecs();
+            }
+          } else {
+            // No interests, fall back to standard recommendations
+            fallbackToStandardRecs();
           }
-        } else {
-          // Fallback to generic recommendations if no interests
-          const response = await fetch('/api/recommendations');
-          
-          // Check if component is still mounted before updating state
-          if (!isMounted) return;
-          
-          if (response.ok) {
-            const data = await response.json();
-            setRecommendations(data);
-          }
+        } catch (error) {
+          console.error('Error fetching user data:', error);
+          fallbackToStandardRecs();
         }
+      }
+      
+      // Helper function for fallback to standard recommendations
+      async function fallbackToStandardRecs() {
+        if (!isMounted) return; // Stop if component unmounted
         
-        // Mark initial data as loaded so we don't fetch again
-        if (isMounted) {
+        // Fall back to using the props-provided recommendations or API
+        if (props.initialRecommendations) {
+          setRecommendations(props.initialRecommendations);
           setInitialDataLoaded(true);
           setIsLoading(false);
-        }
-      } catch (error) {
-        console.error('Error fetching recommendations:', error);
-        // Only update state if component is still mounted
-        if (isMounted) {
-          setError('Failed to load recommendations. Please try again later.');
-          setInitialDataLoaded(true); // Still mark as loaded even on error
-          setIsLoading(false);
+        } else {
+          try {
+            const response = await fetch('/api/recommendations');
+            
+            if (!isMounted) return; // Stop if component unmounted
+            
+            if (response.ok) {
+              const data = await response.json();
+              setRecommendations(data);
+            }
+            setInitialDataLoaded(true);
+            setIsLoading(false);
+          } catch (error) {
+            console.error('Error fetching recommendations:', error);
+            setError('Failed to load recommendations. Please try again later.');
+            setInitialDataLoaded(true); // Still mark as loaded even on error
+            setIsLoading(false);
+          }
         }
       }
     }
@@ -160,7 +173,7 @@ export function ZeroLandingPageContent(props: ZeroLandingPageProps) {
     return () => {
       isMounted = false;
     };
-  }, [initialDataLoaded]); // Only depend on initialDataLoaded flag, not refreshToken
+  }, [initialDataLoaded, refreshToken, props.initialRecommendations]); // Add props.initialRecommendations as a dependency
 
   // Convert interest-based recommendations to the format needed by LearningPathCard
   const interestBasedPaths = interestRecommendations?.learning_paths.map((path) => ({

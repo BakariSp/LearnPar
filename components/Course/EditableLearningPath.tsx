@@ -202,7 +202,7 @@ export function EditableLearningPath({
                         key={level}
                         onClick={() => handleDifficultySelect(level)}
                         className={`${styles.difficultyButton} ${internalDifficulty === level ? styles.selectedDifficulty : ''}`}
-                        aria-selected={internalDifficulty === level}
+                        aria-pressed={internalDifficulty === level}
                     >
                         {level}
                     </button>

@@ -186,7 +186,7 @@ export default function LearningPathDetailPage() {
       
       return () => clearTimeout(progressTimer);
     }
-  }, [id, learningPathData, updateProgressData, pendingCardToggles]);
+  }, [id, learningPathData, updateProgressData, pendingCardToggles, expandedItems, expandedSections, fetchTaskStatus, handleCardSelect, locale, router, searchParams, setExpandedItems, setExpandedSections]);
   
   // Set up polling for task status updates if a task is active
   useEffect(() => {

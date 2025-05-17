@@ -60,6 +60,13 @@ export default function LearningPathRecommendationPage() {
     navigateToNextCard,
     hasPreviousCard,
     hasNextCard,
+    internalViewMode,
+    proceedToNextContent,
+    resetToCardView,
+    toggleCardCompletion,
+    calculateSectionProgress,
+    calculateCourseProgress,
+    calculateLearningPathProgress,
   } = useLearningPath({ id });
 
   const isLoggedIn = isAuthenticated();
@@ -196,6 +203,13 @@ export default function LearningPathRecommendationPage() {
           showDeleteButton={false} // Hide delete button in recommendation view
           locale={locale}
           onBack={handleBack}
+          internalViewMode={internalViewMode}
+          proceedToNextContent={proceedToNextContent}
+          resetToCardView={resetToCardView}
+          toggleCardCompletion={toggleCardCompletion}
+          calculateSectionProgress={calculateSectionProgress}
+          calculateCourseProgress={calculateCourseProgress}
+          calculateLearningPathProgress={calculateLearningPathProgress}
         />
       </div>
     </>

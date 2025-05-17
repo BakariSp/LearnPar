@@ -706,7 +706,6 @@ export function useLearningPath({ id }: UseLearningPathProps): UseLearningPathRe
         }
     });
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentSectionId, selectedCard, currentSectionCards, learningPathData, pendingCardToggles]);
 
   // Navigate to the previous card
@@ -924,7 +923,7 @@ export function useLearningPath({ id }: UseLearningPathProps): UseLearningPathRe
     
     // If no next section or course with cards is found, it's the end of the learning path
     setInternalViewMode('learningPathCompletion');
-  }, [learningPathData, currentSectionId, handleCardSelect, setExpandedItems, setExpandedSections]);
+  }, [currentSectionId, learningPathData, handleCardSelect, setExpandedItems, setExpandedSections]);
 
   // Check for achievements after card completion
   const checkForAchievements = async () => {
@@ -1061,7 +1060,7 @@ export function useLearningPath({ id }: UseLearningPathProps): UseLearningPathRe
     } finally {
       setIsLoading(false);
     }
-  }, [id]); // Only depend on id
+  }, [id, handleCardSelect, setExpandedItems, setExpandedSections]);
 
   // Dismiss achievement notification
   const dismissAchievementNotification = useCallback(() => {
@@ -1086,7 +1085,7 @@ export function useLearningPath({ id }: UseLearningPathProps): UseLearningPathRe
     
     // Note: fetchLearningPathData is memoized with useCallback and only depends on 'id',
     // so this effect will only run when 'id' changes, preventing infinite loops
-  }, [id]); // Only depend on id to prevent circular dependencies
+  }, [id, fetchLearningPathData]); // Added fetchLearningPathData as dependency
 
   // Determine if there are previous/next cards
   const hasPreviousCard = currentCardIndex > 0;
