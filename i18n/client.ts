@@ -14,9 +14,7 @@ i18n
     ...options,
     debug: process.env.NODE_ENV === 'development',
     backend: {
-      loadPath: typeof window !== 'undefined' 
-        ? `${window.location.origin}/locales/{{lng}}/{{ns}}.json` 
-        : '/locales/{{lng}}/{{ns}}.json',
+      loadPath: '/locales/{{lng}}/{{ns}}.json',
     },
     detection: {
       order: ['path', 'cookie', 'htmlTag'],

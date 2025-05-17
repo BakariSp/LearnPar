@@ -9,17 +9,12 @@
 }
 
 .header {
+  flex-shrink: 0;
+  padding: 1rem;
+  /* border-bottom: 1px solid var(--border-color); */
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
-  background-color: var(--background-color, #f8f9fa);
-  border-top-left-radius: 8px;
-  border-top-right-radius: 8px;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  border-bottom: 1px solid var(--border-color, #e0e0e0);
+  align-items: center;
 }
 
 .title {
@@ -33,11 +28,9 @@
 }
 
 .tabs {
+  flex-shrink: 0;
   display: flex;
-  background-color: var(--background-color, #f8f9fa);
-  position: sticky;
-  top: 49px;
-  z-index: 10;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .tab {
@@ -63,24 +56,16 @@
 }
 
 .content {
+  flex: 1;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
-  flex: 1;
-  overflow: hidden;
-  padding: 16px 16px 76px 16px;
-  position: relative;
-  height: calc(100% - 98px);
 }
 
 .messagesContainer {
   flex: 1;
   overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding-right: 8px;
-  padding-bottom: 16px;
-  height: 100%;
+  padding: 1rem;
 }
 
 .messagesContainer::-webkit-scrollbar {
@@ -133,20 +118,11 @@
 }
 
 .inputContainer {
+  flex-shrink: 0;
+  padding: 1rem;
+  /* border-top: 1px solid var(--border-color); */
   display: flex;
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background-color: var(--card-background, #fff);
-  padding: 16px;
-  border-top: 1px solid var(--border-color, #e9ecef);
-  z-index: 10;
-  margin: 0;
-  width: 100%;
-  box-sizing: border-box;
-  border-bottom-left-radius: 8px;
-  border-bottom-right-radius: 8px;
+  position: relative;
 }
 
 .input {
@@ -158,11 +134,12 @@
   background-color: var(--card-background, #fff);
   color: var(--text-color, #212529);
   resize: none;
-  min-height: 44px;
+  min-height: 120px;
   max-height: 120px;
   transition: all 0.2s ease;
   font-family: inherit;
   font-size: 0.875rem;
+  width: 100%;
 }
 
 .input:focus {

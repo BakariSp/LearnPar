@@ -1322,12 +1322,10 @@
 /* --- Card Pagination Progress Indicator --- */
 .cardProgressIndicator {
   display: flex;
-  gap: 4px;
+  gap: 8px;
   margin-bottom: 1rem;
   width: 100%;
   max-width: 800px;
-  margin-left: auto;
-  margin-right: auto;
 }
 
 .progressTab {

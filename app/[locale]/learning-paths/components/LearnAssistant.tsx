@@ -32,6 +32,7 @@ type LearnAssistantProps = {
   onAddCard?: (card: RelatedCard, sectionId: number) => void;
   onUnsaveCard?: (cardId: number) => void;
   onRefreshCards?: () => void;
+  onCollapseChange?: (collapsed: boolean) => void;
 };
 
 const LearnAssistant: React.FC<LearnAssistantProps> = ({
@@ -45,6 +46,7 @@ const LearnAssistant: React.FC<LearnAssistantProps> = ({
   onAddCard,
   onUnsaveCard,
   onRefreshCards,
+  onCollapseChange,
 }) => {
   const { t } = useTranslation('common');
   const [messages, setMessages] = useState<Message[]>([]);
@@ -58,6 +60,7 @@ const LearnAssistant: React.FC<LearnAssistantProps> = ({
   const [isDeleting, setIsDeleting] = useState(false);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [isGeneratingCards, setIsGeneratingCards] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [activeTab, setActiveTab] = useState('chat');
@@ -81,10 +84,20 @@ const LearnAssistant: React.FC<LearnAssistantProps> = ({
 
   // Focus input on initial load
   useEffect(() => {
-    if (inputRef.current) {
+    if (inputRef.current && !isCollapsed) {
       inputRef.current.focus();
     }
-  }, []);
+  }, [isCollapsed]);
+
+  // Toggle collapse state
+  const toggleCollapse = () => {
+    const newCollapsedState = !isCollapsed;
+    setIsCollapsed(newCollapsedState);
+    // Notify parent component about collapse state change
+    if (onCollapseChange) {
+      onCollapseChange(newCollapsedState);
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputValue(e.target.value);
@@ -810,7 +823,7 @@ const LearnAssistant: React.FC<LearnAssistantProps> = ({
                 disabled={isLoading}
                 rows={1}
               />
-              <button
+              {/* <button
                 className={styles.sendButton}
                 onClick={handleSendMessage}
                 disabled={isLoading || !inputValue.trim()}
@@ -819,7 +832,7 @@ const LearnAssistant: React.FC<LearnAssistantProps> = ({
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                   <path d="M15.964.686a.5.5 0 0 0-.65-.65L.767 5.855H.766l-.452.18a.5.5 0 0 0-.082.887l.41.26.001.002 4.995 3.178 3.178 4.995.002.002.26.41a.5.5 0 0 0 .886-.083l6-15Zm-1.833 1.89L6.637 10.07l-.215-.338a.5.5 0 0 0-.154-.154l-.338-.215 7.494-7.494 1.178-.471-.47 1.178Z" />
                 </svg>
-              </button>
+              </button> */}
             </div>
 
             {relatedCard && (
@@ -996,49 +1009,62 @@ const LearnAssistant: React.FC<LearnAssistantProps> = ({
     }
   };
 
+  // Render the toggle button
+  const renderToggleButton = () => {
+    return (
+      <button 
+        className={sharedStyles.assistantToggleButton} 
+        onClick={toggleCollapse}
+        aria-label={isCollapsed ? t('learnAssistant.expand', 'Expand assistant') : t('learnAssistant.collapse', 'Collapse assistant')}
+        title={isCollapsed ? t('learnAssistant.expand', 'Expand assistant') : t('learnAssistant.collapse', 'Collapse assistant')}
+      >
+        {isCollapsed ? '→' : '←'}
+      </button>
+    );
+  };
+
   return (
-    <div className={styles.assistantContainer}>
-      <div className={styles.header}>
-        <h3 className={styles.title}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-            <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
-          </svg>
-          {t('learnAssistant.title', 'Learning Assistant')}
-        </h3>
-        <button 
-          onClick={clearChat}
-          className={styles.clearButton}
-          aria-label={t('learnAssistant.clearChat', 'Clear chat')}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-            <path d="M11.46.146A.5.5 0 0 0 11.107 0H4.893a.5.5 0 0 0-.353.146L.146 4.54A.5.5 0 0 0 0 4.893v6.214a.5.5 0 0 0 .146.353l4.394 4.394a.5.5 0 0 0 .353.146h6.214a.5.5 0 0 0 .353-.146l4.394-4.394a.5.5 0 0 0 .146-.353V4.893a.5.5 0 0 0-.146-.353L11.46.146zm-6.106 4.5L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 1 1 .708-.708z"/>
-          </svg>
-        </button>
-      </div>
-      
-      <div className={styles.tabs}>
-        <div 
-          key="chat-tab"
-          className={`${styles.tab} ${activeTab === 'chat' ? styles.active : ''}`} 
-          onClick={() => setActiveTab('chat')}
-        >
-          {t('learnAssistant.chatTab', 'Chat')}
+    <>
+      {renderToggleButton()}
+      <div className={sharedStyles.assistantContent}>
+        <div className={styles.header}>
+          <h3 className={styles.title}>
+            {t('learnAssistant.title', 'Learning Assistant')}
+          </h3>
+          <button 
+            onClick={clearChat}
+            className={styles.clearButton}
+            aria-label={t('learnAssistant.clearChat', 'Clear chat')}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M11.46.146A.5.5 0 0 0 11.107 0H4.893a.5.5 0 0 0-.353.146L.146 4.54A.5.5 0 0 0 0 4.893v6.214a.5.5 0 0 0 .146.353l4.394 4.394a.5.5 0 0 0 .353.146h6.214a.5.5 0 0 0 .353-.146l4.394-4.394a.5.5 0 0 0 .146-.353V4.893a.5.5 0 0 0-.146-.353L11.46.146zm-6.106 4.5L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 1 1 .708-.708z"/>
+            </svg>
+          </button>
         </div>
-        <div 
-          key="cards-tab"
-          className={`${styles.tab} ${activeTab === 'cards' ? styles.active : ''}`} 
-          onClick={() => setActiveTab('cards')}
-        >
-          {t('learnAssistant.cardsTab', 'Generated Cards')} 
-          {generatedCards.length > 0 && <span className={styles.cardCount}>{generatedCards.length}</span>}
+        
+        <div className={styles.tabs}>
+          <div 
+            key="chat-tab"
+            className={`${styles.tab} ${activeTab === 'chat' ? styles.active : ''}`} 
+            onClick={() => setActiveTab('chat')}
+          >
+            {t('learnAssistant.chatTab', 'Chat')}
+          </div>
+          <div 
+            key="cards-tab"
+            className={`${styles.tab} ${activeTab === 'cards' ? styles.active : ''}`} 
+            onClick={() => setActiveTab('cards')}
+          >
+            {t('learnAssistant.cardsTab', 'Generated Cards')} 
+            {generatedCards.length > 0 && <span className={styles.cardCount}>{generatedCards.length}</span>}
+          </div>
+        </div>
+        
+        <div className={styles.content}>
+          {renderContent()}
         </div>
       </div>
-      
-      <div className={styles.content}>
-        {/* The dynamic content based on the active tab */}
-        {renderContent()}
-      </div>
-    </div>
+    </>
   );
 };
 

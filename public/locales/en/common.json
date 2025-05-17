@@ -112,7 +112,13 @@
     "section_completed_message_short": "You've successfully completed: {{sectionTitle}}",
     "whats_next": "Next up: {{nextItemTitle}}",
     "back_to_path_view": "Return to Learning Path",
-    "review_path": "Review Path"
+    "review_path": "Review Path",
+    "remind_me_later": "Remind Me to Continue Later",
+    "set_reminder": "How would you like to be reminded?",
+    "add_to_google_calendar": "Add to Google Calendar",
+    "download_ical": "Download Calendar File (.ics)",
+    "cancel": "Cancel",
+    "reminder_added": "Reminder has been set!"
   },
   "my_paths": {
     "my_learning_paths": "Learning Adventures",

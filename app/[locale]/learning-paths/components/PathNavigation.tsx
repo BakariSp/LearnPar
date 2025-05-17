@@ -113,116 +113,112 @@ export default function PathNavigation({
         )}
       </div>
 
-      {/* Course list */}
-      <ul className={styles.navCourseList}>
-        {learningPathData.courses.map((course, courseIndex) => {
-          // Calculate course progress
-          const courseProgress = course.progress !== undefined 
-            ? course.progress 
-            : calculateCourseProgress 
-              ? calculateCourseProgress(course.id) 
-              : 0;
-              
-          const isCourseCompleted = courseProgress === 100;
-              
-          return (
-            <li className={styles.navCourseItem} key={course.id}>
-              <button
-                className={styles.navCourseHeaderButton}
-                onClick={() => toggleCourseExpand(course.id)}
-              >
-                <span className={`${styles.navToggleIcon} ${expandedItems[course.id] ? styles.expanded : ''}`}>►</span>
-                <div className={styles.navCourseHeader}>
-                  <span className={styles.navCourseOrder}>Course {courseIndex + 1}</span>
-                  <span className={styles.navCourseTitle}>
-                    {course.title}
-                    {isCourseCompleted && <span className={styles.completedTag}>Completed</span>}
-                  </span>
-                </div>
-              </button>
-
-              {/* Add course progress bar */}
-              {expandedItems[course.id] && (
-                <div className={localStyles.courseProgressContainer}>
-                  <div className={localStyles.progressLabel}>
-                    Course Progress
-                    <span className={localStyles.progressPercentage}>{courseProgress}%</span>
+      {/* Scrollable container for course list */}
+      <div className={styles.navCourseListContainer}>
+        <ul className={styles.navCourseList}>
+          {learningPathData.courses.map((course, courseIndex) => {
+            // Calculate course progress
+            const courseProgress = course.progress !== undefined 
+              ? course.progress 
+              : calculateCourseProgress 
+                ? calculateCourseProgress(course.id) 
+                : 0;
+                
+            const isCourseCompleted = courseProgress === 100;
+                
+            return (
+              <li className={styles.navCourseItem} key={course.id}>
+                <button
+                  className={styles.navCourseHeaderButton}
+                  onClick={() => toggleCourseExpand(course.id)}
+                >
+                  <span className={`${styles.navToggleIcon} ${expandedItems[course.id] ? styles.expanded : ''}`}></span>
+                  <div className={styles.navCourseHeader}>
+                    <span className={styles.navCourseOrder}>Course {courseIndex + 1}</span>
+                    <span className={styles.navCourseTitle}>
+                      {course.title}
+                      {isCourseCompleted && <span className={styles.completedTag}>Completed</span>}
+                    </span>
                   </div>
-                  <div className={localStyles.progressBar}>
-                    <div 
-                      className={localStyles.progressFill} 
-                      style={{ width: `${courseProgress}%` }}
-                    ></div>
+                </button>
+
+                {/* Add course progress bar */}
+                {expandedItems[course.id] && (
+                  <div className={localStyles.courseProgressContainer}>
+                    <div className={localStyles.progressLabel}>
+                      Course Progress
+                      <span className={localStyles.progressPercentage}>{courseProgress}%</span>
+                    </div>
+                    <div className={localStyles.progressBar}>
+                      <div 
+                        className={localStyles.progressFill} 
+                        style={{ width: `${courseProgress}%` }}
+                      ></div>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {expandedItems[course.id] && (
-                <ul className={styles.navSectionList}>
-                  {course.sections.map((section, sectionIndex) => {
-                    // Calculate section progress
-                    const sectionProgress = section.progress !== undefined 
-                      ? section.progress 
-                      : calculateSectionProgress 
-                        ? calculateSectionProgress(section.id) 
-                        : 0;
-                        
-                    const isSectionCompleted = sectionProgress === 100;
-                        
-                    return (
-                      <li className={styles.navSectionItem} key={section.id}>
-                        <button
-                          className={styles.navSectionHeaderButton}
-                          onClick={() => toggleSectionExpand(section.id)}
-                        >
-                          <span className={styles.navSectionTitle}>
-                            {courseIndex + 1}.{sectionIndex + 1} {section.title}
-                            {isSectionCompleted && <span className={styles.completedTag}>Completed</span>}
-                          </span>
-                          <span>{expandedSections[section.id] ? '▼' : '▶'}</span>
-                        </button>
+                {expandedItems[course.id] && (
+                  <ul className={styles.navSectionList}>
+                    {course.sections.map((section, sectionIndex) => {
+                      // Calculate section progress
+                      const sectionProgress = section.progress !== undefined 
+                        ? section.progress 
+                        : calculateSectionProgress 
+                          ? calculateSectionProgress(section.id) 
+                          : 0;
+                          
+                      const isSectionCompleted = sectionProgress === 100;
+                          
+                      return (
+                        <li className={styles.navSectionItem} key={section.id}>
+                          <button
+                            className={styles.navSectionHeaderButton}
+                            onClick={() => toggleSectionExpand(section.id)}
+                          >
+                            <span className={styles.navSectionTitle}>
+                              {courseIndex + 1}.{sectionIndex + 1} {section.title}
+                              {isSectionCompleted && <span className={styles.completedTag}>Completed</span>}
+                            </span>
+                            <span className={`${styles.sectionToggleIcon} ${expandedSections[section.id] ? styles.expanded : ''}`}></span>
+                          </button>
 
-                        {expandedSections[section.id] && section.cards && (
-                          <ul className={styles.navCardList}>
-                            {section.cards.map((cardItem, cardIndex) => {
-                              // Handle both nested and direct card structure
-                              const card = cardItem.card ? cardItem.card : cardItem;
-                              const isCompleted = cardItem.is_completed !== undefined ? cardItem.is_completed : card.is_completed;
-                              
-                              return (
-                                <li 
-                                  className={styles.navCardItem} 
-                                  key={card.id ? `card-${card.id}` : `card-section-${section.id}-index-${cardIndex}`}
-                                >
-                                  <button
-                                    className={`${styles.navCardLink} ${selectedCard?.id === card.id ? styles.selectedCard : ''} ${isCompleted ? styles.completed : ''}`}
-                                    onClick={() => handleCardSelect(card, section.id, section.cards)}
+                          {expandedSections[section.id] && section.cards && (
+                            <ul className={styles.navCardList}>
+                              {section.cards.map((cardItem, cardIndex) => {
+                                // Handle both nested and direct card structure
+                                const card = cardItem.card ? cardItem.card : cardItem;
+                                const isCompleted = cardItem.is_completed !== undefined ? cardItem.is_completed : card.is_completed;
+                                
+                                return (
+                                  <li 
+                                    className={styles.navCardItem} 
+                                    key={card.id ? `card-${card.id}` : `card-section-${section.id}-index-${cardIndex}`}
                                   >
-                                    {card.keyword}
-                                  </button>
-                                </li>
-                              );
-                            })}
-                            {(!section.cards || section.cards.length === 0) && (
-                              <li className={styles.navCardItem} key={`empty-section-${section.id}-no-cards`}>No learning cards available</li>
-                            )}
-                          </ul>
-                        )}
-                        
-                        {!expandedSections[section.id] && (
-                          <div className={styles.navCardCountInfo}>
-                            {section.cards ? section.cards.length : 0} cards
-                          </div>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </li>
-          );
-        })}
-      </ul>
+                                    <button
+                                      className={`${styles.navCardLink} ${selectedCard?.id === card.id ? styles.selectedCard : ''} ${isCompleted ? styles.completed : ''}`}
+                                      onClick={() => handleCardSelect(card, section.id, section.cards)}
+                                    >
+                                      {card.keyword}
+                                    </button>
+                                  </li>
+                                );
+                              })}
+                              {(!section.cards || section.cards.length === 0) && (
+                                <li className={styles.navCardItem} key={`empty-section-${section.id}-no-cards`}>No learning cards available</li>
+                              )}
+                            </ul>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </div>
     </div>
   );
 } 

@@ -3,14 +3,16 @@
 .inputForm {
   display: flex;
   width: 100%;
-  max-width: 600px;
-  align-items: center;
+  max-width: 800px;
+  align-items: flex-start;
   position: relative;
   background-color: white;
-  border-radius: 30px;
-  padding: 6px;
-  box-shadow: 0 1px 3px rgba(169, 169, 169, 0.08);
+  border-radius: 16px;
+  padding: 8px;
+  box-shadow: 2 1px 3px rgba(169, 169, 169, 0.08);
   border: 1px solid #e0e0e0;
+  min-height: 56px;
+  
 }
 
 .input {
@@ -21,10 +23,32 @@
   font-size: 1rem;
   outline: none;
   color: #333;
+  resize: none;
+  overflow-y: hidden; /* Hide vertical scrollbar completely */
+  min-height: 24px;
+  line-height: 1.4;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.input::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 .input::placeholder {
   color: #999;
+  opacity: 1; /* Fix for Firefox */
+  text-align: left;
+  align-self: flex-start;
+  position: relative;
+  top: 0;
+  left: 0;
+  transition: all 0.2s;
 }
 
 .input:disabled {
@@ -44,10 +68,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  min-width: 32px;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
   margin-right: 6px;
+  align-self: flex-end;
+  margin-bottom: 8px;
 }
 
 .submitButton:hover:not(:disabled) {
@@ -87,4 +113,11 @@
 .iconButton:hover {
   background-color: #f5f5f5;
   color: #666;
+}
+
+/* Media query for mobile responsiveness */
+@media (max-width: 768px) {
+  .inputForm {
+    max-width: 100%;
+  }
 } 

@@ -65,7 +65,8 @@ export default function LearningPathDetailPage() {
     // Add new items from hook
     internalViewMode,
     proceedToNextContent,
-    resetToCardView
+    resetToCardView,
+    pendingCardToggles,
   } = useLearningPath({ id });
 
   const [taskStatus, setTaskStatus] = useState<TaskStatusResponse | null>(null); // State for task status
@@ -157,20 +158,6 @@ export default function LearningPathDetailPage() {
       fetchTaskStatus().catch(error => {
         console.error("Error fetching task status:", error);
       });
-      
-      // Set up a one-time progress calculation, only if the progress is not already set
-      if (learningPathData.progress === undefined || learningPathData.progress === null) {
-        // Use a timeout to prevent this from blocking the UI rendering
-        const progressTimer = setTimeout(async () => {
-          try {
-            await updateProgressData();
-          } catch (error: any) {
-            console.error("Error updating progress data:", error);
-          }
-        }, 2000); // Delay by 2 seconds
-        
-        return () => clearTimeout(progressTimer);
-      }
     }
   }, [learningPathData?.id]); // Only re-run if the learning path ID changes, not on every render
 
@@ -185,7 +172,12 @@ export default function LearningPathDetailPage() {
           // Only calculate progress if it's not already defined
           // This allows server-rendered progress values to be used if available
           if (typeof learningPathData.progress !== 'number' || isNaN(learningPathData.progress)) {
-            updateProgressData();
+            // Check if there are any pending card toggles before updating progress
+            if (!pendingCardToggles || pendingCardToggles.size === 0) {
+              updateProgressData();
+            } else {
+              console.log("Skipping initial progress calculation due to pending card toggles");
+            }
           }
         } catch (error) {
           console.error("Error during initial progress calculation:", error);
@@ -194,7 +186,7 @@ export default function LearningPathDetailPage() {
       
       return () => clearTimeout(progressTimer);
     }
-  }, [id, learningPathData, updateProgressData]);
+  }, [id, learningPathData, updateProgressData, pendingCardToggles]);
   
   // Set up polling for task status updates if a task is active
   useEffect(() => {

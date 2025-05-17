@@ -65,7 +65,7 @@ function ChatPageContent() {
   const [initialPrompt, setInitialPrompt] = useState<string | null>(null); // State to hold initial prompt
   
   // Add a separate state for user-selected difficulty
-  const [selectedDifficulty, setSelectedDifficulty] = useState<string>("Intermediate");
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string>("Beginner");
 
   // --- Re-introduce Finalization State ---
   const [isFinalizing, setIsFinalizing] = useState(false);
@@ -82,6 +82,19 @@ function ChatPageContent() {
   const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
   const [successRedirectPath, setSuccessRedirectPath] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+
+  // Add textarea auto-resize effect
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-resize textarea when userInput changes
+  useEffect(() => {
+    if (textareaRef.current) {
+      // Reset height to minimal value
+      textareaRef.current.style.height = '24px';
+      // Set to scrollHeight to have the exact height needed
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  }, [userInput]);
 
   // --- Re-introduce chat scroll effect ---
   useEffect(() => {
@@ -267,7 +280,17 @@ function ChatPageContent() {
       const queryPrompt = searchParams?.get('prompt');
       if (queryPrompt) {
         initialPromptProcessed.current = true;
-        const decodedPrompt = decodeURIComponent(queryPrompt);
+        
+        // Add try-catch to handle malformed URI errors
+        let decodedPrompt;
+        try {
+          decodedPrompt = decodeURIComponent(queryPrompt);
+        } catch (e) {
+          console.error('Error decoding URL parameter:', e);
+          // Use the raw query parameter instead
+          decodedPrompt = queryPrompt;
+        }
+        
         setInitialPrompt(decodedPrompt); // Keep track of the initial prompt text
         // Send the initial prompt via the sendMessage function
         // Pass null for planOverride initially, API should generate from scratch
@@ -793,7 +816,7 @@ function ChatPageContent() {
                         <div className={styles.pathPlaceholderLabel}>Difficulty Level</div>
                         <div className={styles.pathPlaceholderDifficulty}>
                           {['Beginner', 'Intermediate', 'Advanced'].map(level => (
-                            <div key={level} className={`${styles.pathPlaceholderLevel} ${level === 'Intermediate' ? styles.pathPlaceholderLevelSelected : ''}`}>{level}</div>
+                            <div key={level} className={`${styles.pathPlaceholderLevel} ${level === 'Beginner' ? styles.pathPlaceholderLevelSelected : ''}`}>{level}</div>
                           ))}
                         </div>
                       </div>
@@ -839,19 +862,19 @@ function ChatPageContent() {
 
           {/* Chat Input Form */}
           <form onSubmit={handleSubmit} className={`${formStyles.inputForm} ${styles.chatInputForm}`}>
-               <input
-                  type="text"
+               <textarea
+                  ref={textareaRef}
                   value={userInput}
                   onChange={(e) => setUserInput(e.target.value)}
                   placeholder={t('chat.chat_placeholder')}
                   className={formStyles.input}
                   disabled={isLoading || isFinalizing} // Disable if chat loading OR finalizing
                   aria-label="Chat input"
-              />
-              <button
+                  rows={1}
+               />
+               <button
                   type="submit"
                   className={formStyles.submitButton}
-                  // style={{ backgroundColor: 'black', color: 'white' }} // Style for black button from image
                   disabled={isLoading || isFinalizing || !userInput.trim()}
                   aria-label={isLoading ? t('chat.sending') : t('chat.send_message')}
               >

@@ -363,31 +363,6 @@ export const PathDetailView: React.FC<PathDetailViewProps> = ({
                         </div>
                     )}
                 </div>
-
-                {/* Debug Information */}
-                {isDevEnvironment() && (
-                    <div className={styles.debugInfo}>
-                        <h3>Debug Information</h3>
-                        <details>
-                            <summary>Learning Path Structure</summary>
-                            <pre>
-                                {JSON.stringify({
-                                    id: learningPathData?.id,
-                                    title: learningPathData?.title,
-                                    courses: learningPathData?.courses?.map(course => ({
-                                        id: course.id,
-                                        title: course.title,
-                                        sections: course.sections?.map(section => ({
-                                            id: section.id,
-                                            title: section.title,
-                                            cardsCount: section.cards?.length || 0
-                                        }))
-                                    }))
-                                }, null, 2)}
-                            </pre>
-                        </details>
-                    </div>
-                )}
             </div>
         );
     }

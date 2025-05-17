@@ -94,8 +94,8 @@ export function EditableLearningPath({
     id: course.id || `course-${index}`,
   }));
   
-  // Keep the difficulty level in sync with initialPlan or default to "Intermediate"
-  const [internalDifficulty, setInternalDifficulty] = useState(initialPlan?.difficulty_level || 'Intermediate');
+  // Keep the difficulty level in sync with initialPlan or default to "Beginner"
+  const [internalDifficulty, setInternalDifficulty] = useState(initialPlan?.difficulty_level || 'Beginner');
 
   // State for schedule selector (remains local)
   const [selectedDays, setSelectedDays] = useState<Set<string>>(new Set());

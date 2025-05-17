@@ -68,10 +68,20 @@ const CardDetailView: React.FC<CardDetailViewProps> = ({
     setIsTogglingCompletion(true);
     try {
       await toggleCardCompletion(selectedCard.id);
+      console.log('DEBUG - Card Completion Toggle Complete:', {
+        cardId: selectedCard.id,
+        newCompletionStatus: !selectedCard.is_completed
+      });
     } catch (error) {
       console.error("Error toggling card completion:", error);
     } finally {
+      // Let the local component UI know we're no longer toggling
       setIsTogglingCompletion(false);
+      
+      // Double check if selectedCard.isToggling is still true (it shouldn't be)
+      if (selectedCard.isToggling) {
+        console.warn('Warning: isToggling still true in selectedCard after completion toggle. This indicates a possible state synchronization issue.');
+      }
     }
   };
 
@@ -175,8 +185,14 @@ const CardDetailView: React.FC<CardDetailViewProps> = ({
                     className={`${styles.navButton} ${styles.nextAction}`}
                     style={{ padding: '0.3rem 0.7rem', fontSize: '0.85rem' }}
                   >
-                    {isTogglingCompletion || selectedCard.isToggling ? 
-                      "Processing..." : "Mark as completed"}
+                    {isTogglingCompletion || selectedCard.isToggling ? (
+                      <>
+                        <span className={styles.spinner} style={{ marginRight: '6px' }}></span>
+                        Processing...
+                      </>
+                    ) : (
+                      "Mark as completed"
+                    )}
                   </button>
                 )
               )}

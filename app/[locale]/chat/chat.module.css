@@ -436,6 +436,8 @@
 /* --- Add/Update Styles for Two-Column Layout --- */
 .twoColumnLayout {
   display: flex;
+  flex-direction: row; /* Explicitly set row direction */
+  flex-wrap: nowrap; /* Prevent wrapping to next line */
   width: 100%;
   max-width: 1200px; 
   margin: 0 auto;
@@ -448,7 +450,7 @@
 /* Left Column Styles */
 .leftColumn {
   flex: 1; /* Takes up 1 part of space */
-  min-width: 400px; /* Minimum width */
+  min-width: 300px; /* Reduced minimum width */
   max-width: 700px; /* Optional max width */
   display: flex;
   flex-direction: column;
@@ -458,7 +460,7 @@
 /* Right Column Styles */
 .rightColumn {
   flex: 1.5; /* Takes up 1.5 parts of space (wider) */
-  min-width: 450px; /* Minimum width */
+  min-width: 300px; /* Reduced minimum width */
   max-width: 600px; /* Optional max width */
   /* Make it take available height and structure for chat */
   height: calc(100vh - 80px - 4rem); /* Example: Full height minus header/padding */
@@ -558,7 +560,58 @@
   margin-top: auto; /* Push input to bottom of right column */
   width: 100%;
   max-width: none; /* Override max-width from composed styles */
-  /* Uses shared styles from InputForm.module.css */
+  border-radius: 24px; /* More rounded corners to match image */
+  background-color: var(--card-background);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  padding: 6px 8px 6px 16px; /* Adjust padding to match image */
+}
+
+/* Add styles to ensure the placeholder text is top-aligned and the input expands */
+.chatInputForm :global(.input) {
+  align-self: flex-start;
+  padding: 8px 0;
+  min-height: 40px;
+  max-height: 120px;
+  overflow-y: hidden; /* Hide scrollbar */
+  text-align: left;
+  line-height: 1.5;
+  scrollbar-width: none; /* Firefox */
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+/* Hide scrollbar for WebKit browsers */
+.chatInputForm :global(.input::-webkit-scrollbar) {
+  display: none;
+}
+
+.chatInputForm :global(.submitButton) {
+  margin: 4px;
+  background-color: #f5f5f5;
+  color: #999;
+  transition: all 0.2s;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chatInputForm :global(.submitButtonIcon) {
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chatInputForm :global(.submitButton:hover:not(:disabled)) {
+  background-color: #ebebeb;
+  color: #666;
 }
 
 /* --- Generate Full Path Button Styles --- */
@@ -766,20 +819,20 @@
 }
 
 .pathPlaceholderLevel {
-    background-color: #f8f9fa;
-    border: 1px solid #dee2e6;
-    color: #495057;
+    background-color: var(--background);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
     padding: 0.45rem 1.2rem;
-    border-radius: 6px;
+    border-radius: 9999px;
     font-size: 0.85rem;
     min-width: 100px;
     text-align: center;
 }
 
 .pathPlaceholderLevelSelected {
-    background-color: #28a745; /* Green to match the selected Intermediate */
-    color: #ffffff;
-    border-color: #28a745;
+    background-color: var(--primary-accent); /* Primary accent from globals.css */
+    color: white;
+    border-color: var(--primary-accent);
 }
 
 /* Dark mode overrides for placeholder */
@@ -831,9 +884,9 @@
     }
     
     .pathPlaceholderLevelSelected {
-        background-color: #38a169; /* Dark green */
-        color: #ffffff;
-        border-color: #38a169;
+        background-color: var(--primary-accent); /* Use global dark mode primary accent */
+        color: white;
+        border-color: var(--primary-accent);
     }
 }
 
@@ -959,6 +1012,27 @@
     background-color: var(--card-background);
     border: 1px solid var(--border-color);
   }
+
+  .chatInputForm {
+    background-color: var(--card-background);
+    border-color: var(--border-color);
+  }
+  
+  .chatInputForm :global(.input) {
+    color: var(--text-color);
+  }
+  
+  .chatInputForm :global(.input::placeholder) {
+    color: var(--text-secondary);
+  }
+  
+  .chatInputForm :global(.submitButton) {
+    background-color: var(--primary-accent);
+  }
+  
+  .chatInputForm :global(.submitButton:hover:not(:disabled)) {
+    background-color: var(--primary-accent-dark);
+  }
 }
 
 /* AI Working Phases */
@@ -1051,4 +1125,25 @@
     .pathPlaceholderRow {
         background: linear-gradient(90deg, #4a5568 25%, #3a4556 50%, #4a5568 75%);
     }
+}
+
+/* Media query for responsive layout */
+@media (max-width: 900px) {
+  .twoColumnLayout {
+    flex-direction: column;
+    padding: 1rem;
+    gap: 1rem;
+  }
+
+  .leftColumn, .rightColumn {
+    min-width: 100%;
+    max-width: 100%;
+  }
+
+  .rightColumn {
+    height: auto;
+    min-height: 60vh;
+    position: relative;
+    top: 0;
+  }
 }

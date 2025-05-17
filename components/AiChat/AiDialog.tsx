@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import styles from './AiDialog.module.css';
 import formStyles from '../Shared/InputForm.module.css';
 
@@ -24,6 +24,31 @@ export function AiDialog({ query, setQuery, onQuerySubmit }: AiDialogProps) {
   // Keep local loading state for button feedback if needed,
   // but the parent page (landing/chat) usually handles the main loading state.
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-resize textarea based on content
+  useEffect(() => {
+    const adjustHeight = () => {
+      const textarea = textareaRef.current;
+      if (!textarea) return;
+      
+      // Reset height to auto to get the correct scrollHeight
+      textarea.style.height = 'auto';
+      
+      // Calculate new height (capped at max-height defined in CSS)
+      const newHeight = Math.min(textarea.scrollHeight, 150);
+      
+      // Set the height to fit content
+      textarea.style.height = `${newHeight}px`;
+    };
+    
+    // Adjust height whenever query changes
+    adjustHeight();
+    
+    // Also adjust on window resize for better responsiveness
+    window.addEventListener('resize', adjustHeight);
+    return () => window.removeEventListener('resize', adjustHeight);
+  }, [query]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,6 +90,17 @@ export function AiDialog({ query, setQuery, onQuerySubmit }: AiDialogProps) {
     }
   };
 
+  // Handle keyboard events for the textarea
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Submit on Enter without Shift key
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (query.trim() && !isSubmitting) {
+        handleSubmit(e);
+      }
+    }
+  };
+
   return (
     // The main div now just acts as a positioning container
     <div className={styles.aiDialog}>
@@ -72,13 +108,15 @@ export function AiDialog({ query, setQuery, onQuerySubmit }: AiDialogProps) {
       <form onSubmit={handleSubmit} className={formStyles.inputForm}>
         {/* Add other icons/buttons here if needed, like the '+' in the image */}
         {/* Example: <button type="button" className={formStyles.iconButton}>+</button> */}
-        <input
-          type="text"
+        <textarea
+          ref={textareaRef}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={handleKeyDown}
           placeholder="Ask anything..." // Updated placeholder
           className={formStyles.input}
           disabled={isSubmitting} // Disable based on local submitting state
+          rows={1} // Start with one row
         />
         {/* Add other icons/buttons here if needed, like the microphone */}
         {/* Example: <button type="button" className={formStyles.iconButton}>🎤</button> */}

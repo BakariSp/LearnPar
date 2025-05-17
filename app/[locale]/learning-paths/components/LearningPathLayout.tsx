@@ -7,6 +7,13 @@ import styles from '../styles';
 import { InternalViewMode } from '../hooks/useLearningPath';
 import { useTranslation } from 'react-i18next';
 
+// Interface for reminder data
+interface ReminderData {
+  title: string;
+  description: string;
+  url: string;
+}
+
 interface LearningPathLayoutProps {
   isLoading: boolean;
   error: string | null;
@@ -76,6 +83,9 @@ export default function LearningPathLayout({
 }: LearningPathLayoutProps) {
   const { t } = useTranslation('common');
   const [isPageEntering, setIsPageEntering] = useState(true);
+  const [isAssistantCollapsed, setIsAssistantCollapsed] = useState(false);
+  const [showReminderOptions, setShowReminderOptions] = useState(false);
+  const [reminderData, setReminderData] = useState<ReminderData | null>(null);
 
   // Page entrance animation effect
   useEffect(() => {
@@ -86,6 +96,148 @@ export default function LearningPathLayout({
     
     return () => clearTimeout(timer);
   }, []);
+
+  // Handle assistant collapse state changes
+  const handleAssistantCollapseChange = (collapsed: boolean) => {
+    setIsAssistantCollapsed(collapsed);
+  };
+
+  // Create reminder data from next section/course information
+  const generateReminderData = (): ReminderData | null => {
+    if (!learningPathData || currentSectionId === null) return null;
+
+    // Find current course and section
+    let currentCourseIdx = -1;
+    let currentSectionIdxInCourse = -1;
+    let nextItemTitle = t('learning_path.next_part_generic');
+    let nextSectionUrl = '';
+
+    // Find current position in learning path
+    for (let i = 0; i < learningPathData.courses.length; i++) {
+      const course = learningPathData.courses[i];
+      const sectionIdx = course.sections.findIndex(s => s.id === currentSectionId);
+      if (sectionIdx !== -1) {
+        currentCourseIdx = i;
+        currentSectionIdxInCourse = sectionIdx;
+
+        // Determine next section/course
+        if (currentSectionIdxInCourse < course.sections.length - 1) {
+          // Next section in the same course
+          const nextSection = course.sections[currentSectionIdxInCourse + 1];
+          if (nextSection && nextSection.cards && nextSection.cards.length > 0) {
+            const firstCardWrapper = nextSection.cards[0];
+            nextItemTitle = firstCardWrapper.card?.question || 
+                          (firstCardWrapper as CardResponse).question || 
+                          nextSection.title;
+            nextSectionUrl = `/${locale}/learning-paths/${learningPathData.id}?section=${nextSection.id}&card=${firstCardWrapper.id}`;
+          } else if (nextSection) {
+            nextItemTitle = nextSection.title;
+            nextSectionUrl = `/${locale}/learning-paths/${learningPathData.id}?section=${nextSection.id}`;
+          }
+        } else if (currentCourseIdx < learningPathData.courses.length - 1) {
+          // First section of the next course
+          const nextCourse = learningPathData.courses[currentCourseIdx + 1];
+          const firstSectionOfNextCourse = nextCourse.sections?.find(s => s.cards && s.cards.length > 0) || nextCourse.sections?.[0];
+          if (firstSectionOfNextCourse) {
+            if (firstSectionOfNextCourse.cards && firstSectionOfNextCourse.cards.length > 0) {
+              const firstCardWrapper = firstSectionOfNextCourse.cards[0];
+              nextItemTitle = firstCardWrapper.card?.question || 
+                            (firstCardWrapper as CardResponse).question || 
+                            firstSectionOfNextCourse.title;
+              nextSectionUrl = `/${locale}/learning-paths/${learningPathData.id}?section=${firstSectionOfNextCourse.id}&card=${firstCardWrapper.id}`;
+            } else {
+              nextItemTitle = firstSectionOfNextCourse.title;
+              nextSectionUrl = `/${locale}/learning-paths/${learningPathData.id}?section=${firstSectionOfNextCourse.id}`;
+            }
+          } else {
+            nextItemTitle = nextCourse.title;
+            nextSectionUrl = `/${locale}/learning-paths/${learningPathData.id}`;
+          }
+        }
+        break;
+      }
+    }
+
+    if (currentCourseIdx === -1) return null;
+
+    // Generate the absolute URL using window.location if available
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+    const fullUrl = `${baseUrl}${nextSectionUrl}`;
+
+    return {
+      title: `Continue Learning: ${nextItemTitle}`,
+      description: `Continue your learning path: "${learningPathData.title}" with section "${nextItemTitle}"`,
+      url: fullUrl
+    };
+  };
+
+  const handleSetReminder = () => {
+    const data = generateReminderData();
+    if (data) {
+      setReminderData(data);
+      setShowReminderOptions(true);
+    }
+  };
+
+  const createGoogleCalendarEvent = () => {
+    if (!reminderData) return;
+    
+    // Set the event for tomorrow at the same time
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    const startDate = tomorrow.toISOString().replace(/-|:|\.\d+/g, '');
+    const endDate = new Date(tomorrow.getTime() + (60 * 60 * 1000)).toISOString().replace(/-|:|\.\d+/g, '');
+    
+    const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(reminderData.title)}&details=${encodeURIComponent(reminderData.description + '\n\n' + reminderData.url)}&dates=${startDate}/${endDate}`;
+    
+    window.open(url, '_blank');
+    setShowReminderOptions(false);
+  };
+
+  const downloadICalEvent = () => {
+    if (!reminderData) return;
+    
+    // Create event for tomorrow
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    const startDate = tomorrow.toISOString().replace(/-|:|\.|\d{3}/g, '');
+    const endDate = new Date(tomorrow.getTime() + (60 * 60 * 1000)).toISOString().replace(/-|:|\.|\d{3}/g, '');
+    
+    // Create iCal content
+    const icalContent = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//LearnPar//EN',
+      'CALSCALE:GREGORIAN',
+      'BEGIN:VEVENT',
+      `DTSTART:${startDate}`,
+      `DTEND:${endDate}`,
+      `SUMMARY:${reminderData.title}`,
+      `DESCRIPTION:${reminderData.description}\\n\\n${reminderData.url}`,
+      'STATUS:CONFIRMED',
+      'SEQUENCE:0',
+      'BEGIN:VALARM',
+      'TRIGGER:-PT30M',
+      'ACTION:DISPLAY',
+      `DESCRIPTION:${reminderData.title}`,
+      'END:VALARM',
+      'END:VEVENT',
+      'END:VCALENDAR'
+    ].join('\r\n');
+    
+    // Create downloadable file
+    const blob = new Blob([icalContent], { type: 'text/calendar' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'learning_reminder.ics';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    setShowReminderOptions(false);
+  };
 
   // Loading state
   if (isLoading) {
@@ -185,6 +337,28 @@ export default function LearningPathLayout({
             <button onClick={resetToCardView} className={styles.backButton} style={{ marginTop: '0.5rem' }}>
               {t('learning_path.back_to_path_view')}
             </button>
+            
+            {/* Add reminder functionality */}
+            {!showReminderOptions ? (
+              <button onClick={handleSetReminder} className={styles.reminderButton}>
+                Remind Me to Continue Later
+              </button>
+            ) : (
+              <div className={styles.reminderOptions}>
+                <p className={styles.reminderOptionsTitle}>How would you like to be reminded?</p>
+                <div className={styles.reminderButtonsContainer}>
+                  <button onClick={createGoogleCalendarEvent} className={styles.reminderOptionButton}>
+                    Add to Google Calendar
+                  </button>
+                  <button onClick={downloadICalEvent} className={styles.reminderOptionButton}>
+                    Download Calendar File (.ics)
+                  </button>
+                  <button onClick={() => setShowReminderOptions(false)} className={styles.reminderCancelButton}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       );
@@ -252,10 +426,11 @@ export default function LearningPathLayout({
       {renderMainContent()}
 
       {/* Learning Assistant */}
-      <div className={styles.assistantContainer}>
+      <div className={`${styles.assistantContainer} ${isAssistantCollapsed ? styles.collapsed : ''}`}>
         <LearnAssistant 
           currentCardId={selectedCard?.id || null}
           currentSectionId={currentSectionId}
+          onCollapseChange={handleAssistantCollapseChange}
         />
       </div>
     </div>
