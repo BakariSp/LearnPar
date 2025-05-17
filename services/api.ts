@@ -873,27 +873,52 @@ export interface RecommendationsByInterestsResponse {
 
 // Get recommendations based on user interests
 export const apiGetRecommendationsByInterests = async (
-  interests: string[], 
+  interests: string[] | number[], 
   limit: number = 5, 
   excludePaths: number[] = [],
   refreshToken: string = "string"
 ): Promise<RecommendationsByInterestsResponse | null> => {
   try {
+    console.log('apiGetRecommendationsByInterests called with:', {
+      interests,
+      limit,
+      excludePaths,
+      refreshTokenLength: refreshToken?.length || 0
+    });
+
+    // Make sure interests are properly formatted as strings
+    const formattedInterests = interests.map(interest => String(interest));
+
     const response = await apiClient('/api/recommendations/interests', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        interests,
+        interests: formattedInterests,
         limit,
         exclude_paths: excludePaths,
         refresh_token: refreshToken
       })
     });
     
-    if (!response || !response.ok) {
-      console.error('Failed to fetch interest-based recommendations:', response?.status);
+    if (!response) {
+      console.error('Failed to fetch interest-based recommendations: No response from server');
+      return null;
+    }
+
+    if (!response.ok) {
+      // Try to get error details from response
+      let errorDetail = '';
+      try {
+        const errorData = await response.json();
+        errorDetail = errorData.detail || '';
+        console.error('Error details:', errorData);
+      } catch (parseError) {
+        // Ignore parse errors on error responses
+      }
+      
+      console.error(`Failed to fetch interest-based recommendations: ${response.status}${errorDetail ? ' - ' + errorDetail : ''}`);
       return null;
     }
     

@@ -186,7 +186,7 @@ export default function LearningPathDetailPage() {
       
       return () => clearTimeout(progressTimer);
     }
-  }, [id, learningPathData, updateProgressData, pendingCardToggles, expandedItems, expandedSections, fetchTaskStatus, handleCardSelect, locale, router, searchParams, setExpandedItems, setExpandedSections]);
+  }, [id, learningPathData, updateProgressData, pendingCardToggles]); 
   
   // Set up polling for task status updates if a task is active
   useEffect(() => {
@@ -202,6 +202,7 @@ export default function LearningPathDetailPage() {
       }
     }, 5000); // Poll every 5 seconds
 
+    // Clean up the interval on unmount or when dependencies change
     return () => clearInterval(pollInterval);
   }, [id, taskStatus, fetchTaskStatus]);
 

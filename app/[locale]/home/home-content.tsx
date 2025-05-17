@@ -108,26 +108,41 @@ export function ZeroLandingPageContent(props: ZeroLandingPageProps) {
           
           if (userData && userData.interests && userData.interests.length > 0) {
             // If user has interests, fetch personalized recommendations
-            const interestIds = userData.interests.map((i: any) => i.id);
-            const interestRecsData = await apiGetRecommendationsByInterests(
-              interestIds,
-              5, // Limit to 5 learning paths
-              [], // No exclusions by default
-              refreshToken
-            );
-            
-            if (!isMounted) return; // Stop if component unmounted
+            try {
+              // Convert userData.interests to an array of interest IDs 
+              // Make sure we're passing exactly what the API expects
+              const interestIds = userData.interests.map((interest: any) => 
+                // Handle both object format and string format
+                typeof interest === 'object' ? interest.id : interest
+              );
 
-            if (interestRecsData) {
-              setInterestRecommendations(interestRecsData);
-              setRefreshToken(interestRecsData.refresh_token);
-              setInitialDataLoaded(true);
-              setIsLoading(false);
-            } else {
+              console.log('Interest IDs being sent to API:', interestIds);
+
+              const interestRecsData = await apiGetRecommendationsByInterests(
+                interestIds,
+                5, // Limit to 5 learning paths
+                [], // No exclusions by default
+                refreshToken
+              );
+              
+              if (!isMounted) return; // Stop if component unmounted
+
+              if (interestRecsData) {
+                setInterestRecommendations(interestRecsData);
+                setRefreshToken(interestRecsData.refresh_token);
+                setInitialDataLoaded(true);
+                setIsLoading(false);
+              } else {
+                console.log('No recommendations data returned, falling back to standard recommendations');
+                fallbackToStandardRecs();
+              }
+            } catch (error) {
+              console.error('Error fetching interest-based recommendations:', error);
               fallbackToStandardRecs();
             }
           } else {
             // No interests, fall back to standard recommendations
+            console.log('No user interests found, falling back to standard recommendations');
             fallbackToStandardRecs();
           }
         } catch (error) {
@@ -173,7 +188,7 @@ export function ZeroLandingPageContent(props: ZeroLandingPageProps) {
     return () => {
       isMounted = false;
     };
-  }, [initialDataLoaded, refreshToken, props.initialRecommendations]); // Add props.initialRecommendations as a dependency
+  }, [initialDataLoaded, refreshToken, props.initialRecommendations]); // Keep only the necessary dependencies
 
   // Convert interest-based recommendations to the format needed by LearningPathCard
   const interestBasedPaths = interestRecommendations?.learning_paths.map((path) => ({
@@ -258,6 +273,8 @@ export function ZeroLandingPageContent(props: ZeroLandingPageProps) {
         .map(meta => meta.interest_id)
         .filter((v, i, a) => a.indexOf(v) === i); // Remove duplicates
       
+      console.log('Load more - Interest IDs being sent to API:', interests);
+      
       // Get IDs of current paths to exclude from next batch
       const excludePaths = interestRecommendations.learning_paths.map(path => path.id);
       
@@ -281,6 +298,7 @@ export function ZeroLandingPageContent(props: ZeroLandingPageProps) {
         setRefreshToken(nextBatch.refresh_token);
       } else {
         // No more recommendations to load
+        console.log('No more recommendations available');
         setNoMoreRecommendations(true);
       }
       

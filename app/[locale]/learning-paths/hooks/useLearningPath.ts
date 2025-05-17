@@ -1080,12 +1080,29 @@ export function useLearningPath({ id }: UseLearningPathProps): UseLearningPathRe
 
   // Fetch the learning path data
   useEffect(() => {
-    // Only fetch data on initial mount or if id changes
-    fetchLearningPathData();
+    // Create a flag to track if the component is mounted
+    let isMounted = true;
     
-    // Note: fetchLearningPathData is memoized with useCallback and only depends on 'id',
-    // so this effect will only run when 'id' changes, preventing infinite loops
-  }, [id, fetchLearningPathData]); // Added fetchLearningPathData as dependency
+    // Define an async function to fetch data
+    const fetchData = async () => {
+      try {
+        // Only fetch data if the component is still mounted
+        if (isMounted) {
+          await fetchLearningPathData();
+        }
+      } catch (error) {
+        console.error("Error in fetchData effect:", error);
+      }
+    };
+    
+    // Call the fetch data function
+    fetchData();
+    
+    // Cleanup function to set isMounted to false when the component unmounts
+    return () => {
+      isMounted = false;
+    };
+  }, [id]); // Only depend on id, NOT fetchLearningPathData
 
   // Determine if there are previous/next cards
   const hasPreviousCard = currentCardIndex > 0;

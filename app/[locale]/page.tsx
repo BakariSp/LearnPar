@@ -33,10 +33,27 @@ export default function Home() {
 
   // Fetch recommendations only if the user is logged in
   useEffect(() => {
-    if (user) {
-      fetchRecommendations().then(setRecommendations);
+    let isMounted = true;
+
+    async function getRecommendations() {
+      if (user && isMounted) {
+        try {
+          const data = await fetchRecommendations();
+          if (isMounted) {
+            setRecommendations(data);
+          }
+        } catch (error) {
+          console.error("Error in fetchRecommendations:", error);
+        }
+      }
     }
-  }, [user]); // Dependency array includes user
+
+    getRecommendations();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user]); // Dependency array includes user only
 
   // If user is logged in, show the main app page (home/dashboard)
   if (user) {
