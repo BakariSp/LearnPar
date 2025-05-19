@@ -8,6 +8,7 @@ import { LearningPathCard } from '../../../components/Course/LearningPathCard';
 import styles from './home.module.css';
 import { apiGetRecommendationsByInterests, RecommendationsByInterestsResponse } from '../../../services/api';
 import { getUserProfile } from '../../../services/user';
+import axios from 'axios';
 
 // Define interfaces for the API response data
 interface Resource {
@@ -80,6 +81,42 @@ export function ZeroLandingPageContent(props: ZeroLandingPageProps) {
   const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
   const [isNavigating, setIsNavigating] = useState<boolean>(false);
   const router = useRouter();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+      setIsAuthenticated(true);
+      return;
+    }
+
+    // Step 1: 匿名身份识别
+    let anonId = localStorage.getItem("anon_id");
+    if (!anonId) {
+      anonId = crypto.randomUUID(); // or use uuid.v4()
+      localStorage.setItem("anon_id", anonId);
+    }
+
+    // Step 2: 注册 guest 用户
+    fetch("/api/guest", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ anonymous_id: anonId }),
+    })
+      .then(res => res.json())
+      .then(data => {
+        localStorage.setItem("token", data.token);
+        axios.defaults.headers.common["Authorization"] = `Bearer ${data.token}`;
+        setIsAuthenticated(true);
+      })
+      .catch(err => {
+        console.error("❌ Failed to create guest user", err);
+        setError("Unable to create guest user. Please try again.");
+      });
+  }, []);
+
+
 
   // Page entrance animation effect
   useEffect(() => {
@@ -97,6 +134,7 @@ export function ZeroLandingPageContent(props: ZeroLandingPageProps) {
     
     // Function to fetch user data and recommendations
     async function fetchUserAndRecommendations() {
+      if (!isAuthenticated) return;
       if (!initialDataLoaded && isMounted) {
         try {
           setIsLoading(true);

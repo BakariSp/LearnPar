@@ -86,7 +86,7 @@ export default function DashboardPage() {
   useEffect(() => {
     // Redirect to login if not authenticated
     if (!isLoading && !user) {
-      router.push(`/${locale}/login`);
+      router.push(`/${locale}/dashboard`);
       return;
     }
 
