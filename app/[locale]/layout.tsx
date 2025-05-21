@@ -11,6 +11,7 @@ import { ThemeProvider } from '@/context/ThemeContext';
 import I18nInitializer from '../../components/I18nInitializer';
 import { Analytics } from '@vercel/analytics/react';
 import JsonLd from '@/components/JsonLd';
+import GuestAndAuthInitializer from '@/components/GuestAndAuthInitializer';
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'),
@@ -138,13 +139,15 @@ export default async function RootLayout({
         <I18nInitializer />
         <ThemeProvider>
           <AuthProvider>
-            <NotificationProvider>
-              <ToastProvider>
-                <LayoutClientWrapper>
-                  <main id="main-content">{children}</main>
-                </LayoutClientWrapper>
-              </ToastProvider>
-            </NotificationProvider>
+            <GuestAndAuthInitializer>
+              <NotificationProvider>
+                <ToastProvider>
+                  <LayoutClientWrapper>
+                    <main id="main-content">{children}</main>
+                  </LayoutClientWrapper>
+                </ToastProvider>
+              </NotificationProvider>
+            </GuestAndAuthInitializer>
           </AuthProvider>
         </ThemeProvider>
         <Analytics />

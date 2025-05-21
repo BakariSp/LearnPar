@@ -162,29 +162,45 @@ export const logout = () => {
   }
 };
 
+function normalizeHeaders(input?: HeadersInit): Record<string, string> {
+  if (!input) return {};
+  if (input instanceof Headers) {
+    const result: Record<string, string> = {};
+    input.forEach((value, key) => {
+      result[key] = value;
+    });
+    return result;
+  } else if (Array.isArray(input)) {
+    return Object.fromEntries(input);
+  } else {
+    return { ...input }; // 强制转成 Record<string, string>
+  }
+}
+
 export const apiClient = async (endpoint: string, options: RequestInit = {}): Promise<Response | null> => {
+
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
   const MAX_RETRIES = 3;
-
   const url = endpoint.startsWith('http') ? endpoint : `${API_URL}${endpoint}`;
-  
-  // Add auth token if available
   const token = getToken();
+  console.log("🧪 token =", token);
+  const headers: Record<string, string> = {
+    ...normalizeHeaders(options.headers),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+
+  // Add auth token if available
+  
   if (token) {
-    options.headers = {
-      ...options.headers,
-      'Authorization': `Bearer ${token}`
-    };
+    headers['Authorization'] = `Bearer ${token}`;
   }
 
   // Add custom header to prevent redirection to production frontend when using production API
   if (process.env.NEXT_PUBLIC_FORCE_LOCAL_FRONTEND === 'true') {
-    options.headers = {
-      ...options.headers,
-      'X-Force-Local-Frontend': 'true'
-    };
+    headers['X-Force-Local-Frontend'] = 'true';
     console.log('Using remote API with local frontend (forced by NEXT_PUBLIC_FORCE_LOCAL_FRONTEND)');
   }
+  options.headers = headers;
 
   // Implement retry logic with exponential backoff
   let retryCount = 0;
@@ -223,7 +239,7 @@ export const apiClient = async (endpoint: string, options: RequestInit = {}): Pr
       }
     }
   }
-
+  console.log("📡 Sending request to", url, "with headers:", headers);
   console.error(`Failed to connect to ${endpoint} after ${MAX_RETRIES} attempts:`, lastError);
   return null;
 };
@@ -249,6 +265,7 @@ export interface UserProfile {
   created_at?: string;
   interests?: string[];
   is_superuser?: boolean;
+  is_guest: boolean;
   subscription_type?: 'free' | 'standard' | 'premium';
 }
 

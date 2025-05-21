@@ -16,14 +16,17 @@ import { useRouter } from 'next/navigation';
 
 // Constants
 const USER_ID_KEY = 'userId'; // Add constant for consistency
+const AUTH_TOKEN_KEY = 'auth_token'; // 新增统一 token key
 
 interface AuthContextType {
   user: UserProfile | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  authReady: boolean;
   login: (credentials: LoginCredentials) => Promise<void>;
   logout: () => void;
   handleOAuthCallback: (token: string) => void;
+  setUser: (user: UserProfile | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -31,45 +34,48 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [authReady, setAuthReady] = useState(false);
   const router = useRouter();
-  const [authReady, setAuthReady] = useState(false); 
-  
+
   useEffect(() => {
     const validateTokenAndFetchUser = async () => {
       console.log('AuthContext: Initializing and validating auth state');
       setIsLoading(true);
-      
+
+      // ✅ Step 1: 稍微等待一下 localStorage 写入完成（特别是 guest 注册后）
+      await new Promise(resolve => setTimeout(resolve, 150)); // 等 150ms
+
       try {
-        // First verify the auth state to fix any issues
         await verifyAuthState();
-        
+
         const token = getToken();
         if (token) {
           console.log('AuthContext: Token found, fetching user data');
           try {
             const userData = await getCurrentUser();
+
             if (userData) {
               console.log('AuthContext: User data received, setting state');
               setUser(userData);
-              
-              // Store user ID in localStorage (getCurrentUser should handle this now)
+            if (userData.is_guest) {
+              console.log('✅ Guest login successful:', userData.email);
+            }
               if (userData.id) {
                 console.log(`AuthContext: Ensuring user ID ${userData.id} is in localStorage`);
               }
             } else {
               console.log('AuthContext: No user data received, clearing auth state');
-              // Token might be invalid, clear it
-              authLogout(); // Use the original logout to clear token etc.
+              authLogout();
               setUser(null);
             }
           } catch (error) {
             console.error("AuthContext: Failed to fetch user on initial load:", error);
-            authLogout(); // Logout on error
+            authLogout();
             setUser(null);
           }
         } else {
           console.log('AuthContext: No token found, user not authenticated');
-          setUser(null); // No token, not logged in
+          setUser(null);
         }
       } catch (error) {
         console.error('AuthContext: Error during auth initialization:', error);
@@ -80,9 +86,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.log('AuthContext: Auth initialization complete, ready:', true);
       }
     };
-    
+
     validateTokenAndFetchUser();
-  }, []); // Run only once on mount
+  }, []);
 
   const login = useCallback(async (credentials: LoginCredentials) => {
     setIsLoading(true);
@@ -130,6 +136,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (typeof window !== 'undefined') {
       console.log('AuthContext: Clearing user ID from localStorage on logout');
       localStorage.removeItem(USER_ID_KEY);
+      localStorage.removeItem(AUTH_TOKEN_KEY); // 确保登出时也清理 token
     }
     
     authLogout(); // Original logout handles token removal and redirect
@@ -213,7 +220,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     authReady,
     login, // Use memoized version
     logout, // Use memoized version
-    handleOAuthCallback // Use memoized version
+    handleOAuthCallback, // Use memoized version
+    setUser
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

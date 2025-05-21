@@ -155,7 +155,7 @@ export default function LandingPage() {
               with <span className={styles.accentText}>Zero AI</span>
             </h1>
             <div className={styles.heroButtons}>
-              <Link href={`/${locale}/login`} className={styles.primaryButton}>
+              <Link href={`/${locale}/home`} className={styles.primaryButton}>
                 Get started
               </Link>
               <Link href={`/${locale}/about`} className={styles.secondaryButton}>

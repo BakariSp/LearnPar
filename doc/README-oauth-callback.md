@@ -31,7 +31,7 @@ function OAuthCallback() {
       try {
         // Parse URL parameters
         const params = new URLSearchParams(location.search);
-        const token = params.get('token');
+        const token = params.get('auth_token');
         const isNewUser = params.get('is_new_user') === 'true';
         
         if (!token) {

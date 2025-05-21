@@ -9,8 +9,9 @@ import styles from './home.module.css';
 import { apiGetRecommendationsByInterests, RecommendationsByInterestsResponse } from '../../../services/api';
 import { getUserProfile } from '../../../services/user';
 import axios from 'axios';
-
-// Define interfaces for the API response data
+import { useGuestAuth } from '@/hooks/useGuestAuth'; 
+import { useAuth } from '@/context/AuthContext'; 
+// Define interfaces for the API response datas
 interface Resource {
   url: string;
   title: string;
@@ -63,6 +64,7 @@ export interface ZeroLandingPageProps {
 
 // Main client component
 export function ZeroLandingPageContent(props: ZeroLandingPageProps) {
+
   const { initialRecommendations } = props;
   const { t } = useTranslation('common');
   const params = useParams();
@@ -81,40 +83,77 @@ export function ZeroLandingPageContent(props: ZeroLandingPageProps) {
   const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
   const [isNavigating, setIsNavigating] = useState<boolean>(false);
   const router = useRouter();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { user, isAuthenticated } = useAuth();
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-      setIsAuthenticated(true);
-      return;
+    let isMounted = true;
+
+    async function fetchUserAndRecommendations() {
+      if (!isAuthenticated || !isMounted || initialDataLoaded) return;
+
+      try {
+        setIsLoading(true);
+
+        const userData = await getUserProfile();
+
+        if (!isMounted) return;
+
+        if (Array.isArray(userData?.interests) && userData.interests.length > 0) {
+          const interestIds = userData.interests.map((interest: any) =>
+            typeof interest === 'object' ? interest.id : interest
+          );
+
+          const interestRecsData = await apiGetRecommendationsByInterests(
+            interestIds,
+            5,
+            [],
+            refreshToken
+          );
+
+          if (!isMounted) return;
+
+          if (interestRecsData) {
+            setInterestRecommendations(interestRecsData);
+            setRefreshToken(interestRecsData.refresh_token);
+          } else {
+            await fallbackToStandardRecs();
+          }
+        } else {
+          await fallbackToStandardRecs();
+        }
+      } catch (err) {
+        console.error('❌ Failed to fetch user profile or recommendations:', err);
+        await fallbackToStandardRecs();
+      } finally {
+        if (isMounted) {
+          setInitialDataLoaded(true);
+          setIsLoading(false);
+        }
+      }
     }
 
-    // Step 1: 匿名身份识别
-    let anonId = localStorage.getItem("anon_id");
-    if (!anonId) {
-      anonId = crypto.randomUUID(); // or use uuid.v4()
-      localStorage.setItem("anon_id", anonId);
+  async function fallbackToStandardRecs() {
+    if (props.initialRecommendations) {
+      setRecommendations(props.initialRecommendations);
+    } else {
+      try {
+        const res = await fetch('/api/recommendations');
+        if (res.ok) {
+          const data = await res.json();
+          setRecommendations(data);
+        }
+      } catch (e) {
+        setError('Failed to load recommendations.');
+      }
     }
+  }
 
-    // Step 2: 注册 guest 用户
-    fetch("/api/guest", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ anonymous_id: anonId }),
-    })
-      .then(res => res.json())
-      .then(data => {
-        localStorage.setItem("token", data.token);
-        axios.defaults.headers.common["Authorization"] = `Bearer ${data.token}`;
-        setIsAuthenticated(true);
-      })
-      .catch(err => {
-        console.error("❌ Failed to create guest user", err);
-        setError("Unable to create guest user. Please try again.");
-      });
-  }, []);
+  fetchUserAndRecommendations();
+
+  return () => {
+    isMounted = false;
+  };
+}, [isAuthenticated, initialDataLoaded, props.initialRecommendations, refreshToken]);
 
 
 
