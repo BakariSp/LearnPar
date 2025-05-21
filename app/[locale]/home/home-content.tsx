@@ -8,8 +8,10 @@ import { LearningPathCard } from '../../../components/Course/LearningPathCard';
 import styles from './home.module.css';
 import { apiGetRecommendationsByInterests, RecommendationsByInterestsResponse } from '../../../services/api';
 import { getUserProfile } from '../../../services/user';
-
-// Define interfaces for the API response data
+import axios from 'axios';
+import { useGuestAuth } from '@/hooks/useGuestAuth'; 
+import { useAuth } from '@/context/AuthContext'; 
+// Define interfaces for the API response datas
 interface Resource {
   url: string;
   title: string;
@@ -62,6 +64,7 @@ export interface ZeroLandingPageProps {
 
 // Main client component
 export function ZeroLandingPageContent(props: ZeroLandingPageProps) {
+
   const { initialRecommendations } = props;
   const { t } = useTranslation('common');
   const params = useParams();
@@ -80,6 +83,79 @@ export function ZeroLandingPageContent(props: ZeroLandingPageProps) {
   const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
   const [isNavigating, setIsNavigating] = useState<boolean>(false);
   const router = useRouter();
+  const { user, isAuthenticated } = useAuth();
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function fetchUserAndRecommendations() {
+      if (!isAuthenticated || !isMounted || initialDataLoaded) return;
+
+      try {
+        setIsLoading(true);
+
+        const userData = await getUserProfile();
+
+        if (!isMounted) return;
+
+        if (Array.isArray(userData?.interests) && userData.interests.length > 0) {
+          const interestIds = userData.interests.map((interest: any) =>
+            typeof interest === 'object' ? interest.id : interest
+          );
+
+          const interestRecsData = await apiGetRecommendationsByInterests(
+            interestIds,
+            5,
+            [],
+            refreshToken
+          );
+
+          if (!isMounted) return;
+
+          if (interestRecsData) {
+            setInterestRecommendations(interestRecsData);
+            setRefreshToken(interestRecsData.refresh_token);
+          } else {
+            await fallbackToStandardRecs();
+          }
+        } else {
+          await fallbackToStandardRecs();
+        }
+      } catch (err) {
+        console.error('❌ Failed to fetch user profile or recommendations:', err);
+        await fallbackToStandardRecs();
+      } finally {
+        if (isMounted) {
+          setInitialDataLoaded(true);
+          setIsLoading(false);
+        }
+      }
+    }
+
+  async function fallbackToStandardRecs() {
+    if (props.initialRecommendations) {
+      setRecommendations(props.initialRecommendations);
+    } else {
+      try {
+        const res = await fetch('/api/recommendations');
+        if (res.ok) {
+          const data = await res.json();
+          setRecommendations(data);
+        }
+      } catch (e) {
+        setError('Failed to load recommendations.');
+      }
+    }
+  }
+
+  fetchUserAndRecommendations();
+
+  return () => {
+    isMounted = false;
+  };
+}, [isAuthenticated, initialDataLoaded, props.initialRecommendations, refreshToken]);
+
+
 
   // Page entrance animation effect
   useEffect(() => {
@@ -97,6 +173,7 @@ export function ZeroLandingPageContent(props: ZeroLandingPageProps) {
     
     // Function to fetch user data and recommendations
     async function fetchUserAndRecommendations() {
+      if (!isAuthenticated) return;
       if (!initialDataLoaded && isMounted) {
         try {
           setIsLoading(true);

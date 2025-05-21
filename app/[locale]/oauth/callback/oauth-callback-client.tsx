@@ -19,7 +19,7 @@ function OAuthCallbackHandler({ locale }: { locale: string }) {
       return;
     }
     
-    const token = searchParams.get('token');
+    const token = searchParams.get('auth_token');
     const errorParam = searchParams.get('error');
     const errorDescription = searchParams.get('error_description');
 

@@ -93,7 +93,7 @@ function AddLearningPathButton({ pathId }) {
     setError(null);
     
     try {
-      const token = localStorage.getItem('authToken'); // Get your auth token
+      const token = localStorage.getItem('auth_token'); // Get your auth token
       const response = await axios.post(
         `/api/learning-paths/${pathId}/add-to-my-paths`,
         {},  // No request body needed

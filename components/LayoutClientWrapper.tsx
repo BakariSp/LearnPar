@@ -15,6 +15,7 @@ interface LayoutClientWrapperProps {
 export function LayoutClientWrapper({ children }: LayoutClientWrapperProps) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [contentPadding, setContentPadding] = useState('p-4 md:p-6');
   const { user } = useAuth();
   const params = useParams();
   const pathname = usePathname();
@@ -48,6 +49,18 @@ export function LayoutClientWrapper({ children }: LayoutClientWrapperProps) {
     };
   }, [pathname]);
 
+     // Dynamic padding calculation based on screen size
+  useEffect(() => {
+    const width = window.innerWidth;
+    if (width < 768) {
+      setContentPadding('p-2');
+    } else if (width < 1200) {
+      setContentPadding('p-3 md:p-4');
+    } else {
+      setContentPadding('p-4 md:p-6');
+    }
+  }, []);
+
   const toggleSidebar = () => {
     console.log("Toggling sidebar, current state:", isSidebarCollapsed);
     setIsSidebarCollapsed(!isSidebarCollapsed);
@@ -61,19 +74,7 @@ export function LayoutClientWrapper({ children }: LayoutClientWrapperProps) {
     return isSidebarCollapsed ? '80px' : '250px';
   };
 
-  // Dynamic padding calculation based on screen size
-  const getContentPadding = () => {
-    // For extra small screens (mobile)
-    if (typeof window !== 'undefined' && window.innerWidth < 768) {
-      return 'p-2';
-    }
-    // For medium screens
-    else if (typeof window !== 'undefined' && window.innerWidth < 1200) {
-      return 'p-3 md:p-4';
-    }
-    // For large screens
-    return 'p-4 md:p-6';
-  };
+
 
   return (
     <>
@@ -86,7 +87,7 @@ export function LayoutClientWrapper({ children }: LayoutClientWrapperProps) {
           backgroundColor: '#f5f5f5' 
         }}
       >
-        <div className={`flex-1 overflow-y-auto ${getContentPadding()}`}>
+        <div className={`flex-1 overflow-y-auto ${contentPadding}`}>
           {children}
         </div>
       </div>

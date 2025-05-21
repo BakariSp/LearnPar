@@ -82,7 +82,7 @@ export function Sidebar({ isCollapsed, toggleSidebar, locale }: SidebarProps) {
 
           {/* Main navigation */}
           <nav className={styles.navigation}>
-            <Link href={`/${locale}`} className={getNavItemClass(`/${locale}`)} title={isCollapsed ? t('sidebar.explore') : undefined}>
+            <Link href={`/${locale}/home`} className={getNavItemClass(`/${locale}/home`)} title={isCollapsed ? t('sidebar.explore') : undefined}>
               <Image src="/explore.svg" alt="Explore" width={24} height={24} />
               <span className={styles.navText}>Explore</span>
             </Link>
