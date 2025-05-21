@@ -86,19 +86,15 @@ export default function DashboardPage() {
   useEffect(() => {
     // Redirect to login if not authenticated
     if (!isLoading && !user) {
-      router.push(`/${locale}/dashboard`);
+      router.push(`/${locale}/login`);
       return;
     }
 
-    // Check if user needs setup and not already marked as complete via cookie
-    if (!isLoading && user && !isSetupComplete) {
-      // User needs setup if they don't have username or interests
-      const needsSetup = !user.username || !user.interests || user.interests.length === 0;
-      if (needsSetup) {
-        router.push(`/${locale}/setup`);
-      }
+    // 只检查 interests
+    if (!isLoading && user && (!user.interests || user.interests.length === 0)) {
+      router.push(`/${locale}/setup`);
     }
-  }, [isLoading, user, router, locale, isSetupComplete]);
+  }, [isLoading, user, router, locale]);
 
   // Fetch the user's current subscription info and daily usage
   useEffect(() => {

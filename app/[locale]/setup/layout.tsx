@@ -27,8 +27,7 @@ export default function SetupLayout({ children }: Omit<SetupLayoutProps, 'params
   }, []);
 
   // If user has completed setup (either via user object or cookie), redirect them to home
-  if (!isLoading && 
-      ((user && user.username && user.interests && user.interests.length > 0) || isSetupComplete)) {
+  if (!isLoading && user && user.interests && user.interests.length > 0) {
     redirect(`/${locale}/home`);
   }
 
