@@ -1,7 +1,15 @@
 import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from './LearnAssistant.module.css';
-import sharedStyles from '../styles';
+import sharedStyles from '../styles/shared.module.css';
+
+// Component behavior notes:
+// - relatedCard: Shows a single card in focus that can be added to study materials
+// - generatedCards: Persists all cards generated or discarded during the session
+//   for access in the "Generated Cards" tab
+// - When a user discards a relatedCard, it's added to generatedCards for later access
+// - generatedCards are preserved even when clearing the chat or starting a new chat
+
 import { 
   askQuestion, 
   addCard, 
@@ -19,6 +27,7 @@ type Message = {
   role: 'user' | 'assistant' | 'system';
   content: string;
   timestamp: Date;
+  generatedCards?: RelatedCard[];
 };
 
 type LearnAssistantProps = {
@@ -64,6 +73,10 @@ const LearnAssistant: React.FC<LearnAssistantProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [activeTab, setActiveTab] = useState('chat');
+  
+  // New state for card carousel
+  const [currentCardIndex, setCurrentCardIndex] = useState(0);
+  const [messageWithFocusedCards, setMessageWithFocusedCards] = useState<string | null>(null);
 
   // Initialize with a welcome message
   useEffect(() => {
@@ -110,12 +123,100 @@ const LearnAssistant: React.FC<LearnAssistantProps> = ({
     }
   };
 
+  // New function to start a new chat
+  const startNewChat = () => {
+    // Keep only the welcome message
+    setMessages([{
+      id: 'welcome',
+      role: 'assistant',
+      content: t('learnAssistant.welcome', 'Hi there! I can help you understand this card and learning path better. I have information about the current content and can provide deeper explanations. Ask me anything, use the quick action buttons below, or try "generate cards about [topic]" to create study materials!'),
+      timestamp: new Date(),
+    }]);
+    setRelatedCard(null);
+    // Don't clear generatedCards so they remain accessible in the Cards tab
+    setMessageWithFocusedCards(null);
+    setCurrentCardIndex(0);
+    setShowFullAnswer(false);
+    setShowConfirmDelete(false);
+    
+    // Focus the input
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  };
+
+  // Function to discard a card - completely remove it from both messages and generatedCards
+  const handleDiscardCard = (messageId: string, cardIndex: number) => {
+    setMessages(prev => {
+      const message = prev.find(m => m.id === messageId);
+      if (message && message.generatedCards) {
+        // Get the card that's being discarded
+        const discardedCard = message.generatedCards[cardIndex];
+        
+        // Also remove the card from generatedCards if it exists there
+        setGeneratedCards(prevCards => 
+          prevCards.filter(card => 
+            !(discardedCard.id && card.id === discardedCard.id) && 
+            !(card.question === discardedCard.question && card.answer === discardedCard.answer)
+          )
+        );
+        
+        // Create a new array without the discarded card
+        const updatedCards = [...message.generatedCards];
+        updatedCards.splice(cardIndex, 1);
+        
+        // Reset current card index if needed
+        if (messageWithFocusedCards === messageId) {
+          setCurrentCardIndex(Math.min(currentCardIndex, updatedCards.length - 1));
+          
+          // If no cards left, clear message with focused cards
+          if (updatedCards.length === 0) {
+            setMessageWithFocusedCards(null);
+          }
+        }
+        
+        return prev.map(message => {
+          if (message.id === messageId && message.generatedCards) {
+            return {
+              ...message,
+              generatedCards: updatedCards
+            };
+          }
+          return message;
+        });
+      }
+      return prev;
+    });
+  };
+
+  // Navigate in the card carousel
+  const goToNextCard = (messageId: string) => {
+    setMessages(prev => {
+      const message = prev.find(m => m.id === messageId);
+      if (message?.generatedCards && message.generatedCards.length > 0) {
+        setCurrentCardIndex(prevIndex => (prevIndex + 1) % message.generatedCards!.length);
+      }
+      return prev;
+    });
+  };
+
+  const goToPrevCard = (messageId: string) => {
+    setMessages(prev => {
+      const message = prev.find(m => m.id === messageId);
+      if (message?.generatedCards && message.generatedCards.length > 0) {
+        setCurrentCardIndex(prevIndex => (prevIndex - 1 + message.generatedCards!.length) % message.generatedCards!.length);
+      }
+      return prev;
+    });
+  };
+
   // Function to generate multiple cards for a topic
   const handleGenerateCards = async (topic: string, numCards: number = 3) => {
     if (!topic.trim() || isLoading) return;
 
     setIsLoading(true);
-    setGeneratedCards([]);
+    // Don't clear generatedCards, so they remain accessible
+    // setGeneratedCards([]);  <- This line is removed
 
     // Create a user message about generating cards
     const userMessage: Message = {
@@ -155,15 +256,30 @@ const LearnAssistant: React.FC<LearnAssistantProps> = ({
       // If we got cards back
       if (data && data.length > 0) {
         // Store the generated cards
-        setGeneratedCards(data);
-        setRelatedCard(null); // Clear any previous related card
+        const messageId = `assistant-${Date.now()}`;
+        setMessageWithFocusedCards(messageId);
+        setCurrentCardIndex(0);
 
-        // Add success message
+        // Also update the generatedCards state for the cards tab
+        setGeneratedCards(prev => {
+          // Filter out any duplicates
+          const newCards = data.filter(newCard => 
+            !prev.some(existingCard => 
+              (newCard.id && existingCard.id === newCard.id) || 
+              (newCard.question === existingCard.question && newCard.answer === existingCard.answer)
+            )
+          );
+          
+          return [...prev, ...newCards];
+        });
+
+        // Add success message with cards attached
         const successMessage: Message = {
-          id: `system-${Date.now()}`,
+          id: messageId,
           role: 'assistant',
-          content: t('learnAssistant.cardsGenerated', 'I\'ve generated {{count}} cards about "{{topic}}". You can review them in the "Generated Cards" tab.', { count: data.length, topic }),
+          content: t('learnAssistant.cardsGenerated', 'I\'ve generated {{count}} cards about "{{topic}}". You can review them below:', { count: data.length, topic }),
           timestamp: new Date(),
+          generatedCards: data
         };
 
         setMessages(prev => [...prev, successMessage]);
@@ -377,7 +493,7 @@ const LearnAssistant: React.FC<LearnAssistantProps> = ({
     // Keep only the welcome message
     setMessages([messages[0]]);
     setRelatedCard(null);
-    setGeneratedCards([]);
+    // Don't clear generatedCards so they remain accessible in the Cards tab
     setShowFullAnswer(false);
     setShowConfirmDelete(false);
   };
@@ -411,18 +527,111 @@ const LearnAssistant: React.FC<LearnAssistantProps> = ({
                   {t('learnAssistant.explainSection', 'Explain this section')}
                 </button>
               )}
-
-              <button 
-                key="generate-examples-action"
-                className={`${styles.quickActionButton} ${styles.purple}`}
-                onClick={() => {
-                  // Use the topic from the current card or section title if available
-                  const topic = courseTitle || sectionTitle || 'this topic';
-                  handleSendPresetMessage(`Generate 3 cards about ${topic}`);
-                }}
-              >
-                {t('learnAssistant.generateExamples', 'Generate example cards')}
-              </button>
+            </div>
+          )}
+          
+          {/* Render card carousel if message has generated cards */}
+          {message.generatedCards && message.generatedCards.length > 0 && (
+            <div className={sharedStyles.cardsCarousel}>
+              {/* Card navigation indicator */}
+              <div className={sharedStyles.carouselIndicator}>
+                {messageWithFocusedCards === message.id ? (
+                  <span>{t('learnAssistant.cardCounter', 'Card {{current}} of {{total}}', { 
+                    current: currentCardIndex + 1, 
+                    total: message.generatedCards.length 
+                  })}</span>
+                ) : (
+                  <span>{t('learnAssistant.totalCards', '{{count}} cards available', { 
+                    count: message.generatedCards.length 
+                  })}</span>
+                )}
+              </div>
+              
+              {/* Set focused message when user interacts with this card set */}
+              {messageWithFocusedCards !== message.id ? (
+                <button 
+                  className={styles.viewCardsButton}
+                  onClick={() => {
+                    setMessageWithFocusedCards(message.id);
+                    setCurrentCardIndex(0);
+                  }}
+                >
+                  {t('learnAssistant.viewCards', 'View Cards')}
+                </button>
+              ) : (
+                <div className={sharedStyles.carouselControls}>
+                  <button 
+                    className={sharedStyles.carouselButton}
+                    onClick={() => goToPrevCard(message.id)}
+                    disabled={message.generatedCards.length <= 1}
+                  >
+                    ←
+                  </button>
+                  
+                  {/* Only show the current card in the carousel */}
+                  <div className={sharedStyles.cardContainer}>
+                    {message.generatedCards[currentCardIndex] && (
+                      <div className={styles.cardContent}>
+                        <div className={styles.cardHeader}>
+                          <div className={styles.cardKeyword}>
+                            {message.generatedCards[currentCardIndex]?.keyword}
+                          </div>
+                          <div className={styles.cardActions}>
+                            <button
+                              className={sharedStyles.discardButton}
+                              onClick={() => handleDiscardCard(message.id, currentCardIndex)}
+                              title={t('learnAssistant.discardCard', 'Discard this card')}
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </div>
+                        <div className={styles.cardQuestion}>
+                          {message.generatedCards[currentCardIndex]?.question}
+                        </div>
+                        <div className={styles.cardAnswer}>
+                          <h5>{t('learnAssistant.answer', 'Answer')}</h5>
+                          <p>
+                            {showFullAnswer 
+                              ? message.generatedCards[currentCardIndex]?.answer 
+                              : truncateText(message.generatedCards[currentCardIndex]?.answer || '', 100)}
+                          </p>
+                          {(message.generatedCards[currentCardIndex]?.answer?.length || 0) > 100 && (
+                            <button 
+                              className={styles.toggleAnswerButton}
+                              onClick={() => setShowFullAnswer(!showFullAnswer)}
+                            >
+                              {showFullAnswer 
+                                ? t('learnAssistant.showLess', 'Show less') 
+                                : t('learnAssistant.showMore', 'Show more')}
+                            </button>
+                          )}
+                        </div>
+                        <button
+                          className={styles.addCardButton}
+                          onClick={() => {
+                            if (message.generatedCards && message.generatedCards[currentCardIndex]) {
+                              setRelatedCard(message.generatedCards[currentCardIndex]);
+                              handleAddCard();
+                            }
+                          }}
+                          disabled={!currentSectionId || isLoading}
+                        >
+                          {t('learnAssistant.addToStudyMaterials', 'Add to Study Materials')}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <button 
+                    className={sharedStyles.carouselButton}
+                    onClick={() => goToNextCard(message.id)}
+                    disabled={message.generatedCards.length <= 1}
+                  >
+                    →
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -794,6 +1003,24 @@ const LearnAssistant: React.FC<LearnAssistantProps> = ({
     }
   };
 
+  // Add a new function to handle discarding a related card
+  const handleDiscardRelatedCard = () => {
+    if (relatedCard) {
+      // Just clear the related card so it disappears from view
+      // without adding it to generatedCards
+      setRelatedCard(null);
+    }
+  };
+
+  // Function to remove a card from generatedCards
+  const removeGeneratedCard = (cardIndex: number) => {
+    setGeneratedCards(prev => {
+      const updatedCards = [...prev];
+      updatedCards.splice(cardIndex, 1);
+      return updatedCards;
+    });
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case 'chat':
@@ -842,6 +1069,14 @@ const LearnAssistant: React.FC<LearnAssistantProps> = ({
                   <div className={styles.cardHeader}>
                     <div className={styles.cardKeyword}>{relatedCard.keyword}</div>
                     <div className={styles.cardActions}>
+                      {/* Add discard button */}
+                      <button
+                        className={styles.discardButton}
+                        onClick={handleDiscardRelatedCard}
+                        title={t('learnAssistant.discardCard', 'Discard this card')}
+                      >
+                        ✕
+                      </button>
                       {relatedCard.id && (
                         <button
                           className={styles.unsaveButton}
@@ -966,42 +1201,57 @@ const LearnAssistant: React.FC<LearnAssistantProps> = ({
         return (
           <div className={styles.generatedCards}>
             <h4>{t('learnAssistant.generatedCards', 'Generated Cards')}</h4>
-            {generatedCards.map((card, index) => (
-              <div key={`cards-tab-generated-${card.id || index}-${index}`} className={styles.cardContent}>
-                <div className={styles.cardHeader}>
-                  <div className={styles.cardKeyword}>{card.keyword}</div>
+            {generatedCards.length > 0 ? (
+              generatedCards.map((card, index) => (
+                <div key={`cards-tab-generated-${card.id || index}-${index}`} className={styles.cardContent}>
+                  <div className={styles.cardHeader}>
+                    <div className={styles.cardKeyword}>{card.keyword}</div>
+                    <div className={styles.cardActions}>
+                      <button
+                        className={styles.discardButton}
+                        onClick={() => removeGeneratedCard(index)}
+                        title={t('learnAssistant.discardCard', 'Discard this card')}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                  <div className={styles.cardQuestion}>{card.question}</div>
+                  <div className={styles.cardAnswer}>
+                    <h5>{t('learnAssistant.answer', 'Answer')}</h5>
+                    <p>{truncateText(card.answer, 100)}</p>
+                    {card.answer.length > 100 && (
+                      <button 
+                        className={styles.toggleAnswerButton}
+                        onClick={() => {
+                          // Create a copy of the card with expanded answer
+                          setRelatedCard(card);
+                          setShowFullAnswer(true);
+                          // Clear generated cards to focus on the selected one
+                          setGeneratedCards([]);
+                        }}
+                      >
+                        {t('learnAssistant.viewDetails', 'View Details')}
+                      </button>
+                    )}
+                  </div>
+                  <button
+                    className={styles.addCardButton}
+                    onClick={() => {
+                      setRelatedCard(card);
+                      handleAddCard();
+                    }}
+                    disabled={!currentSectionId || isLoading}
+                  >
+                    {t('learnAssistant.addToStudyMaterials', 'Add to Study Materials')}
+                  </button>
                 </div>
-                <div className={styles.cardQuestion}>{card.question}</div>
-                <div className={styles.cardAnswer}>
-                  <h5>{t('learnAssistant.answer', 'Answer')}</h5>
-                  <p>{truncateText(card.answer, 100)}</p>
-                  {card.answer.length > 100 && (
-                    <button 
-                      className={styles.toggleAnswerButton}
-                      onClick={() => {
-                        // Create a copy of the card with expanded answer
-                        setRelatedCard(card);
-                        setShowFullAnswer(true);
-                        // Clear generated cards to focus on the selected one
-                        setGeneratedCards([]);
-                      }}
-                    >
-                      {t('learnAssistant.viewDetails', 'View Details')}
-                    </button>
-                  )}
-                </div>
-                <button
-                  className={styles.addCardButton}
-                  onClick={() => {
-                    setRelatedCard(card);
-                    handleAddCard();
-                  }}
-                  disabled={!currentSectionId || isLoading}
-                >
-                  {t('learnAssistant.addToStudyMaterials', 'Add to Study Materials')}
-                </button>
+              ))
+            ) : (
+              <div className={styles.noCardsMessage}>
+                {t('learnAssistant.noCardsAvailable', 'No cards available. Generate some cards using the Chat tab!')}
               </div>
-            ))}
+            )}
           </div>
         );
       default:
@@ -1009,62 +1259,67 @@ const LearnAssistant: React.FC<LearnAssistantProps> = ({
     }
   };
 
-  // Render the toggle button
-  const renderToggleButton = () => {
-    return (
-      <button 
-        className={sharedStyles.assistantToggleButton} 
-        onClick={toggleCollapse}
-        aria-label={isCollapsed ? t('learnAssistant.expand', 'Expand assistant') : t('learnAssistant.collapse', 'Collapse assistant')}
-        title={isCollapsed ? t('learnAssistant.expand', 'Expand assistant') : t('learnAssistant.collapse', 'Collapse assistant')}
-      >
-        {isCollapsed ? '→' : '←'}
-      </button>
-    );
-  };
-
   return (
-    <>
-      {renderToggleButton()}
-      <div className={sharedStyles.assistantContent}>
-        <div className={styles.header}>
-          <h3 className={styles.title}>
-            {t('learnAssistant.title', 'Learning Assistant')}
-          </h3>
-          <button 
-            onClick={clearChat}
-            className={styles.clearButton}
-            aria-label={t('learnAssistant.clearChat', 'Clear chat')}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-              <path d="M11.46.146A.5.5 0 0 0 11.107 0H4.893a.5.5 0 0 0-.353.146L.146 4.54A.5.5 0 0 0 0 4.893v6.214a.5.5 0 0 0 .146.353l4.394 4.394a.5.5 0 0 0 .353.146h6.214a.5.5 0 0 0 .353-.146l4.394-4.394a.5.5 0 0 0 .146-.353V4.893a.5.5 0 0 0-.146-.353L11.46.146zm-6.106 4.5L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 1 1 .708-.708z"/>
-            </svg>
-          </button>
-        </div>
-        
-        <div className={styles.tabs}>
-          <div 
-            key="chat-tab"
-            className={`${styles.tab} ${activeTab === 'chat' ? styles.active : ''}`} 
-            onClick={() => setActiveTab('chat')}
-          >
-            {t('learnAssistant.chatTab', 'Chat')}
+    <div className={isCollapsed ? `${styles.assistantContainer} ${styles.collapsed}` : styles.assistantContainer}>
+      {isCollapsed ? (
+        // When collapsed, only render the toggle button
+        <button 
+          className={styles.assistantToggleButton} 
+          onClick={toggleCollapse}
+          aria-label={isCollapsed ? t('learnAssistant.expand', 'Expand assistant') : t('learnAssistant.collapse', 'Collapse assistant')}
+          title={isCollapsed ? t('learnAssistant.expand', 'Expand assistant') : t('learnAssistant.collapse', 'Collapse assistant')}
+        >
+          {isCollapsed ? '←' : '→'}
+        </button>
+      ) : (
+        // When expanded, render the full UI
+        <>
+          <div className={styles.header}>
+            <h3 className={styles.title}>
+              {t('learnAssistant.title', 'Learning Assistant')}
+            </h3>
+            <div className={sharedStyles.headerActions}>
+              {/* New Chat button */}
+              <button
+                className={sharedStyles.newChatButton}
+                onClick={startNewChat}
+                title={t('learnAssistant.newChat', 'Start a new chat')}
+              >
+                {t('learnAssistant.newChat', 'New Chat')}
+              </button>
+              <button 
+                className={styles.assistantToggleButton} 
+                onClick={toggleCollapse}
+                aria-label={isCollapsed ? t('learnAssistant.expand', 'Expand assistant') : t('learnAssistant.collapse', 'Collapse assistant')}
+                title={isCollapsed ? t('learnAssistant.expand', 'Expand assistant') : t('learnAssistant.collapse', 'Collapse assistant')}
+              >
+                {isCollapsed ? '←' : '→'}
+              </button>
+            </div>
           </div>
-          <div 
-            key="cards-tab"
-            className={`${styles.tab} ${activeTab === 'cards' ? styles.active : ''}`} 
-            onClick={() => setActiveTab('cards')}
-          >
-            {t('learnAssistant.cardsTab', 'Generated Cards')} 
-            {generatedCards.length > 0 && <span className={styles.cardCount}>{generatedCards.length}</span>}
+          
+          <div className={styles.tabs}>
+            <div 
+              className={`${styles.tab} ${activeTab === 'chat' ? styles.active : ''}`}
+              onClick={() => setActiveTab('chat')}
+            >
+              {t('learnAssistant.chat', 'Chat')}
+            </div>
+            <div 
+              className={`${styles.tab} ${activeTab === 'cards' ? styles.active : ''}`}
+              onClick={() => setActiveTab('cards')}
+            >
+              {t('learnAssistant.generatedCardsTab', 'Generated Cards')} 
+              {generatedCards.length > 0 && <span className={styles.cardCount}>{generatedCards.length}</span>}
+            </div>
           </div>
-        </div>
-        
-        <div className={styles.content}>
-          {renderContent()}
-        </div>
-      </div>
-    </>
+          
+          <div className={styles.content}>
+            {renderContent()}
+          </div>
+        </>
+      )}
+    </div>
   );
 };
 

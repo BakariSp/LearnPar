@@ -6,15 +6,19 @@
   background-color: var(--card-background, #fff);
   border-radius: 12px;
   width: 100%;
+  box-shadow: none;
+  border: none;
 }
 
 .header {
   flex-shrink: 0;
   padding: 1rem;
-  /* border-bottom: 1px solid var(--border-color); */
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background-color: var(--card-background, #fff);
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .title {
@@ -25,6 +29,29 @@
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+/* New styles for header actions */
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* New Chat button style */
+.newChatButton {
+  background-color: var(--primary-accent, #FFA336);
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.newChatButton:hover {
+  background-color: var(--primary-accent-dark, #D67D13);
 }
 
 .tabs {
@@ -66,6 +93,8 @@
   flex: 1;
   overflow-y: auto;
   padding: 1rem;
+  display: flex;
+  flex-direction: column;
 }
 
 .messagesContainer::-webkit-scrollbar {
@@ -89,12 +118,14 @@
   border-radius: 12px;
   animation: fadeIn 0.3s ease;
   box-shadow: var(--shadow-subtle, 0 2px 4px rgba(0, 0, 0, 0.05));
+  margin-bottom: 16px;
 }
 
 .message.user {
   align-self: flex-end;
   background-color: var(--primary-color-light, #FFF2E5);
   color: var(--text-color, #4A5744);
+  border-radius: 12px 12px 0 12px;
 }
 
 .message.assistant,
@@ -103,6 +134,7 @@
   background-color: var(--background-color, #f8f9fa);
   color: var(--text-color, #4A5744);
   border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 12px 12px 12px 0;
 }
 
 /* Added style for message content for better readability */
@@ -115,6 +147,96 @@
   color: var(--text-secondary, #6c757d);
   margin-top: 8px; /* Reduced margin for closer spacing */
   align-self: flex-start; /* Align to the start (left) */
+}
+
+/* Card carousel styles */
+.cardsCarousel {
+  margin-top: 16px;
+  background-color: var(--card-background-alt, #f7f9fc);
+  border-radius: 8px;
+  padding: 12px;
+  border: 1px solid var(--border-color, #e0e0e0);
+}
+
+.carouselIndicator {
+  font-size: 0.75rem;
+  color: var(--text-secondary, #6c757d);
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.viewCardsButton {
+  display: block;
+  width: 100%;
+  padding: 8px;
+  background-color: var(--primary-accent-light, #FFE2C5);
+  color: var(--primary-accent, #D67D13);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: background-color 0.2s;
+}
+
+.viewCardsButton:hover {
+  background-color: var(--primary-accent-lighter, #FFD6AD);
+}
+
+.carouselControls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.carouselButton {
+  background-color: var(--background-color, #f8f9fa);
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1rem;
+  color: var(--primary-accent, #FFA336);
+  transition: all 0.2s;
+}
+
+.carouselButton:hover {
+  background-color: var(--primary-accent-light, #FFE2C5);
+}
+
+.carouselButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.cardContainer {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+/* Discard button styles */
+.discardButton {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: all 0.2s;
+  font-size: 0.875rem;
+  color: var(--text-secondary, #6c757d);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.discardButton:hover {
+  background-color: rgba(255, 0, 0, 0.1);
+  color: var(--danger-color, #dc3545);
+  transform: scale(1.1);
 }
 
 .inputContainer {
@@ -235,6 +357,7 @@
   border-radius: 12px;
   box-shadow: var(--shadow-subtle, 0 2px 4px rgba(0, 0, 0, 0.05));
   transition: transform 0.2s, box-shadow 0.2s;
+  width: 100%;
 }
 
 .cardContent:hover {
@@ -256,26 +379,24 @@
 
 .cardActions {
   display: flex;
+  align-items: center;
   gap: 8px;
 }
 
-.unsaveButton, .deleteButton {
-  background: none;
+.unsaveButton, .deleteButton, .discardButton {
+  background: transparent;
   border: none;
-  padding: 4px;
   cursor: pointer;
+  padding: 2px 6px;
   border-radius: 4px;
-  transition: all 0.2s ease;
+  transition: all 0.2s;
+  font-size: 0.875rem;
+  color: var(--text-secondary, #6c757d);
 }
 
-.unsaveButton:hover {
-  background-color: var(--background-color, #f8f9fa);
-  color: #ff4d4f;
-}
-
-.deleteButton:hover {
-  background-color: var(--background-color, #f8f9fa);
-  color: #ff4d4f;
+.discardButton:hover {
+  background-color: rgba(255, 0, 0, 0.1);
+  color: var(--danger-color, #dc3545);
 }
 
 .cardQuestion {
@@ -346,12 +467,18 @@
 
 .generatedCards {
   margin-bottom: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .generatedCards h4 {
   margin: 0 0 12px;
   font-size: 0.9375rem;
   color: var(--text-color, #212529);
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
+  padding-bottom: 10px;
 }
 
 .relatedCard h4 {
@@ -545,6 +672,24 @@
   .cardAnswer p {
     font-size: 0.8125rem;
   }
+  
+  .carouselControls {
+    flex-direction: column;
+  }
+  
+  .cardContainer {
+    width: 100%;
+  }
+  
+  .carouselButton {
+    width: 24px;
+    height: 24px;
+  }
+  
+  .newChatButton {
+    font-size: 0.75rem;
+    padding: 4px 8px;
+  }
 }
 
 /* Dark mode adjustments */
@@ -718,4 +863,74 @@
   background-color: rgba(142, 68, 173, 0.1);
   color: #7D3C98;
   border-color: #7D3C98;
+}
+
+/* Toggle button for collapsing/expanding */
+.assistantToggleButton {
+  background-color: var(--background-color, #f5f5f5);
+  border: 1px solid var(--border-color, #e0e0e0);
+  color: var(--text-color, #4A5744);
+  border-radius: 6px;
+  height: 36px; /* Match the height of newChatButton */
+  width: 36px; /* Make it square for the arrow icon */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 1rem;
+  padding: 0; /* Remove padding and rely on fixed dimensions */
+}
+
+.assistantToggleButton:hover {
+  background-color: var(--hover-background, #ebebeb);
+  transform: scale(1.05);
+}
+
+/* Position of toggle button in collapsed state */
+.assistantContainer.collapsed .assistantToggleButton {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 2;
+}
+
+/* Collapsed state for the assistant */
+.assistantContainer.collapsed {
+  width: 60px;
+  min-width: 60px;
+  height: auto;
+  overflow: visible; /* Allow toggle button to be visible outside container */
+  position: relative;
+  background-color: transparent;
+  box-shadow: none;
+  border: none;
+  margin-left: auto; /* Push to the right side if needed */
+}
+
+.assistantContainer.collapsed .content,
+.assistantContainer.collapsed .tabs,
+.assistantContainer.collapsed .header {
+  display: none;
+}
+
+.unsaveButton:hover {
+  background-color: rgba(255, 0, 0, 0.1);
+  color: var(--danger-color, #dc3545);
+}
+
+.deleteButton:hover {
+  background-color: rgba(255, 0, 0, 0.1);
+  color: var(--danger-color, #dc3545);
+}
+
+.noCardsMessage {
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-secondary, #6c757d);
+  font-style: italic;
+  background-color: var(--background-color, #f8f9fa);
+  border-radius: 8px;
+  border: 1px dashed var(--border-color, #e0e0e0);
+  margin: 1rem 0;
 } 

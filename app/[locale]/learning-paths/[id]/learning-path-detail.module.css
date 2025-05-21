@@ -495,177 +495,44 @@
   color: white;
 }
 
-.assistantContainer {
-  flex: 2;
-  overflow-y: hidden;
-  position: relative;
-  border-radius: 12px;
-  max-width: 400px; /* Add max-width to limit assistant width */
+/* --- Assistant Container --- */
+/* .assistantContainer {
+  composes: assistantContainer from '../styles/shared.module.css';
 }
 
-/* Card Content Styles */
-.cardTitle {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: var(--text-color, #212529);
-  margin-bottom: 1.5rem;
+/* --- Card Carousel --- */
+/* .cardsCarousel {
+  composes: cardsCarousel from '../styles/shared.module.css';
 }
 
-.cardSection {
-  margin-bottom: 1.5rem;
+.carouselControls {
+  composes: carouselControls from '../styles/shared.module.css';
 }
 
-.cardSection h3 {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--text-color, #212529);
-  margin-bottom: 0.5rem;
+.carouselIndicator {
+  composes: carouselIndicator from '../styles/shared.module.css';
 }
 
-.cardSection p {
-  font-size: 1rem;
-  line-height: 1.6;
-  color: var(--text-secondary, #6c757d);
-  margin: 0;
+.carouselButton {
+  composes: carouselButton from '../styles/shared.module.css';
 }
 
-.resourceList {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+.cardContainer {
+  composes: cardContainer from '../styles/shared.module.css';
 }
 
-.resourceList a {
-  color: var(--primary-color, #3b82f6);
-  text-decoration: none;
-  font-weight: 500;
+
+.discardButton {
+  composes: discardButton from '../styles/shared.module.css';
 }
 
-.resourceList a:hover {
-  text-decoration: underline;
+.headerActions {
+  composes: headerActions from '../styles/shared.module.css';
 }
 
-.externalIcon {
-  display: inline-block;
-  margin-left: 4px;
-  font-size: 0.8em;
-  color: var(--text-secondary, #6c757d);
-}
-
-.noResources {
-  font-style: italic;
-  color: var(--text-secondary, #6c757d);
-}
-
-/* Card Navigation */
-.cardNavigation {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 2rem;
-  padding-top: 1rem;
-  /* border-top: 1px solid var(--border-color, #e9ecef); */
-}
-
-.navButton {
-  padding: 0.5rem 1rem;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  background-color: var(--background-color, #f8f9fa);
-  color: var(--text-color, #212529);
-  border: 1px solid var(--border-color, #e9ecef);
-}
-
-.navButton:hover:not(:disabled) {
-  background-color: var(--background-color-hover, #e9ecef);
-}
-
-.navButton:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.nextAction {
-  background-color: var(--primary-color, #3b82f6);
-  color: white;
-  border-color: var(--primary-color, #3b82f6);
-}
-
-.nextAction:hover:not(:disabled) {
-  background-color: var(--primary-color-dark, #2563eb);
-}
-
-.prevButton {
-  background-color: transparent;
-}
-
-.cardCounter {
-  font-size: 0.875rem;
-  color: var(--text-secondary, #6c757d);
-}
-
-/* Responsive adjustments */
-@media (max-width: 992px) {
-  .cardDetailView {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 400px;
-  }
-  
-  .cardMainContent {
-    padding-right: 0;
-    padding-bottom: 16px;
-  }
-  
-  .assistantContainer {
-    border-left: none;
-    border-top: 1px solid var(--border-color, #e9ecef);
-  }
-}
-
-@media (max-width: 768px) {
-  .cardDetailView {
-    grid-template-rows: auto 350px;
-  }
-  
-  .cardNavigation {
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-  
-  .cardCounter {
-    order: 3;
-    width: 100%;
-    text-align: center;
-    margin-top: 0.5rem;
-  }
-}
-
-/* Dark mode adjustments */
-@media (prefers-color-scheme: dark) {
-  .cardMainContent::-webkit-scrollbar-thumb {
-    background-color: rgba(255, 255, 255, 0.1);
-  }
-  
-  .assistantContainer {
-    border-color: var(--border-color-dark, #2c2c2c);
-  }
-  
-  .navButton {
-    background-color: var(--background-color-dark, #2c2c2c);
-    color: var(--text-color-dark, #e9ecef);
-    border-color: var(--border-color-dark, #3c3c3c);
-  }
-  
-  .navButton:hover:not(:disabled) {
-    background-color: var(--background-color-dark-hover, #3c3c3c);
-  }
-}
+.newChatButton {
+  composes: newChatButton from '../styles/shared.module.css';
+} */
 
 /* --- Completion View Styling (Consistent) --- */
 .completionView {
