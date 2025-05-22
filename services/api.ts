@@ -1,4 +1,6 @@
-import { apiClient, getToken } from './auth'; // Assuming apiClient handles base URL and auth
+import { apiClient } from './auth'; // Assuming apiClient handles base URL and auth
+import { getAuthHeaders } from './api/utils';
+import { getSupabaseToken } from './supabase'; // Import getSupabaseToken from supabase.ts
 
 // Export the interface
 export interface LearningPathCourse {
@@ -886,6 +888,12 @@ export const apiGetRecommendationsByInterests = async (
       refreshTokenLength: refreshToken?.length || 0
     });
 
+    // Validate inputs
+    if (!interests || interests.length === 0) {
+      console.warn('No interests provided to apiGetRecommendationsByInterests');
+      return null;
+    }
+
     // Make sure interests are properly formatted as strings
     const formattedInterests = interests.map(interest => String(interest));
 
@@ -907,25 +915,39 @@ export const apiGetRecommendationsByInterests = async (
       return null;
     }
 
-    if (!response.ok) {
-      // Try to get error details from response
-      let errorDetail = '';
-      try {
-        const errorData = await response.json();
-        errorDetail = errorData.detail || '';
-        console.error('Error details:', errorData);
-      } catch (parseError) {
-        // Ignore parse errors on error responses
+    if (!response.ok) {      // Try to get error details from response      let errorDetail = '';      try {        const errorData = await response.json();        errorDetail = errorData.detail || '';        console.error('Error details:', errorData);      } catch (parseError) {        // Ignore parse errors on error responses        console.warn('Could not parse error response body');      }
+      
+      // Handle specific error codes
+      if (response.status === 401) {
+        const authErrorMsg = `Failed to fetch interest-based recommendations: ${response.status} - Could not validate credentials`;
+        console.error(authErrorMsg);
+        // Throw error to be caught by calling code
+        throw new Error(authErrorMsg);
       }
       
-      console.error(`Failed to fetch interest-based recommendations: ${response.status}${errorDetail ? ' - ' + errorDetail : ''}`);
+      const errorMsg = `Failed to fetch interest-based recommendations: ${response.status}${errorDetail ? ' - ' + errorDetail : ''}`;
+      console.error(errorMsg);
       return null;
     }
     
     const data = await response.json();
+    
+    // Validate response structure
+    if (!data || !data.learning_paths) {
+      console.warn('Invalid response structure from recommendations API');
+      return null;
+    }
+    
+    console.log('Successfully fetched recommendations:', data.learning_paths?.length || 0, 'learning paths');
     return data;
   } catch (error) {
     console.error("Error in apiGetRecommendationsByInterests:", error);
+    
+    // Re-throw authentication errors so they can be handled by the calling code
+    if (error instanceof Error && error.message.includes('401')) {
+      throw error;
+    }
+    
     return null;
   }
 };
@@ -935,64 +957,17 @@ export const apiAddToMyLearningPaths = async (learningPathId: number): Promise<b
   try {
     console.log('🔍 DEBUG API - apiAddToMyLearningPaths called with ID:', learningPathId);
     
-    // Make sure the user is authenticated for this operation
-    const token = getToken();
-    console.log('🔍 DEBUG API - Token exists:', !!token);
+    // Use the enhanced callApi function with proper Supabase token handling
+    const response = await callApi(
+      `/learning-paths/${learningPathId}/add-to-my-paths`,
+      'POST'
+    );
     
-    if (!token) {
-      console.log('🔍 DEBUG API - No auth token found, throwing error');
-      throw new Error('Authentication required to add learning path to your account');
-    }
-    
-    // Get the API URL from environment or use default
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-    const fullUrl = `${apiUrl}/api/learning-paths/${learningPathId}/add-to-my-paths`;
-    console.log(`🔍 DEBUG API - Making direct API call to: ${fullUrl}`);
-    
-    // Make a direct fetch request to the backend
-    const response = await fetch(fullUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      }
-    });
-    
-    console.log('🔍 DEBUG API - API response status:', response.status);
-    console.log('🔍 DEBUG API - Response ok:', response.ok);
-    
-    if (!response.ok) {
-      // Handle specific response codes
-      if (response.status === 403) {
-        console.log('🔍 DEBUG API - 403 Forbidden error');
-        throw new Error('You do not have permission to add this learning path');
-      } else if (response.status === 404) {
-        console.log('🔍 DEBUG API - 404 Not Found error');
-        throw new Error('Learning path not found');
-      } else if (response.status === 409) {
-        console.log('🔍 DEBUG API - 409 Conflict error - path already in account');
-        throw new Error('This learning path is already in your account');
-      } else {
-        console.log('🔍 DEBUG API - Other error status:', response.status);
-        // Try to get the error message from the response
-        try {
-          const errorData = await response.json();
-          console.log('🔍 DEBUG API - Error details from response:', errorData);
-          throw new Error(errorData.detail || 'Failed to add learning path to your account');
-        } catch (e) {
-          console.log('🔍 DEBUG API - Could not parse error details');
-          throw new Error(`Failed to add learning path (Status: ${response.status})`);
-        }
-      }
-    }
-    
-    // Assume success if response is ok
-    console.log('🔍 DEBUG API - Successfully added learning path');
+    console.log('🔍 DEBUG API - API response received:', !!response);
     return true;
   } catch (error) {
-    console.error("🔍 DEBUG API - Error in apiAddToMyLearningPaths:", error);
-    throw error;
+    console.error('🔍 DEBUG API - Error adding learning path:', error);
+    return false;
   }
 };
 
@@ -1003,11 +978,13 @@ export const apiUpdateLearningPathProgress = async (pathId: number, progress: nu
     // Add a small delay to prevent too many rapid requests
     await new Promise(resolve => setTimeout(resolve, 500));
     
+    const token = await getSupabaseToken();
+    
     const response = await apiClient(`/api/users/me/learning-paths/${pathId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${getToken()}`
+        'Authorization': token ? `Bearer ${token}` : ''
       },
       body: JSON.stringify({ progress })
     });
@@ -1026,11 +1003,13 @@ export const apiUpdateCourseProgress = async (courseId: number, progress: number
     // Add a small delay to prevent too many rapid requests
     await new Promise(resolve => setTimeout(resolve, 500));
     
+    const token = await getSupabaseToken();
+    
     const response = await apiClient(`/api/users/me/courses/${courseId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${getToken()}`
+        'Authorization': token ? `Bearer ${token}` : ''
       },
       body: JSON.stringify({ progress })
     });
@@ -1048,11 +1027,13 @@ export const apiUpdateSectionProgress = async (sectionId: number, progress: numb
     // Add a small delay to prevent too many rapid requests
     await new Promise(resolve => setTimeout(resolve, 500));
     
+    const token = await getSupabaseToken();
+    
     const response = await apiClient(`/api/users/me/sections/${sectionId}/progress?progress=${progress}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${getToken()}`
+        'Authorization': token ? `Bearer ${token}` : ''
       }
     });
     
@@ -1069,11 +1050,14 @@ export const apiUpdateCardCompletion = async (cardId: number, isCompleted: boole
     // THIS FUNCTION IS FOR GENERAL CARD UPDATES.
     // For updating card completion within an active learning path context (which should trigger progress roll-up),
     // PLEASE USE apiUpdateCardCompletionInSection.
+    
+    const token = await getSupabaseToken();
+    
     const response = await apiClient(`/api/users/me/cards/${cardId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${getToken()}`
+        'Authorization': token ? `Bearer ${token}` : ''
       },
       body: JSON.stringify({ is_completed: isCompleted })
     });
@@ -1116,11 +1100,13 @@ export const apiUpdateCardCompletionInSection = async (learningPathId: number, s
     const endpoint = `/api/users/me/learning-paths/${learningPathId}/sections/${sectionId}/cards/${cardId}`;
     console.log(`DEBUG - Making PUT request to: ${endpoint} with body:`, { is_completed: isCompleted });
     
+    const token = await getSupabaseToken();
+    
     const response = await apiClient(endpoint, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${getToken()}`
+        'Authorization': token ? `Bearer ${token}` : ''
       },
       body: JSON.stringify({ is_completed: isCompleted }) // Send is_completed in the body
     });
@@ -1141,11 +1127,13 @@ export const apiUpdateCardCompletionInSection = async (learningPathId: number, s
 // Add function to check for achievements after card completion
 export const apiCheckAchievements = async (): Promise<any[] | null> => {
   try {
+    const token = await getSupabaseToken();
+    
     const response = await apiClient('/api/achievements/users/me/check-achievements', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${getToken()}`
+        'Authorization': token ? `Bearer ${token}` : ''
       }
     });
     
@@ -1228,6 +1216,73 @@ export const apiGetFullUserLearningPath = async (id: number): Promise<FullLearni
     throw new Error(`Failed to fetch full user learning path details (status: ${response.status}).`);
   } catch (error) {
     console.error(`Error in apiGetFullUserLearningPath for path ${id}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Enhanced API client function that properly includes Supabase JWT token in all requests
+ * This should be the standard way to make API requests to the backend from any component
+ */
+export const callApi = async (
+  endpoint: string,
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET',
+  body?: any,
+  customHeaders: Record<string, string> = {}
+) => {
+    try {
+    // Clean up endpoint to ensure it starts with /api
+    let cleanEndpoint = endpoint;
+    if (!cleanEndpoint.startsWith('/api')) {
+      cleanEndpoint = cleanEndpoint.startsWith('/') 
+        ? `/api${cleanEndpoint}` 
+        : `/api/${cleanEndpoint}`;
+    }
+    
+    // Use relative URL for Next.js proxy
+    const url = cleanEndpoint;
+    
+    // Get authorization headers with Supabase JWT
+    const authHeaders = await getAuthHeaders();
+    
+    // Prepare request options
+    const options: RequestInit = {
+      method,
+      headers: {
+        ...authHeaders,
+        ...customHeaders
+      },
+      credentials: 'include',
+      mode: 'cors'
+    };
+    
+    // Add body for non-GET requests
+    if (method !== 'GET' && body) {
+      options.body = JSON.stringify(body);
+    }
+    
+    // Make the request
+    const response = await fetch(url, options);
+    
+    // Check if response is OK
+    if (!response.ok) {
+      // Try to parse error response
+      const errorData = await response.json().catch(() => ({
+        detail: `API error: ${response.status} ${response.statusText}`
+      }));
+      
+      throw new Error(errorData.detail || 'Unknown API error');
+    }
+    
+    // For 204 No Content, return null
+    if (response.status === 204) {
+      return null;
+    }
+    
+    // Parse JSON response
+    return await response.json();
+  } catch (error) {
+    console.error('API request failed:', error);
     throw error;
   }
 }; 

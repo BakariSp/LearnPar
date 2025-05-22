@@ -1,0 +1,9 @@
+---
+description: 
+globs: 
+---
+
+always use typescript
+remember we have a python backend (FastAPI) for api functions, this project is fully frontend
+this project use supabase to handle the auth
+

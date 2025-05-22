@@ -168,28 +168,43 @@ export const getDailyUsage = async (): Promise<DailyUsageData | null> => {
     
     // Validate that paths and cards exist and have the correct structure
     if (!data.paths || !data.cards || 
-        typeof data.paths !== 'object' || typeof data.cards !== 'object' ||
-        typeof data.paths.remaining !== 'number' || typeof data.cards.remaining !== 'number') {
-      console.error('Invalid daily usage data structure:', data);
+        typeof data.paths !== 'object' || typeof data.cards !== 'object') {
+      console.warn('Missing paths or cards structure in daily usage data, creating default structure');
       
-      // Attempt to return a fallback structure to avoid errors
+      // Default to a safe structure if paths or cards are missing
       return {
         paths: {
           used: data.paths?.used || 0,
           limit: data.paths?.limit || 3,  // Default free tier limit
-          remaining: data.paths?.remaining || 0
+          remaining: data.paths?.remaining || 3
         },
         cards: {
           used: data.cards?.used || 0,
           limit: data.cards?.limit || 20, // Default free tier limit
-          remaining: data.cards?.remaining || 0
+          remaining: data.cards?.remaining || 20
         },
         subscription_tier: data.subscription_tier || 'free',
         usage_date: data.usage_date || new Date().toISOString().split('T')[0]
       };
     }
     
-    return data;
+    // Ensure we have a complete structure for paths and cards
+    const completedData: DailyUsageData = {
+      paths: {
+        used: typeof data.paths.used === 'number' ? data.paths.used : 0,
+        limit: typeof data.paths.limit === 'number' ? data.paths.limit : 3,
+        remaining: typeof data.paths.remaining === 'number' ? data.paths.remaining : 3
+      },
+      cards: {
+        used: typeof data.cards.used === 'number' ? data.cards.used : 0,
+        limit: typeof data.cards.limit === 'number' ? data.cards.limit : 20,
+        remaining: typeof data.cards.remaining === 'number' ? data.cards.remaining : 20
+      },
+      subscription_tier: data.subscription_tier || 'free',
+      usage_date: data.usage_date || new Date().toISOString().split('T')[0]
+    };
+    
+    return completedData;
   } catch (error) {
     console.error("Error in getDailyUsage:", error);
     return null;

@@ -85,77 +85,25 @@ export function ZeroLandingPageContent(props: ZeroLandingPageProps) {
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
 
-  useEffect(() => {
-    let isMounted = true;
-
-    async function fetchUserAndRecommendations() {
-      if (!isAuthenticated || !isMounted || initialDataLoaded) return;
-
-      try {
-        setIsLoading(true);
-
-        const userData = await getUserProfile();
-
-        if (!isMounted) return;
-
-        if (Array.isArray(userData?.interests) && userData.interests.length > 0) {
-          const interestIds = userData.interests.map((interest: any) =>
-            typeof interest === 'object' ? interest.id : interest
-          );
-
-          const interestRecsData = await apiGetRecommendationsByInterests(
-            interestIds,
-            5,
-            [],
-            refreshToken
-          );
-
-          if (!isMounted) return;
-
-          if (interestRecsData) {
-            setInterestRecommendations(interestRecsData);
-            setRefreshToken(interestRecsData.refresh_token);
-          } else {
-            await fallbackToStandardRecs();
-          }
-        } else {
-          await fallbackToStandardRecs();
-        }
-      } catch (err) {
-        console.error('❌ Failed to fetch user profile or recommendations:', err);
-        await fallbackToStandardRecs();
-      } finally {
-        if (isMounted) {
-          setInitialDataLoaded(true);
-          setIsLoading(false);
-        }
-      }
-    }
-
-  async function fallbackToStandardRecs() {
+  // Helper function for fallback to standard recommendations
+  const fallbackToStandardRecs = async () => {
+    console.log('Falling back to standard recommendations');
+    // Fall back to using the props-provided recommendations or API
     if (props.initialRecommendations) {
       setRecommendations(props.initialRecommendations);
     } else {
       try {
-        const res = await fetch('/api/recommendations');
-        if (res.ok) {
-          const data = await res.json();
+        const response = await fetch('/api/recommendations');
+        if (response.ok) {
+          const data = await response.json();
           setRecommendations(data);
         }
       } catch (e) {
-        setError('Failed to load recommendations.');
+        console.error('Error fetching standard recommendations:', e);
+        setError('Failed to load recommendations. Please try again later.');
       }
     }
-  }
-
-  fetchUserAndRecommendations();
-
-  return () => {
-    isMounted = false;
   };
-}, [isAuthenticated, initialDataLoaded, props.initialRecommendations, refreshToken]);
-
-
 
   // Page entrance animation effect
   useEffect(() => {
@@ -167,34 +115,41 @@ export function ZeroLandingPageContent(props: ZeroLandingPageProps) {
     return () => clearTimeout(timer);
   }, []);
 
-  // Fetch user's interests and get recommendations - only run once for initial data
+  // Main useEffect for fetching user data and recommendations
   useEffect(() => {
     let isMounted = true;
     
     // Function to fetch user data and recommendations
     async function fetchUserAndRecommendations() {
-      if (!isAuthenticated) return;
-      if (!initialDataLoaded && isMounted) {
-        try {
-          setIsLoading(true);
-          
-          // Get user profile first to check interests
-          const userData = await getUserProfile();
-          
-          if (!isMounted) return; // Stop if component unmounted
-          
-          if (userData && userData.interests && userData.interests.length > 0) {
-            // If user has interests, fetch personalized recommendations
-            try {
-              // Convert userData.interests to an array of interest IDs 
-              // Make sure we're passing exactly what the API expects
-              const interestIds = userData.interests.map((interest: any) => 
-                // Handle both object format and string format
-                typeof interest === 'object' ? interest.id : interest
-              );
+      // Only proceed if authenticated and data not already loaded
+      if (!isAuthenticated || initialDataLoaded) {
+        console.log('Skipping fetch - auth:', isAuthenticated, 'loaded:', initialDataLoaded);
+        return;
+      }
 
-              console.log('Interest IDs being sent to API:', interestIds);
+      try {
+        setIsLoading(true);
+        console.log('Fetching user profile and recommendations...');
+        
+        // Get user profile first to check interests
+        const userData = await getUserProfile();
+        
+        if (!isMounted) return; // Stop if component unmounted
+        
+        // Check if user has interests and they are not empty
+        if (userData?.interests && Array.isArray(userData.interests) && userData.interests.length > 0) {
+          console.log('User has interests:', userData.interests.length, 'interests found');
+          
+          try {
+            // Convert userData.interests to an array of interest IDs 
+            const interestIds = userData.interests.map((interest: any) => 
+              typeof interest === 'object' ? interest.id : interest
+            );
 
+            console.log('Interest IDs being sent to API:', interestIds);
+
+            // Only call API if we have valid interest IDs
+            if (interestIds.length > 0) {
               const interestRecsData = await apiGetRecommendationsByInterests(
                 interestIds,
                 5, // Limit to 5 learning paths
@@ -204,57 +159,38 @@ export function ZeroLandingPageContent(props: ZeroLandingPageProps) {
               
               if (!isMounted) return; // Stop if component unmounted
 
-              if (interestRecsData) {
+              if (interestRecsData && interestRecsData.learning_paths && interestRecsData.learning_paths.length > 0) {
+                console.log('Successfully fetched interest-based recommendations:', interestRecsData.learning_paths.length, 'paths');
                 setInterestRecommendations(interestRecsData);
                 setRefreshToken(interestRecsData.refresh_token);
-                setInitialDataLoaded(true);
-                setIsLoading(false);
               } else {
-                console.log('No recommendations data returned, falling back to standard recommendations');
-                fallbackToStandardRecs();
+                console.log('No interest-based recommendations returned, falling back to standard');
+                await fallbackToStandardRecs();
               }
-            } catch (error) {
-              console.error('Error fetching interest-based recommendations:', error);
-              fallbackToStandardRecs();
+            } else {
+              console.log('No valid interest IDs found, falling back to standard recommendations');
+              await fallbackToStandardRecs();
             }
-          } else {
-            // No interests, fall back to standard recommendations
-            console.log('No user interests found, falling back to standard recommendations');
-            fallbackToStandardRecs();
+          } catch (error) {
+            console.error('Error fetching interest-based recommendations:', error);
+            // If there's an authentication error, don't keep retrying
+            if (error instanceof Error && error.message.includes('401')) {
+              console.log('Authentication error detected, falling back to standard recommendations');
+            }
+            await fallbackToStandardRecs();
           }
-        } catch (error) {
-          console.error('Error fetching user data:', error);
-          fallbackToStandardRecs();
+        } else {
+          // No interests or empty interests, fall back to standard recommendations
+          console.log('User has no interests, falling back to standard recommendations');
+          await fallbackToStandardRecs();
         }
-      }
-      
-      // Helper function for fallback to standard recommendations
-      async function fallbackToStandardRecs() {
-        if (!isMounted) return; // Stop if component unmounted
-        
-        // Fall back to using the props-provided recommendations or API
-        if (props.initialRecommendations) {
-          setRecommendations(props.initialRecommendations);
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+        await fallbackToStandardRecs();
+      } finally {
+        if (isMounted) {
           setInitialDataLoaded(true);
           setIsLoading(false);
-        } else {
-          try {
-            const response = await fetch('/api/recommendations');
-            
-            if (!isMounted) return; // Stop if component unmounted
-            
-            if (response.ok) {
-              const data = await response.json();
-              setRecommendations(data);
-            }
-            setInitialDataLoaded(true);
-            setIsLoading(false);
-          } catch (error) {
-            console.error('Error fetching recommendations:', error);
-            setError('Failed to load recommendations. Please try again later.');
-            setInitialDataLoaded(true); // Still mark as loaded even on error
-            setIsLoading(false);
-          }
         }
       }
     }
@@ -265,7 +201,7 @@ export function ZeroLandingPageContent(props: ZeroLandingPageProps) {
     return () => {
       isMounted = false;
     };
-  }, [initialDataLoaded, refreshToken, props.initialRecommendations]); // Keep only the necessary dependencies
+  }, [isAuthenticated, initialDataLoaded]); // Remove refreshToken and props.initialRecommendations from dependencies
 
   // Convert interest-based recommendations to the format needed by LearningPathCard
   const interestBasedPaths = interestRecommendations?.learning_paths.map((path) => ({
@@ -371,7 +307,7 @@ export function ZeroLandingPageContent(props: ZeroLandingPageProps) {
           refresh_token: nextBatch.refresh_token
         });
         
-        // Update the refresh token for future requests without triggering useEffect
+        // Update the refresh token for future requests
         setRefreshToken(nextBatch.refresh_token);
       } else {
         // No more recommendations to load

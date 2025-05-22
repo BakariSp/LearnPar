@@ -1,4 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 import { fallbackLng, supportedLngs } from './i18n/settings';
 
 // List of static assets that should be excluded from locale prefixing
@@ -38,19 +40,118 @@ const ALLOWED_NEW_USER_PATHS = [
   '/oauth',
   '/terms',
   '/privacy',
+  '/auth/callback', // Add the Supabase auth callback path
 ];
 
-export function middleware(request: NextRequest) {
-  const pathname = request.nextUrl.pathname;
+export async function middleware(req: NextRequest) {
+  // Skip processing for auth callback path - it has special handling with hash fragments
+  if (req.nextUrl.pathname.startsWith('/auth/callback')) {
+    return NextResponse.next();
+  }
+  
+  // Create a Supabase client configured to use cookies
+  const res = NextResponse.next();
+  const supabase = createMiddlewareClient({ req, res });
+
+  // Try to get session but don't rely on it for auth decisions
+  // This is because auth is primarily handled by the backend Python service
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+  
+  if (sessionError) {
+    console.error("[Middleware Debug] Session Error:", sessionError);
+  }
+  
+  const pathname = req.nextUrl.pathname;
   
   // Add Content Security Policy headers to all responses
-  const response = NextResponse.next();
+  const response = res;
   
   // Set Content Security Policy headers with unsafe-eval allowed
   response.headers.set(
     'Content-Security-Policy',
     "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' *; img-src 'self' data: *;"
   );
+  
+  // Skip locale redirection if the path appears to have two locales
+  // This could indicate a malformed URL from an OAuth redirect (like /en/en/dashboard)
+  const hasDoubleLocale = supportedLngs.some(
+    locale => pathname.startsWith(`/${locale}/${locale}/`)
+  );
+  
+  if (hasDoubleLocale) {
+    const correctPath = pathname.replace(/^\/([a-z]{2})\/\1\//, '/$1/');
+    const correctedUrl = new URL(correctPath, req.url);
+    
+    if (req.nextUrl.search) {
+      correctedUrl.search = req.nextUrl.search;
+    }
+    
+    return NextResponse.redirect(correctedUrl);
+  }
+  
+  // Handle auth redirects for protected routes
+  const protectedPaths = ['/dashboard', '/profile', '/settings']; 
+  const isProtectedPath = protectedPaths.some(path => {
+    const pathWithSlash = path.endsWith('/') ? path : `${path}/`;
+    const pathWithoutSlash = path.endsWith('/') ? path.slice(0, -1) : path;
+    
+    return supportedLngs.some(lang => 
+      pathname === `/${lang}${path}` || 
+      pathname === `/${lang}${pathWithSlash}` ||
+      pathname.startsWith(`/${lang}${pathWithoutSlash}/`)
+    );
+  });
+
+  // Debug output
+  console.log("[Middleware Debug] Path:", pathname);
+  console.log("[Middleware Debug] Protected Path:", isProtectedPath);
+  console.log("[Middleware Debug] Is Auth Path:", pathname.includes('/login'));
+  console.log("[Middleware Debug] Session exists:", !!session);
+  
+  // Check for JWT token in the Authorization header or Cookie
+  const authHeader = req.headers.get('authorization');
+  const hasAuthHeader = !!authHeader && authHeader.startsWith('Bearer ');
+  
+  // Check for Supabase auth cookie - this indicates the user is authenticated
+  const supabaseAuthCookie = req.cookies.has('sb-auth-token') || req.cookies.has('sb-refresh-token');
+  
+  // Check if the path is auth-related
+  const isAuthPath = pathname.includes('/login');
+  
+  // For protected paths, check for authentication via Supabase session or auth header
+  if (isProtectedPath) {
+    console.log("[Middleware Debug] Protected path check - hasSession:", !!session);
+    console.log("[Middleware Debug] Protected path check - hasAuthHeader:", hasAuthHeader);
+    console.log("[Middleware Debug] Protected path check - hasSupabaseAuthCookie:", supabaseAuthCookie);
+    
+    // If we have any sign of authentication, allow access
+    if (session || hasAuthHeader || supabaseAuthCookie) {
+      console.log("[Middleware Debug] Authentication detected, allowing access to protected path");
+      return response;
+    }
+    
+    // Check for debug param to bypass auth check
+    const debugBypass = req.nextUrl.searchParams.get('debug_auth') === 'bypass';
+    
+    // In development, allow debug bypass
+    if (process.env.NODE_ENV === 'development' && debugBypass) {
+      console.log("[Middleware Debug] Development mode: Bypassing auth check with debug_auth parameter");
+      return response;
+    }
+    
+    console.log("[Middleware Debug] No authentication detected, redirecting to login");
+    const locale = req.cookies.get('NEXT_LOCALE')?.value || fallbackLng;
+    const loginUrl = new URL(`/${locale}/login`, req.url);
+    return NextResponse.redirect(loginUrl);
+  }
+  
+  // Redirect authenticated users from login to dashboard
+  if (isAuthPath && (session || hasAuthHeader || supabaseAuthCookie)) {
+    console.log("[Middleware Debug] Redirecting to dashboard: Auth path with active authentication");
+    const locale = req.cookies.get('NEXT_LOCALE')?.value || fallbackLng;
+    const dashboardUrl = new URL(`/${locale}/dashboard`, req.url);
+    return NextResponse.redirect(dashboardUrl);
+  }
   
   // Logic to determine if a request is for a static asset
   const isStaticAsset = (path: string) => {
@@ -100,8 +201,9 @@ export function middleware(request: NextRequest) {
     return response;
   }
   
-  // Skip Next.js internal paths
-  if (pathname.startsWith('/_next/') || pathname.startsWith('/api/')) {
+  // Skip Next.js internal paths and auth callback path
+  if (pathname.startsWith('/_next/') || 
+      pathname.startsWith('/api/')) {
     return response;
   }
   
@@ -113,14 +215,14 @@ export function middleware(request: NextRequest) {
   if (pathnameHasLocale) return response;
 
   // Redirect if there is no locale
-  const locale = request.cookies.get('NEXT_LOCALE')?.value || fallbackLng;
+  const locale = req.cookies.get('NEXT_LOCALE')?.value || fallbackLng;
   
   // e.g. incoming request is /products
   // The new URL is /en/products
-  const newUrl = new URL(`/${locale}${pathname.startsWith('/') ? pathname : `/${pathname}`}`, request.url);
+  const newUrl = new URL(`/${locale}${pathname.startsWith('/') ? pathname : `/${pathname}`}`, req.url);
   
-  if (request.nextUrl.search) {
-    newUrl.search = request.nextUrl.search;
+  if (req.nextUrl.search) {
+    newUrl.search = req.nextUrl.search;
   }
 
   return NextResponse.redirect(newUrl);
@@ -129,7 +231,14 @@ export function middleware(request: NextRequest) {
 // Use a more precise matcher to reduce unnecessary middleware executions
 export const config = {
   matcher: [
-    // Only run middleware on pages, not on static assets or API routes
-    '/((?!api|_next|.*\\..*|locales|favicon.ico|assets|images|fonts|icons|media|static).*)',
+    /*
+     * Match all request paths except:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder
+     * - api routes
+     */
+    '/((?!_next/static|_next/image|favicon.ico|public|api).*)',
   ],
 }; 

@@ -12,13 +12,22 @@ export async function ensureGuestToken(
   if (token && token !== 'null' && token.trim() !== '') {
     console.log("📦 Found valid token in localStorage:", token);
     axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-    const user = await getCurrentUser();
-    console.log('📥 Loaded user from existing token:', user);
-    if (user && onUserLoaded) {
-      onUserLoaded(user);
+    
+    // Add try-catch around getCurrentUser call
+    try {
+      const user = await getCurrentUser();
+      console.log('📥 Loaded user from existing token:', user);
+      if (user && onUserLoaded) {
+        onUserLoaded(user);
+      }
+      return token;
+    } catch (error) {
+      console.error("❌ Failed to load user from existing token:", error);
+      // Don't return here - fall through to guest login logic
+      // Clear the invalid token
+      localStorage.removeItem("auth_token");
+      axios.defaults.headers.common["Authorization"] = '';
     }
-    return token;
-
   } else {
     console.warn("⚠️ No valid token found, proceeding with guest registration");
   }
@@ -40,6 +49,12 @@ export async function ensureGuestToken(
       })
     });
 
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error(`❌ Guest API returned error: ${res.status}`, errorText);
+      return null;
+    }
+
     const data = await res.json();
     console.log('🪪 Guest API 返回内容:', data);
     console.log('🪪 Guest API 返回 token:', data.token, '类型:', typeof data.token);
@@ -50,9 +65,14 @@ export async function ensureGuestToken(
       axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 
       // ✅ 补上用户信息拉取
-      const user = await getCurrentUser();
-      if (user && onUserLoaded) {
-        onUserLoaded(user);
+      try {
+        const user = await getCurrentUser();
+        if (user && onUserLoaded) {
+          onUserLoaded(user);
+        }
+      } catch (userError) {
+        console.error("❌ Failed to get user after guest login:", userError);
+        // Continue anyway since we have a token
       }
     }
 
@@ -70,8 +90,14 @@ export function useGuestAuth() {
   useEffect(() => {
     async function init() {
       console.log('🧪 useGuestAuth init started');
-      await ensureGuestToken(setUser); // 👈 把 setUser 传进去
-      setReady(true);
+      try {
+        await ensureGuestToken(setUser); // 👈 把 setUser 传进去
+      } catch (error) {
+        console.error('🧪 useGuestAuth init failed:', error);
+        // Continue anyway to set the app as ready
+      } finally {
+        setReady(true);
+      }
     }
     init();
   }, [setUser]);

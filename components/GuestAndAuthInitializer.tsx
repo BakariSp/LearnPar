@@ -1,19 +1,38 @@
 // components/GuestAndAuthInitializer.tsx
 'use client';
-import { useGuestAuth } from '@/hooks/useGuestAuth';
-import { AuthProvider } from '@/context/AuthContext';
-import { ReactNode } from 'react';
+import { useEffect, useState, ReactNode } from 'react';
+import { createClient } from '@/utils/supabase-browser';
 
 export default function GuestAndAuthInitializer({ children }: { children: ReactNode }) {
-  const isGuestReady = useGuestAuth(); // 会确保 token 写入 localStorage 并设置 axios
+  const [isInitialized, setIsInitialized] = useState(false);
+  
+  useEffect(() => {
+    const initializeSupabase = async () => {
+      try {
+        // Create Supabase client
+        const supabase = createClient();
+        
+        // Check for existing session
+        const { data } = await supabase.auth.getSession();
+        
+        // If no session, we could potentially create a guest user here
+        // or handle anonymous access
 
-  if (!isGuestReady) {
-    return <div>Loading...</div>; // 或者你的 loading spinner
+        // Mark as initialized
+        setIsInitialized(true);
+      } catch (error) {
+        console.error('Failed to initialize Supabase client:', error);
+        // Still mark as initialized to allow app to proceed
+        setIsInitialized(true);
+      }
+    };
+    
+    initializeSupabase();
+  }, []);
+
+  if (!isInitialized) {
+    return <div>Loading...</div>; // Or your loading spinner
   }
 
-  return (
-    <AuthProvider>
-      {children}
-    </AuthProvider>
-  );
+  return <>{children}</>;
 }

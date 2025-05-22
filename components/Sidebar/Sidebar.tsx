@@ -2,15 +2,14 @@
 import { useTranslation } from 'react-i18next'; 
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation'; // Import usePathname
+import { usePathname } from 'next/navigation'; 
 import styles from './Sidebar.module.css';
-import { useAuth } from '../../context/AuthContext'; // Adjust path
-import { useNotificationContext } from '../../context/NotificationContext'; // Import the context hook
-import { useTheme } from '../../context/ThemeContext'; // Import useTheme
+import { useAuth } from '../../context/AuthContext'; 
+import { useNotificationContext } from '../../context/NotificationContext'; 
+import { useTheme } from '../../context/ThemeContext'; 
 import { useState } from 'react';
 import { ProductInfoPopup } from '../ProductInfoPopup/ProductInfoPopup';
-// --- Предполагаемый импорт для уведомлений ---
-// import { useNotificationContext } from '../../context/NotificationContext'; // Example
+
 
 // Define props interface
 interface SidebarProps {
@@ -151,18 +150,44 @@ export function Sidebar({ isCollapsed, toggleSidebar, locale }: SidebarProps) {
 
           {/* Admin section at the bottom */}
           <div className={styles.adminSection}>
-            <Link 
-              href={`/${locale}/dashboard`} 
-              className={`${styles.adminProfile} ${pathname === `/${locale}/dashboard` ? styles.active : ''}`} 
-              title={isCollapsed ? t('sidebar.dashboard') : undefined}
-            >
-              <div className={styles.adminAvatar}>{userInitial}</div>
-              <div className={styles.adminInfo}>
-                <div className={styles.adminTitle}>{userName || 'Unknown'}</div>
-                <div className={styles.adminEmail}>{user?.email || 'Unknown'}</div>
-              </div>
-              {!isCollapsed && <div className={styles.adminStatus}></div>}
-            </Link>
+            {isAuthenticated ? (
+              <Link 
+                href={`/${locale}/dashboard`} 
+                className={`${styles.adminProfile} ${pathname === `/${locale}/dashboard` ? styles.active : ''}`} 
+                title={isCollapsed ? t('sidebar.dashboard') : undefined}
+                onClick={(e) => {
+                  // Add debug logging to track profile clicks
+                  console.log('[Sidebar] Admin profile clicked - authenticated user', 
+                    `userName: ${userName}`, 
+                    `isAuthenticated: ${isAuthenticated}`);
+                  
+                  if (!isAuthenticated) {
+                    e.preventDefault();
+                    console.warn('[Sidebar] Prevented navigation - user not authenticated');
+                  }
+                }}
+              >
+                <div className={styles.adminAvatar}>{userInitial}</div>
+                <div className={styles.adminInfo}>
+                  <div className={styles.adminTitle}>{userName || 'Unknown'}</div>
+                  <div className={styles.adminEmail}>{user?.email || 'Unknown'}</div>
+                </div>
+                {!isCollapsed && <div className={styles.adminStatus}></div>}
+              </Link>
+            ) : (
+              <Link 
+                href={`/${locale}/login`} 
+                className={styles.adminProfile} 
+                title={isCollapsed ? t('sidebar.login') : undefined}
+              >
+                <div className={styles.adminAvatar}>?</div>
+                <div className={styles.adminInfo}>
+                  <div className={styles.adminTitle}>{t('sidebar.login')}</div>
+                  <div className={styles.adminEmail}>{t('sidebar.guest')}</div>
+                </div>
+                {!isCollapsed && <div className={styles.adminStatus}></div>}
+              </Link>
+            )}
             
             <button onClick={handleLogout} className={styles.logoutButton}>
               <Image 

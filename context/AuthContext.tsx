@@ -1,22 +1,51 @@
 'use client';
 
 import React, { createContext, useState, useEffect, useContext, ReactNode, useCallback } from 'react';
-import { 
-  getCurrentUser, 
-  UserProfile, 
-  getToken, 
-  logout as authLogout, 
-  login as authLogin, 
-  LoginCredentials, 
-  handleOAuthCallback as authHandleOAuthCallback,
-  verifyAuthState
-} from '../services/auth'; // Adjust path as needed
-import { getLocalizedUrl, getCurrentLocale } from '../services/utils'; // Import utility functions
 import { useRouter } from 'next/navigation';
+import { 
+  signInWithEmail, 
+  signUpWithEmail, 
+  signInWithOAuth, 
+  signOut, 
+  getCurrentUser as getSupabaseUser, 
+  getCurrentSession, 
+  setupAuthListener,
+  supabase
+} from '../services/supabase';
+import { getLocalizedUrl, getCurrentLocale } from '../services/utils'; // Keep utility functions
 
-// Constants
-const USER_ID_KEY = 'userId'; // Add constant for consistency
-const AUTH_TOKEN_KEY = 'auth_token'; // 新增统一 token key
+// Define user profile interface for Supabase user
+interface UserProfile {
+  id: string;
+  email?: string;
+  username?: string;
+  full_name?: string;
+  profile_picture?: string;
+  interests?: string[];
+  is_active?: boolean;
+  oauth_provider?: string;
+  created_at?: string;
+  is_guest?: boolean;
+  subscription_type?: 'free' | 'standard' | 'premium';
+  user_metadata?: {
+    full_name?: string;
+    username?: string;
+    avatar_url?: string;
+    interests?: string[];
+  };
+  app_metadata?: {
+    provider?: string;
+    role?: string;
+    is_guest?: boolean;
+    subscription_type?: 'free' | 'standard' | 'premium';
+  };
+}
+
+// Interface for login credentials
+interface LoginCredentials {
+  username: string; // This will be used as email
+  password: string;
+}
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -24,9 +53,10 @@ interface AuthContextType {
   isAuthenticated: boolean;
   authReady: boolean;
   login: (credentials: LoginCredentials) => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
   logout: () => void;
-  handleOAuthCallback: (token: string) => void;
   setUser: (user: UserProfile | null) => void;
+  handleOAuthCallback: (token: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -38,43 +68,44 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const router = useRouter();
 
   useEffect(() => {
-    const validateTokenAndFetchUser = async () => {
-      console.log('AuthContext: Initializing and validating auth state');
+    const initializeAuth = async () => {
+      console.log('AuthContext: Initializing Supabase auth state');
       setIsLoading(true);
 
-      // ✅ Step 1: 稍微等待一下 localStorage 写入完成（特别是 guest 注册后）
-      await new Promise(resolve => setTimeout(resolve, 150)); // 等 150ms
-
       try {
-        await verifyAuthState();
-
-        const token = getToken();
-        if (token) {
-          console.log('AuthContext: Token found, fetching user data');
-          try {
-            const userData = await getCurrentUser();
-
-            if (userData) {
-              console.log('AuthContext: User data received, setting state');
-              setUser(userData);
-            if (userData.is_guest) {
-              console.log('✅ Guest login successful:', userData.email);
-            }
-              if (userData.id) {
-                console.log(`AuthContext: Ensuring user ID ${userData.id} is in localStorage`);
-              }
-            } else {
-              console.log('AuthContext: No user data received, clearing auth state');
-              authLogout();
-              setUser(null);
-            }
-          } catch (error) {
-            console.error("AuthContext: Failed to fetch user on initial load:", error);
-            authLogout();
+        // Check for an existing session
+        const session = await getCurrentSession();
+        console.log('AuthContext: Session check result:', !!session);
+        
+        // If we have a session but no user state, set the user from session data
+        if (session) {
+          console.log('AuthContext: Session found, fetching user data');
+          const userData = await getSupabaseUser();
+          
+          if (userData) {
+            console.log('AuthContext: User data received, setting state');
+            setUser({
+              id: userData.id,
+              email: userData.email,
+              username: userData.user_metadata?.username,
+              full_name: userData.user_metadata?.full_name,
+              profile_picture: userData.user_metadata?.avatar_url,
+              interests: userData.user_metadata?.interests || [],
+              is_active: true,
+              oauth_provider: userData.app_metadata?.provider,
+              is_guest: userData.app_metadata?.is_guest,
+              subscription_type: userData.app_metadata?.subscription_type,
+              created_at: userData.created_at,
+              user_metadata: userData.user_metadata,
+              app_metadata: userData.app_metadata
+            });
+          } else {
+            // We have a session but couldn't get user data - this is an error state
+            console.error('AuthContext: Session exists but user data fetch failed');
             setUser(null);
           }
         } else {
-          console.log('AuthContext: No token found, user not authenticated');
+          console.log('AuthContext: No session found, user not authenticated');
           setUser(null);
         }
       } catch (error) {
@@ -87,40 +118,91 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     };
 
-    validateTokenAndFetchUser();
+    // Set up auth state listener
+    const { data: authListener } = setupAuthListener((event, session) => {
+      console.log('AuthContext: Auth state changed:', event);
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        if (session?.user) {
+          setUser({
+            id: session.user.id,
+            email: session.user.email,
+            username: session.user.user_metadata?.username,
+            full_name: session.user.user_metadata?.full_name,
+            profile_picture: session.user.user_metadata?.avatar_url,
+            interests: session.user.user_metadata?.interests || [],
+            is_active: true,
+            oauth_provider: session.user.app_metadata?.provider,
+            is_guest: session.user.app_metadata?.is_guest,
+            subscription_type: session.user.app_metadata?.subscription_type,
+            created_at: session.user.created_at,
+            user_metadata: session.user.user_metadata,
+            app_metadata: session.user.app_metadata
+          });
+        }
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+      }
+    });
+
+    initializeAuth();
+
+    // Clean up the listener on unmount
+    return () => {
+      if (authListener) {
+        authListener.subscription.unsubscribe();
+      }
+    };
+  }, []);
+
+  // Helper function to redirect based on auth state - moved up before it's used
+  const redirectBasedOnAuth = useCallback((redirectPath = 'home') => {
+    const locale = getCurrentLocale();
+    console.log(`AuthContext: Redirecting to /${locale}/${redirectPath}`);
+    
+    // Use more reliable window.location.href for redirection
+    window.location.href = `/${locale}/${redirectPath}`;
   }, []);
 
   const login = useCallback(async (credentials: LoginCredentials) => {
     setIsLoading(true);
-    console.log('AuthContext: Login started');
+    console.log('AuthContext: Login started with email');
     
     try {
-      const tokenData = await authLogin(credentials); // Original login handles token storage
-      console.log('AuthContext: Login successful, token received');
+      const { user: authUser, session } = await signInWithEmail(credentials.username, credentials.password);
       
-      // Introduce a small delay to ensure token is properly stored
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      console.log('AuthContext: Fetching user data after login');
-      const userData = await getCurrentUser(); // Fetch user data after login
-      
-      if (!userData) {
-        console.error('AuthContext: Failed to fetch user data after successful login');
-        throw new Error('Login succeeded but could not fetch user data');
+      if (!authUser) {
+        throw new Error('Login failed: No user data returned');
       }
       
-      console.log('AuthContext: User data received, setting user state');
-      setUser(userData);
+      console.log('AuthContext: Login successful, session established');
       
-      // Use the window.location for redirect instead of router to ensure page reload
-      // This helps establish a fresh state with the auth token
-      console.log('AuthContext: Redirecting to dashboard');
-      const dashboardUrl = getLocalizedUrl('dashboard');
-      console.log('AuthContext: Dashboard URL:', dashboardUrl);
+      setUser({
+        id: authUser.id,
+        email: authUser.email,
+        username: authUser.user_metadata?.username,
+        full_name: authUser.user_metadata?.full_name,
+        profile_picture: authUser.user_metadata?.avatar_url,
+        interests: authUser.user_metadata?.interests || [],
+        is_active: true,
+        oauth_provider: authUser.app_metadata?.provider,
+        is_guest: authUser.app_metadata?.is_guest,
+        subscription_type: authUser.app_metadata?.subscription_type,
+        created_at: authUser.created_at,
+        user_metadata: authUser.user_metadata,
+        app_metadata: authUser.app_metadata
+      });
       
-      window.location.href = dashboardUrl;
-      // Don't use router.push here as it doesn't force a page refresh
-      // router.push(getLocalizedUrl('dashboard'));
+      // Redirect to dashboard directly if user has interests set up
+      if (authUser.user_metadata?.interests && authUser.user_metadata.interests.length > 0) {
+        console.log('AuthContext: User has interests, redirecting to dashboard');
+        // Use our helper function for consistent redirection
+        redirectBasedOnAuth('dashboard');
+      } else {
+        // Redirect to auth-redirect page which will handle setup flow if needed
+        console.log('AuthContext: Redirecting to auth-redirect page');
+        // Use our helper function for consistent redirection
+        redirectBasedOnAuth('auth-redirect?target=home');
+      }
     } catch (error) {
       console.error("AuthContext: Login failed:", error);
       setUser(null);
@@ -128,100 +210,87 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [setUser, setIsLoading]); // Removed router dependency since we're using window.location
+  }, [redirectBasedOnAuth]);
+
+  // Add Google login function
+  const loginWithGoogle = useCallback(async () => {
+    console.log('AuthContext: Initiating Google login');
+    try {
+      await signInWithOAuth('google');
+      // No need to set user here as the auth state listener will handle it on callback
+    } catch (error) {
+      console.error('AuthContext: Google login failed:', error);
+      throw error;
+    }
+  }, []);
 
   // Memoize logout function
-  const logout = useCallback(() => {
-    // Clear user ID from localStorage
-    if (typeof window !== 'undefined') {
-      console.log('AuthContext: Clearing user ID from localStorage on logout');
-      localStorage.removeItem(USER_ID_KEY);
-      localStorage.removeItem(AUTH_TOKEN_KEY); // 确保登出时也清理 token
+  const logout = useCallback(async () => {
+    console.log('AuthContext: Logging out user');
+    try {
+      await signOut();
+      setUser(null);
+      // Redirect to login page
+      router.push(getLocalizedUrl('login'));
+    } catch (error) {
+      console.error('AuthContext: Error during logout:', error);
     }
+  }, [router]);
+
+  // Handle OAuth callback - simplified to rely on Supabase session
+  const handleOAuthCallback = useCallback(async (token: string) => {
+    console.log('AuthContext: Processing OAuth callback');
     
-    authLogout(); // Original logout handles token removal and redirect
-    setUser(null);
-    // No need to push router here if authLogout handles redirect
-  }, []); // Dependencies: setUser (implicitly stable)
-
-   // Memoize handleOAuthCallback function
-   const handleOAuthCallback = useCallback(async (token: string) => {
-     console.log("AuthContext: handleOAuthCallback started"); // Added log
-     authHandleOAuthCallback(token); // Stores the token
-     setIsLoading(true);
-     
-     // Track performance for debugging
-     const startTime = performance.now();
-     
-     try {
-       console.log("AuthContext: Calling getCurrentUser..."); // Added log
-       const userData = await getCurrentUser(); // Fetch user after getting token
-       
-       const endTime = performance.now();
-       console.log(`AuthContext: getCurrentUser completed in ${endTime - startTime}ms`);
-       console.log("AuthContext: getCurrentUser returned:", userData); // Added log
-       
-       if (!userData) {
-         throw new Error('Failed to fetch user data');
-       }
-       
-       setUser(userData);
-       
-       // Check if user needs setup (no username or interests)
-       const isNewUser = userData && (!userData.username || !userData.interests || userData.interests.length === 0);
-       
-       // Get locale using utility function
-       const locale = getCurrentLocale();
-       
-       // Pre-emptively load any needed imports to reduce waiting time after redirect
-       if (isNewUser && typeof window !== 'undefined') {
-         // Start the dynamic import early but don't wait for it
-         import('../services/auth').catch(e => console.error('Failed to preload auth module:', e));
-       }
-       
-       if (isNewUser) {
-         // Set cookies to indicate new user status (using our auth service functions)
-         if (typeof window !== 'undefined') {
-           try {
-             const { setNewUserStatus, setSetupCompleteStatus } = await import('../services/auth');
-             setNewUserStatus(true);
-             setSetupCompleteStatus(false);
-             
-             // Redirect to setup page with locale
-             console.log("AuthContext: New user detected, redirecting to setup...");
-             router.push(getLocalizedUrl('setup'));
-           } catch (error) {
-             console.error("Failed to set new user status:", error);
-             // Fallback to home if setup fails
-             router.push(getLocalizedUrl('home'));
-           }
-         }
-       } else {
-         // Regular user - redirect to home with locale
-         console.log("AuthContext: Redirecting to home...");
-         router.push(getLocalizedUrl('home'));
-       }
-       
-       console.log("AuthContext: Redirect initiated.");
-     } catch (error) {
-       console.error("AuthContext: Failed to fetch user after OAuth:", error); // Added log
-       logout(); // Log out if fetching fails (logout is now memoized)
-     } finally {
-       console.log("AuthContext: handleOAuthCallback finally block"); // Added log
-       setIsLoading(false);
-     }
-   }, [router, logout]); // Dependencies: router, logout (memoized version), setIsLoading, setUser (implicitly stable)
-
+    try {
+      // Check current session after OAuth callback
+      const session = await getCurrentSession();
+      
+      if (session) {
+        console.log('AuthContext: OAuth login successful, session found');
+        const userData = await getSupabaseUser();
+        
+        if (userData) {
+          console.log('AuthContext: OAuth user data received, setting state');
+          setUser({
+            id: userData.id,
+            email: userData.email,
+            username: userData.user_metadata?.username,
+            full_name: userData.user_metadata?.full_name,
+            profile_picture: userData.user_metadata?.avatar_url,
+            interests: userData.user_metadata?.interests || [],
+            is_active: true,
+            oauth_provider: userData.app_metadata?.provider,
+            is_guest: userData.app_metadata?.is_guest,
+            subscription_type: userData.app_metadata?.subscription_type,
+            created_at: userData.created_at,
+            user_metadata: userData.user_metadata,
+            app_metadata: userData.app_metadata
+          });
+          
+          // Redirect to auth-redirect page after OAuth login
+          console.log('AuthContext: OAuth successful, redirecting to auth-redirect');
+          redirectBasedOnAuth('auth-redirect?target=home');
+        }
+      } else {
+        console.error('AuthContext: OAuth callback - No session found');
+        throw new Error('Authentication failed');
+      }
+    } catch (error) {
+      console.error('AuthContext: OAuth callback error:', error);
+      throw error;
+    }
+  }, [redirectBasedOnAuth]);
 
   const value = {
     user,
     isLoading,
-    isAuthenticated: !!user, // User is authenticated if user object exists
+    isAuthenticated: !!user,
     authReady,
-    login, // Use memoized version
-    logout, // Use memoized version
-    handleOAuthCallback, // Use memoized version
-    setUser
+    login,
+    loginWithGoogle,
+    logout,
+    setUser,
+    handleOAuthCallback
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

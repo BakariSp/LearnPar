@@ -12,6 +12,7 @@ import I18nInitializer from '../../components/I18nInitializer';
 import { Analytics } from '@vercel/analytics/react';
 import JsonLd from '@/components/JsonLd';
 import GuestAndAuthInitializer from '@/components/GuestAndAuthInitializer';
+import AuthHashHandler from '@/components/AuthHashHandler';
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'),
@@ -101,10 +102,11 @@ export default async function RootLayout({
   params,
 }: Readonly<{
   children: React.ReactNode;
-  params: { locale: string };
+  params: Promise<{ locale: string }>;
 }>) {
-  // Default to 'en' if locale is not available
-  const lang = params?.locale || 'en';
+  // Await params before accessing its properties
+  const resolvedParams = await params;
+  const lang = resolvedParams?.locale || 'en';
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
   
   return (
@@ -138,8 +140,9 @@ export default async function RootLayout({
       >
         <I18nInitializer />
         <ThemeProvider>
-          <AuthProvider>
-            <GuestAndAuthInitializer>
+          <GuestAndAuthInitializer>
+            <AuthProvider>
+              <AuthHashHandler />
               <NotificationProvider>
                 <ToastProvider>
                   <LayoutClientWrapper>
@@ -147,8 +150,8 @@ export default async function RootLayout({
                   </LayoutClientWrapper>
                 </ToastProvider>
               </NotificationProvider>
-            </GuestAndAuthInitializer>
-          </AuthProvider>
+            </AuthProvider>
+          </GuestAndAuthInitializer>
         </ThemeProvider>
         <Analytics />
       </body>

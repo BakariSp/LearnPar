@@ -11,15 +11,41 @@ export default function LoginPage() {
   const isClient = useIsClient();
   const { t } = useTranslation('common');
   const router = useRouter();
-  const locale = 'en'; // Replace with your locale logic
+  const locale = useParams()?.locale as string || 'en';
   
   const [showPasswordLogin, setShowPasswordLogin] = useState(false);
+  const [showSignUp, setShowSignUp] = useState(false);
   const [credentials, setCredentials] = useState({ username: '', password: '' });
+  const [signUpData, setSignUpData] = useState({ email: '', password: '', confirmPassword: '' });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { login } = useAuth();
-  const params = useParams();
+  const { login, loginWithGoogle, isAuthenticated, authReady } = useAuth();
   const searchParams = useSearchParams();
+
+  // Add effect to redirect if already authenticated
+  useEffect(() => {
+    if (isClient && authReady && isAuthenticated) {
+      console.log('Login Page: User already authenticated, redirecting to home');
+      router.push(`/${locale}/home`);
+    }
+  }, [isClient, authReady, isAuthenticated, router, locale]);
+
+  // Update effect to only clear relevant tokens, not legacy ones
+  useEffect(() => {
+    if (isClient) {
+      // Clear any existing tokens when the login page loads
+      // This helps prevent auth state conflicts
+      console.log('Login Page: Clearing any existing tokens on page load');
+      
+      try {
+        // Clear userId but not legacy auth_token
+        localStorage.removeItem('userId');
+        console.log('Login Page: Existing tokens cleared successfully');
+      } catch (err) {
+        console.error('Login Page: Error clearing tokens:', err);
+      }
+    }
+  }, [isClient]);
 
   useEffect(() => {
     // Check for OAuth error parameters
@@ -27,17 +53,39 @@ export default function LoginPage() {
     const errorDescription = searchParams?.get('error_description');
     
     if (error) {
-      let errorMsg = t('login.oauth_error');
-      if (errorDescription) {
-        errorMsg += `: ${decodeURIComponent(errorDescription)}`;
+      let errorMsg = '';
+      
+      // Handle specific error types
+      if (error === 'session_expired') {
+        errorMsg = t('login.session_expired') || 'Your session has expired. Please log in again.';
+      } else if (error === 'auth_check_failed') {
+        errorMsg = t('login.auth_check_failed') || 'Authentication check failed. Please log in again.';
+      } else if (errorDescription) {
+        errorMsg = `${t('login.oauth_error')}: ${decodeURIComponent(errorDescription)}`;
+      } else {
+        errorMsg = t('login.oauth_error') || 'An error occurred during authentication';
       }
+      
       setError(errorMsg);
+      
+      // Clean up the URL by removing the error parameter to prevent showing the error again on refresh
+      if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('error');
+        url.searchParams.delete('error_description');
+        window.history.replaceState({}, '', url.toString());
+      }
     }
   }, [searchParams, t]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCredentialsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setCredentials(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSignUpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setSignUpData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -48,15 +96,28 @@ export default function LoginPage() {
     console.log('Login Page: Login attempt started for:', credentials.username);
     
     try {
-      // Use direct window location instead of router for more reliable page refresh
+      // Call login function from AuthContext
       await login(credentials);
       
-      // The login function in AuthContext now handles the redirect using window.location
-      // so we don't need to do router.push here
+      // The login function in AuthContext now handles the redirect
+      console.log('Login Page: Login successful');
       
-      // For debugging purposes - we should never reach this point if login is successful
-      // since AuthContext's login function will redirect
-      console.log('Login Page: Login successful but no redirect occurred');
+      // Improved fallback navigation using window.location
+      setTimeout(() => {
+        if (window.location.pathname.includes('/login')) {
+          console.log('Login Page: Manual redirect to home after login');
+          // Use replace for cleaner navigation history
+          router.replace(`/${locale}/home`);
+          
+          // Ultimate fallback using direct location change
+          setTimeout(() => {
+            if (window.location.pathname.includes('/login')) {
+              console.log('Login Page: Final fallback redirect');
+              window.location.href = `/${locale}/home`;
+            }
+          }, 300);
+        }
+      }, 500); // Longer timeout to allow AuthContext redirect to happen first
     } catch (err: any) {
       console.error('Login Page: Login failed:', err);
       setError(err.message || 'Login failed. Please check your credentials and try again.');
@@ -64,32 +125,58 @@ export default function LoginPage() {
     }
   };
 
-  // Get the backend URL from environment variable or use a fallback
-  const backendBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-  
-  // For OAuth endpoints, use the appropriate URL based on environment
-  const getOAuthUrl = (provider: string) => {
-    // Get the current frontend URL
-    const frontendUrl = typeof window !== 'undefined' ? window.location.origin : '';
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
     
-    // Check if we're in development mode
-    if (process.env.NODE_ENV === 'development' && backendBaseUrl.includes('localhost')) {
-      return `${backendBaseUrl}/oauth/${provider}?frontend_url=${encodeURIComponent(frontendUrl)}`;
+    // Validate password match
+    if (signUpData.password !== signUpData.confirmPassword) {
+      setError('Passwords do not match');
+      setIsLoading(false);
+      return;
     }
-    // In production, use the Azure URL
-    return `https://zero-ai-d9e8f5hgczgremge.westus-01.azurewebsites.net/oauth/${provider}?frontend_url=${encodeURIComponent(frontendUrl)}`;
+    
+    try {
+      // Call the Supabase signup function directly or through context
+      const { signUpWithEmail } = await import('../../../services/supabase');
+      await signUpWithEmail(signUpData.email, signUpData.password);
+      
+      // Show success message and switch to login
+      setError(null);
+      setShowSignUp(false);
+      setShowPasswordLogin(true);
+      setCredentials({ username: signUpData.email, password: '' });
+      alert('Account created successfully! Please check your email for verification link.');
+    } catch (err: any) {
+      console.error('Sign up failed:', err);
+      setError(err.message || 'Sign up failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = getOAuthUrl('google');
+    loginWithGoogle().catch(err => {
+      console.error('Google login error:', err);
+      setError(err.message || 'Failed to initiate Google login');
+    });
   };
 
-  const handleMicrosoftLogin = () => {
-    window.location.href = getOAuthUrl('microsoft');
+  const openPasswordLogin = () => {
+    setShowSignUp(false);
+    setShowPasswordLogin(true);
   };
-
-  const openPasswordLogin = () => setShowPasswordLogin(true);
-  const closePasswordLogin = () => setShowPasswordLogin(false);
+  
+  const openSignUp = () => {
+    setShowPasswordLogin(false);
+    setShowSignUp(true);
+  };
+  
+  const closeModal = () => {
+    setShowPasswordLogin(false);
+    setShowSignUp(false);
+  };
 
   return (
     <div className={styles.loginContainer}>
@@ -115,7 +202,7 @@ export default function LoginPage() {
           <div className={styles.loginSubtitle}>
             {isClient && (
               <>
-                Don't have an account? <Link href={`/${locale}/login`}>Sign up</Link> or use Google/Microsoft below
+                Don't have an account? <a href="#" onClick={openSignUp}>Sign up</a> or use Google below
               </>
             )}
           </div>
@@ -138,73 +225,57 @@ export default function LoginPage() {
               </span>
               Continue with Google
             </button>
-
-            <button
-              type="button"
-              onClick={handleMicrosoftLogin}
-              className={`${styles.oauthButton} ${styles.microsoftButton}`}
-            >
-              <span className={styles.oauthIcon}>
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 23 23">
-                  <path fill="#f3f3f3" d="M0 0h23v23H0z" />
-                  <path fill="#f35325" d="M1 1h10v10H1z" />
-                  <path fill="#81bc06" d="M12 1h10v10H12z" />
-                  <path fill="#05a6f0" d="M1 12h10v10H1z" />
-                  <path fill="#ffba08" d="M12 12h10v10H12z" />
-                </svg>
-              </span>
-              Continue with Microsoft
-            </button>
           </div>
 
           <div className={styles.oauthNote}>
             {isClient && (
-              <p>New users will be automatically registered when using Google or Microsoft login</p>
+              <p>New users will be automatically registered when using Google login</p>
             )}
           </div>
 
           <div className={styles.passwordLoginLink}>
             <button onClick={openPasswordLogin}>
-              {isClient && "Use email and password instead"}
+              {isClient && "Sign in with email and password"}
             </button>
           </div>
         </div>
       </div>
 
+      {/* Password Login Modal */}
       {showPasswordLogin && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>
             <div className={styles.modalHeader}>
-              <h2 className={styles.modalTitle}>{isClient && "Login with Password"}</h2>
-              <button className={styles.closeButton} onClick={closePasswordLogin}>×</button>
+              <h2 className={styles.modalTitle}>{isClient && "Login with Email"}</h2>
+              <button className={styles.closeButton} onClick={closeModal}>×</button>
             </div>
 
             <form onSubmit={handleSubmit} className={styles.loginForm}>
               <div className={styles.formGroup}>
-                <label htmlFor="username">{isClient && t('login.username')}</label>
+                <label htmlFor="username">{isClient && "Email"}</label>
                 <input
-                  type="text"
+                  type="email"
                   id="username"
                   name="username"
                   value={credentials.username}
-                  onChange={handleChange}
+                  onChange={handleCredentialsChange}
                   required
                   className={styles.inputField}
-                  placeholder="Enter email"
+                  placeholder="Enter your email"
                 />
               </div>
 
               <div className={styles.formGroup}>
-                <label htmlFor="password">{isClient && t('login.password')}</label>
+                <label htmlFor="password">{isClient && "Password"}</label>
                 <input
                   type="password"
                   id="password"
                   name="password"
                   value={credentials.password}
-                  onChange={handleChange}
+                  onChange={handleCredentialsChange}
                   required
                   className={styles.inputField}
-                  placeholder="Enter password"
+                  placeholder="Enter your password"
                 />
               </div>
 
@@ -213,9 +284,97 @@ export default function LoginPage() {
                 className={styles.loginButton}
                 disabled={isLoading}
               >
-                {isClient && (isLoading ? t('login.logging_in') : t('login.button'))}
+                {isClient && (isLoading ? "Signing in..." : "Sign In")}
               </button>
+              
+              <div className={styles.registerLink}>
+                Don't have an account? <a href="#" onClick={openSignUp}>Sign up now</a>
+              </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Sign Up Modal */}
+      {showSignUp && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <div className={styles.modalHeader}>
+              <h2 className={styles.modalTitle}>{isClient && "Create an Account"}</h2>
+              <button className={styles.closeButton} onClick={closeModal}>×</button>
+            </div>
+
+            <form onSubmit={handleSignUp} className={styles.loginForm}>
+              <div className={styles.formGroup}>
+                <label htmlFor="email">Email</label>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  value={signUpData.email}
+                  onChange={handleSignUpChange}
+                  required
+                  className={styles.inputField}
+                  placeholder="Enter your email"
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label htmlFor="password">Password</label>
+                <input
+                  type="password"
+                  id="password"
+                  name="password"
+                  value={signUpData.password}
+                  onChange={handleSignUpChange}
+                  required
+                  className={styles.inputField}
+                  placeholder="Create a password"
+                  minLength={6}
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label htmlFor="confirmPassword">Confirm Password</label>
+                <input
+                  type="password"
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  value={signUpData.confirmPassword}
+                  onChange={handleSignUpChange}
+                  required
+                  className={styles.inputField}
+                  placeholder="Confirm your password"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className={styles.loginButton}
+                disabled={isLoading}
+              >
+                {isClient && (isLoading ? "Creating Account..." : "Create Account")}
+              </button>
+              
+              <div className={styles.registerLink}>
+                Already have an account? <a href="#" onClick={openPasswordLogin}>Sign in</a>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Debug link to help with navigation testing - only show in development */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="mt-8 text-center">
+          <div className="text-sm text-gray-500 mb-2">DEBUG LINKS</div>
+          <div className="flex justify-center space-x-4">
+            <a href={`/${locale}/dashboard?debug_auth=bypass`} className="text-blue-500 underline">
+              Direct to Dashboard
+            </a>
+            <a href={`/${locale}/setup?debug_auth=bypass`} className="text-blue-500 underline">
+              Direct to Setup
+            </a>
           </div>
         </div>
       )}

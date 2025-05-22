@@ -1,83 +1,28 @@
-// import { LoginCredentials } from './auth'; // Assuming LoginCredentials is defined elsewhere or above
-
-const AUTH_TOKEN_KEY = 'auth_token';
 const USER_ID_KEY = 'userId'; // Add a constant for the user ID key
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+// API_BASE_URL removed - using relative URLs for Next.js proxy
 
 // Import cookie functions if you're using the 'cookies-next' package
 // If not, these functions will rely on document.cookie APIs
 import { setCookie, getCookie, deleteCookie } from 'cookies-next';
 import { getCurrentLocale, getLocalizedUrl } from './utils'; // Import utility functions
+// Import Supabase client
+import { supabase, getSupabaseToken } from './supabase';
 
 export interface LoginCredentials {
   username: string;
   password: string;
 }
 
-export const login = async (credentials: LoginCredentials) => {
-  console.log('🔍 DEBUG LOGIN - Login attempt started for username:', credentials.username);
-  
-  // Use URLSearchParams to create x-www-form-urlencoded data
-  const body = new URLSearchParams();
-  body.append('username', credentials.username); // Use 'username' as per doc
-  body.append('password', credentials.password);
-
-  console.log('🔍 DEBUG LOGIN - Making token request to /api/token');
-  
-  const response = await fetch(`/api/token`, { // Should be relative now
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded', // Correct Content-Type
-    },
-    body: body.toString() // Send the URL-encoded string
-  });
-
-  console.log('🔍 DEBUG LOGIN - Token response status:', response.status);
-
-  if (!response.ok) {
-    let errorMessage = 'Login failed';
-    try {
-      const errorData = await response.json();
-      // Use 'detail' field from the backend error response as per doc
-      errorMessage = errorData.detail || 'Invalid username or password';
-      console.log('🔍 DEBUG LOGIN - Login error details:', errorData);
-    } catch (e) {
-      // Keep default message if parsing fails
-      console.error('Failed to parse login error response:', e);
-    }
-    throw new Error(errorMessage);
-  }
-
-  const data = await response.json();
-  console.log('🔍 DEBUG LOGIN - Token received, length:', data.access_token ? data.access_token.length : 'none');
-  
-  // Store the token received in the 'access_token' field
-  localStorage.setItem(AUTH_TOKEN_KEY, data.access_token);
-  console.log('🔍 DEBUG LOGIN - Token stored in localStorage');
-  
-  // Clear any existing userId from localStorage to ensure it's refreshed on login
-  localStorage.removeItem(USER_ID_KEY);
-  console.log('🔍 DEBUG LOGIN - Cleared existing userId from localStorage');
-  
-  // Check if user needs setup
-  checkUserNeedsSetup();
-  
-  return data; // Contains access_token and token_type
-};
-
 // Check if the user is a new user and needs setup
 export const checkUserNeedsSetup = async () => {
   const user = await getCurrentUser();
   
-  // User is new if they don't have a username (or whatever your criteria is)
   const isNewUser = user && (!user.username || !user.interests || user.interests.length === 0);
   
   if (isNewUser) {
-    // Set cookie to indicate new user status (7 days expiry)
     setNewUserStatus(true);
     setSetupCompleteStatus(false);
   } else if (user) {
-    // User exists and has completed profile
     setNewUserStatus(false);
     setSetupCompleteStatus(true);
   }
@@ -88,7 +33,6 @@ export const checkUserNeedsSetup = async () => {
 // Set user as new in cookies
 export const setNewUserStatus = (isNew: boolean) => {
   if (typeof window !== 'undefined') {
-    // Set the cookie with 7 days expiry
     setCookie('new_user', isNew ? 'true' : 'false', { 
       maxAge: 7 * 24 * 60 * 60,
       path: '/' 
@@ -99,7 +43,6 @@ export const setNewUserStatus = (isNew: boolean) => {
 // Set setup complete status in cookies
 export const setSetupCompleteStatus = (isComplete: boolean) => {
   if (typeof window !== 'undefined') {
-    // Set the cookie with 7 days expiry
     setCookie('setup_complete', isComplete ? 'true' : 'false', {
       maxAge: 7 * 24 * 60 * 60,
       path: '/'
@@ -123,42 +66,11 @@ export const getSetupCompleteStatus = (): boolean => {
   return false;
 };
 
-export const getToken = () => {
-  if (typeof window !== 'undefined') {
-    const token = localStorage.getItem(AUTH_TOKEN_KEY);
-    if (token) {
-      return token;
-    } else {
-      return null;
-    }
-  }
-  return null;
-};
-
-export const isAuthenticated = () => {
-  const token = getToken();
-  return !!token;
-};
-
 export const logout = () => {
   if (typeof window !== 'undefined') {
-    localStorage.removeItem(AUTH_TOKEN_KEY);
-    localStorage.removeItem(USER_ID_KEY); // Also remove the user ID from localStorage
-    // Also clear setup cookies
+    localStorage.removeItem(USER_ID_KEY); 
     deleteCookie('new_user');
     deleteCookie('setup_complete');
-    
-    // Check if we're forcing local frontend
-    if (process.env.NEXT_PUBLIC_FORCE_LOCAL_FRONTEND === 'true') {
-      console.log('Forcing redirect to local login page (NEXT_PUBLIC_FORCE_LOCAL_FRONTEND)');
-      // Use local redirect instead of potentially redirecting to production
-      const locale = typeof window !== 'undefined' && 
-        document.documentElement.lang ? document.documentElement.lang : 'en';
-      window.location.href = `/${locale}/login`;
-    } else {
-      // Use utility function to get localized URL
-      window.location.href = getLocalizedUrl('login');
-    }
   }
 };
 
@@ -173,166 +85,182 @@ function normalizeHeaders(input?: HeadersInit): Record<string, string> {
   } else if (Array.isArray(input)) {
     return Object.fromEntries(input);
   } else {
-    return { ...input }; // 强制转成 Record<string, string>
+    return { ...input };
   }
 }
 
 export const apiClient = async (endpoint: string, options: RequestInit = {}): Promise<Response | null> => {
-
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-  const MAX_RETRIES = 3;
-  const url = endpoint.startsWith('http') ? endpoint : `${API_URL}${endpoint}`;
-  const token = getToken();
-  console.log("🧪 token =", token);
+  const MAX_RETRIES = 2;
+  
+  let url;
+  if (endpoint.startsWith('http')) {
+    url = endpoint;
+  } else {
+    // Use relative URLs to leverage Next.js proxy
+    let cleanEndpoint = endpoint;
+    if (!cleanEndpoint.startsWith('/api')) {
+      cleanEndpoint = cleanEndpoint.startsWith('/') 
+        ? `/api${cleanEndpoint}` 
+        : `/api/${cleanEndpoint}`;
+    }
+    url = cleanEndpoint;
+  }
+  
+  console.log(`🔗 API request to: ${url}`);
+  
+  let token = null;
+  try {
+    token = await getSupabaseToken(); // Use Supabase token
+    if (token) {
+      console.log('Using Supabase token from getSupabaseToken()');
+    }
+  } catch (error) {
+    console.error('Error getting Supabase token:', error);
+  }
+  
   const headers: Record<string, string> = {
-    ...normalizeHeaders(options.headers),
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
   };
 
-  // Add auth token if available
-  
   if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+    headers['Authorization'] = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+    console.log('Authorization header set with token');
+  } else {
+    console.log('No auth token available for apiClient'); // Clarified log
   }
+  
+  const requestOptions: RequestInit = {
+    ...options,
+    headers: {
+      ...headers,
+      ...normalizeHeaders(options.headers),
+    },
+    credentials: 'include',
+    mode: 'cors'
+  };
 
-  // Add custom header to prevent redirection to production frontend when using production API
-  if (process.env.NEXT_PUBLIC_FORCE_LOCAL_FRONTEND === 'true') {
-    headers['X-Force-Local-Frontend'] = 'true';
-    console.log('Using remote API with local frontend (forced by NEXT_PUBLIC_FORCE_LOCAL_FRONTEND)');
-  }
-  options.headers = headers;
-
-  // Implement retry logic with exponential backoff
   let retryCount = 0;
   let lastError = null;
 
-  while (retryCount < MAX_RETRIES) {
+  while (retryCount <= MAX_RETRIES) {
     try {
-      // Add increasing delay for each retry attempt
       if (retryCount > 0) {
-        const delay = Math.pow(2, retryCount) * 300; // Exponential backoff: 600ms, 1200ms, 2400ms
+        const delay = 1000 * retryCount;
+        console.log(`Retry ${retryCount}/${MAX_RETRIES} after ${delay}ms delay`);
         await new Promise(resolve => setTimeout(resolve, delay));
-        console.log(`Retry ${retryCount} for ${endpoint} after ${delay}ms delay`);
       }
-
-      const response = await fetch(url, options);
-      
-      // If we get a 429 (too many requests), implement backoff
-      if (response.status === 429) {
-        const retryAfter = response.headers.get('Retry-After') || Math.pow(2, retryCount + 1) * 500;
-        const delay = typeof retryAfter === 'string' ? parseInt(retryAfter, 10) * 1000 : retryAfter;
-        console.log(`Rate limited. Retrying after ${delay}ms`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-        retryCount++;
-        continue;
-      }
-      
+      console.log(`Sending ${requestOptions.method || 'GET'} request to ${url}`);
+      const response = await fetch(url, requestOptions);
+      console.log(`Received response status: ${response.status}`);
       return response;
-    } catch (error) {
+    } catch (error: any) {
       lastError = error;
-      console.warn(`Request to ${endpoint} failed (attempt ${retryCount + 1}/${MAX_RETRIES}):`, error);
+      console.warn(`Request failed (attempt ${retryCount + 1}/${MAX_RETRIES + 1}):`, error.message);
       retryCount++;
-      
-      // Only retry on network errors, not on HTTP errors
-      if (!(error instanceof TypeError && error.message.includes('fetch'))) {
-        break;
-      }
     }
   }
-  console.log("📡 Sending request to", url, "with headers:", headers);
-  console.error(`Failed to connect to ${endpoint} after ${MAX_RETRIES} attempts:`, lastError);
+  
+  console.error(`Failed after ${MAX_RETRIES + 1} attempts:`, lastError?.message);
   return null;
 };
 
-// Add this function to handle OAuth callback
-export const handleOAuthCallback = (token: string) => {
-  localStorage.setItem(AUTH_TOKEN_KEY, token);
-  
-  // Trigger user setup check
-  // Note: We don't await this because we don't want to block the function,
-  // and the AuthContext will handle the actual flow
-  checkUserNeedsSetup();
-};
-
 export interface UserProfile {
-  id: number;
-  email: string;
-  username: string;
-  full_name?: string;
-  profile_picture?: string;
-  is_active: boolean;
-  oauth_provider?: string;
-  created_at?: string;
-  interests?: string[];
-  is_superuser?: boolean;
-  is_guest: boolean;
-  subscription_type?: 'free' | 'standard' | 'premium';
+  id: number; // This might need to be string if Supabase ID is UUID
+  email?: string; // Supabase provides email
+  username?: string; // Typically from user_metadata in Supabase
+  full_name?: string; // Typically from user_metadata
+  profile_picture?: string; // Typically from user_metadata (avatar_url)
+  is_active?: boolean; // Determine based on Supabase user status or your app logic
+  oauth_provider?: string; // Available in Supabase user.app_metadata.provider
+  created_at?: string; // Supabase provides this
+  interests?: string[]; // Typically from user_metadata or a separate profiles table
+  is_superuser?: boolean; // Custom field, manage in your DB
+  is_guest?: boolean; // Custom field, manage in your DB or app_metadata
+  subscription_type?: 'free' | 'standard' | 'premium'; // Custom, manage in app_metadata or DB
 }
 
+// Refactored getCurrentUser to primarily use Supabase
 export const getCurrentUser = async (): Promise<UserProfile | null> => {
   try {
-    console.log('🔍 DEBUG USER - getCurrentUser called');
-    const response = await apiClient('/api/users/me');
+    console.log('🔍 DEBUG USER - getCurrentUser (Supabase focused) called');
     
-    if (!response || !response.ok) {
-      console.error('🔍 DEBUG USER - Failed to fetch current user');
+    const { data: { user: supabaseUser }, error: sessionError } = await supabase.auth.getUser();
+
+    if (sessionError) {
+      console.error('🔍 DEBUG USER - Error getting Supabase session/user:', sessionError);
       return null;
     }
 
-    const user = await response.json();
-    console.log('🔍 DEBUG USER - Current user data retrieved:', user ? `ID: ${user.id}, Email: ${user.email}` : 'No user');
-    
-    // Store the user ID in localStorage when we successfully retrieve the user
-    if (user && user.id) {
-      const userId = user.id.toString();
-      localStorage.setItem(USER_ID_KEY, userId);
-      console.log(`🔍 DEBUG USER - Updated user ID in localStorage to: ${userId}`);
+    if (!supabaseUser) {
+      console.log('🔍 DEBUG USER - No active Supabase session found.');
+      // Ensure local user ID is cleared if no Supabase session
+      if (typeof window !== 'undefined') localStorage.removeItem(USER_ID_KEY);
+      return null;
+    }
+
+    console.log('🔍 DEBUG USER - Retrieved user data from Supabase:', 
+      `ID: ${supabaseUser.id}, Email: ${supabaseUser.email}`);
+
+    // If you still need to fetch additional profile data from your own backend
+    // using the Supabase token:
+    const profileApiUrl = `/api/users/me`; // Use relative URL for Next.js proxy
+
+    const supabaseToken = (await supabase.auth.getSession()).data.session?.access_token;
+
+    if (!supabaseToken) {
+        console.warn('🔍 DEBUG USER - Supabase user exists, but no access token found for profile API call.');
+        // Return a partial profile based on Supabase data, or handle as error
+        // For now, we'll proceed and let the API call fail if it needs a token.
     }
     
-    return user;
+    console.log(`🔍 DEBUG USER - Attempting to fetch extended profile from: ${profileApiUrl}`);
+    const response = await fetch(profileApiUrl, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${supabaseToken}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      mode: 'cors',
+      credentials: 'include'
+    });
+
+    let extendedProfileData = {};
+    if (response.ok) {
+      extendedProfileData = await response.json();
+      console.log('🔍 DEBUG USER - Successfully retrieved extended user profile data.');
+      if (extendedProfileData && (extendedProfileData as any).id) {
+         if (typeof window !== 'undefined') localStorage.setItem(USER_ID_KEY, (extendedProfileData as any).id.toString());
+      }
+    } else {
+      console.warn(`🔍 DEBUG USER - Failed to fetch extended profile. Status: ${response.status}. Supabase user data will be primary.`);
+      // If the /api/users/me call fails, we can decide if we want to clear USER_ID_KEY
+      // or just proceed with Supabase data. For now, let's not clear it,
+      // as it might hold a valid ID from a previous successful fetch.
+    }
+
+    // Combine Supabase auth data with your backend profile data
+    const combinedUser: UserProfile = {
+      id: (extendedProfileData as any)?.id || supabaseUser.id, // Prefer backend ID if available, else Supabase ID
+      email: supabaseUser.email,
+      username: (extendedProfileData as any)?.username || supabaseUser.user_metadata?.username,
+      full_name: (extendedProfileData as any)?.full_name || supabaseUser.user_metadata?.full_name,
+      profile_picture: (extendedProfileData as any)?.profile_picture || supabaseUser.user_metadata?.avatar_url,
+      is_active: (extendedProfileData as any)?.is_active !== undefined ? (extendedProfileData as any).is_active : true, // Default to true if Supabase user exists
+      oauth_provider: supabaseUser.app_metadata?.provider,
+      created_at: supabaseUser.created_at,
+      interests: (extendedProfileData as any)?.interests || supabaseUser.user_metadata?.interests || [],
+      is_superuser: (extendedProfileData as any)?.is_superuser,
+      is_guest: (extendedProfileData as any)?.is_guest !== undefined ? (extendedProfileData as any).is_guest : supabaseUser.app_metadata?.is_guest,
+      subscription_type: (extendedProfileData as any)?.subscription_type || supabaseUser.app_metadata?.subscription_type,
+      // Include other fields from extendedProfileData or supabaseUser.user_metadata as needed
+    };
+    
+    return combinedUser;
+
   } catch (error) {
-    console.error('🔍 DEBUG USER - Error in getCurrentUser:', error);
+    console.error('🔍 DEBUG USER - Error in getCurrentUser (Supabase focused):', error);
     return null;
   }
 };
-
-/**
- * Verifies the authentication state and fixes any issues
- * This should be called early in the application lifecycle
- */
-export const verifyAuthState = async (): Promise<void> => {
-  console.log('🔍 DEBUG AUTH - Verifying auth state...');
-  
-  const token = getToken();
-  if (!token) {
-    console.log('🔍 DEBUG AUTH - No token found, clearing any user ID in localStorage');
-    // If there's no token, but there is a userId, clear it
-    if (typeof window !== 'undefined' && localStorage.getItem(USER_ID_KEY)) {
-      localStorage.removeItem(USER_ID_KEY);
-    }
-    return;
-  }
-  
-  // If we have a token but no user ID, try to fetch the user and update the user ID
-  try {
-    const userId = localStorage.getItem(USER_ID_KEY);
-    if (!userId) {
-      console.log('🔍 DEBUG AUTH - Token exists but no user ID, fetching user data');
-      await getCurrentUser(); // This will update the userId in localStorage
-    } else {
-      // Validate that the stored user ID matches the actual user ID
-      console.log('🔍 DEBUG AUTH - Token and user ID exist, validating user ID...');
-      const userData = await getCurrentUser();
-      
-      if (userData && userData.id && userData.id.toString() !== userId) {
-        console.warn(`🔍 DEBUG AUTH - User ID mismatch: stored ${userId}, actual ${userData.id}, updating`);
-        localStorage.setItem(USER_ID_KEY, userData.id.toString());
-      } else if (!userData || !userData.id) {
-        console.warn('🔍 DEBUG AUTH - User data invalid but token exists, clearing user ID');
-        localStorage.removeItem(USER_ID_KEY);
-      }
-    }
-  } catch (error) {
-    console.error('🔍 DEBUG AUTH - Error verifying auth state:', error);
-  }
-}; 

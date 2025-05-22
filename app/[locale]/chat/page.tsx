@@ -14,6 +14,7 @@ import { checkDailyLimits } from '@/services/api/subscription';
 // Remove NotificationContext import if no longer needed anywhere else in this file
 // import { useNotificationContext } from '@/context/NotificationContext';
 import { SuccessAnimation } from '../../../app/components';
+import { getAuthHeaders } from '@/services/api/utils';
 
 // --- Define Dialogue types here ---
 interface DialogueMessage {
@@ -173,12 +174,30 @@ function ChatPageContent() {
       chat_history: apiChatHistory,
     };
 
+    // Add this right before your fetch call
+    console.log('Sending to:', `/api/planner/dialogue`);
+    console.log('Payload:', JSON.stringify(payload));
+
     try {
-      const response = await fetch(`/api/ai/dialogue`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+      // Get auth headers with token            
+      const authHeaders = await getAuthHeaders();            
+      // Use Next.js proxy instead of direct backend call      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // Increase timeout to 60 seconds
+      
+      const response = await fetch(`/api/planner/dialogue`, {                        
+        method: 'POST',                        
+        headers: {                    
+          ...authHeaders,                    
+          'Content-Type': 'application/json'                
+        },                        
+        body: JSON.stringify(payload),        
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
+
+      console.log('Response received:', response.status);
 
       if (!response.ok) {
         let errorDetail = `API Error: ${response.status}`; // Default message with status

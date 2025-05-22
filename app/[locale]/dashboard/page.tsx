@@ -7,6 +7,8 @@ import { useAuth } from '../../../context/AuthContext';
 import { getUserSubscription, getDailyUsage, applyPromotionCode, checkDailyLimits, SubscriptionData, DailyUsageData } from '@/services/api/subscription';
 import { getSetupCompleteStatus } from '@/services/auth';
 import styles from './dashboard.module.css';
+import { logAuthState, validateAuthState } from '@/utils/auth-debug';
+import { supabase } from '@/services/supabase';
 
 // Extend the API interface to include the limit_reached property we're using
 interface ExtendedDailyUsageData extends DailyUsageData {
@@ -83,17 +85,80 @@ export default function DashboardPage() {
     }
   }, [searchParams]);
 
+  // Add a debug effect
+  useEffect(() => {
+    // Log auth state for debugging
+    if (typeof window !== 'undefined') {
+      if (user) {
+        logAuthState(user, isLoading, 'Dashboard Page');
+        const validation = validateAuthState(user);
+        console.log('[Dashboard Debug] Auth Validation:', validation);
+      } else {
+        console.log('[Dashboard Debug] User is null, auth validation skipped');
+      }
+    }
+  }, [user, isLoading]);
+
+  // Update the existing useEffect
   useEffect(() => {
     // Redirect to login if not authenticated
-    if (!isLoading && !user) {
-      router.push(`/${locale}/login`);
-      return;
-    }
+    console.log('[Dashboard Debug] Authentication check - isLoading:', isLoading, 'user:', user);
+    
+    // Add a small delay to ensure auth state has fully synchronized
+    const checkAuthState = setTimeout(async () => {
+      if (!isLoading) {
+        // Check both AuthContext state and direct Supabase session
+        try {
+          const { data } = await supabase.auth.getSession();
+          const hasSupabaseSession = !!data.session;
+          
+          console.log('[Dashboard Debug] Auth check results - AuthContext user:', !!user, 'Supabase session:', hasSupabaseSession);
+          
+          // If we don't have a user in context or a valid Supabase session, redirect to login
+          if (!user && !hasSupabaseSession) {
+            console.log('[Dashboard Debug] No authentication found, redirecting to login...');
+            
+            // No need to clear legacy tokens - they're not used anymore
+            
+            // Add a query parameter to show a message about being logged out
+            router.push(`/${locale}/login?error=session_expired`);
+            return;
+          }
+          
+          // If we have a Supabase session but no user in context, refresh the page
+          // This handles edge cases where the auth state isn't properly synchronized
+          if (hasSupabaseSession && !user && !window.location.search.includes('refreshed=true')) {
+            console.log('[Dashboard Debug] Session exists but user state is null - refreshing page');
+            // Add a query param to prevent infinite refresh loops
+            window.location.href = `/${locale}/dashboard?refreshed=true`;
+            return;
+          }
+        } catch (error) {
+          console.error('[Dashboard Debug] Error checking auth state:', error);
+          // If we can't verify the auth state, redirect to login to be safe
+          router.push(`/${locale}/login?error=auth_check_failed`);
+          return;
+        }
 
-    // 只检查 interests
-    if (!isLoading && user && (!user.interests || user.interests.length === 0)) {
-      router.push(`/${locale}/setup`);
-    }
+        // Only check interests if we have a user (restore interests check)
+        if (user) {
+          // Check if interests property exists and is accessible
+          console.log('[Dashboard Debug] User authenticated, checking interests:', user.interests);
+          
+          if (!user.interests || user.interests.length === 0) {
+            console.log('[Dashboard Debug] User missing interests, redirecting to setup...');
+            router.push(`/${locale}/setup`);
+          } else {
+            console.log('[Dashboard Debug] User has interests, showing dashboard');
+            // User is fully authenticated with interests, so ensure we stay on dashboard
+            // This prevents unwanted redirects to login
+            localStorage.setItem('last_authenticated_route', `/${locale}/dashboard`);
+          }
+        }
+      }
+    }, 500); // Short delay to ensure auth state is properly synchronized
+
+    return () => clearTimeout(checkAuthState);
   }, [isLoading, user, router, locale]);
 
   // Fetch the user's current subscription info and daily usage
@@ -157,38 +222,122 @@ export default function DashboardPage() {
           } else {
             // If daily usage is not in subscription, fetch it separately
             try {
+              console.log('Fetching separate daily usage data');
               const usageData = await getDailyUsage();
+              console.log('Received daily usage data:', usageData);
               
-              if (usageData && usageData.paths && usageData.cards) {
-                // Create a proper ExtendedDailyUsageData object
+              if (usageData) {
+                // Always create a properly structured ExtendedDailyUsageData object
+                // even if the API returns incomplete data
                 const extendedUsageData: ExtendedDailyUsageData = {
-                  ...usageData,
                   paths: {
-                    ...usageData.paths,
-                    limit_reached: false  // Default to false if not provided
+                    used: usageData.paths?.used || 0,
+                    limit: usageData.paths?.limit || 3, // Default to free tier
+                    remaining: usageData.paths?.remaining || 3, // Default remaining
+                    limit_reached: false // Default to false
                   },
                   cards: {
-                    ...usageData.cards,
-                    limit_reached: false  // Default to false if not provided
-                  }
+                    used: usageData.cards?.used || 0,
+                    limit: usageData.cards?.limit || 20, // Default to free tier
+                    remaining: usageData.cards?.remaining || 20, // Default remaining
+                    limit_reached: false // Default to false
+                  },
+                  subscription_tier: usageData.subscription_tier || mappedSubscription.subscription_type || 'free',
+                  usage_date: usageData.usage_date || new Date().toISOString().split('T')[0]
                 };
                 
-                console.log('Separate daily usage data:', extendedUsageData);
+                console.log('Processed daily usage data:', extendedUsageData);
                 setDailyUsage(extendedUsageData);
-              } else if (usageData) {
-                console.warn('Daily usage data is missing required properties:', usageData);
+              } else {
+                // If we get null from getDailyUsage, create default usage data
+                console.log('Creating default usage data because getDailyUsage returned null');
+                const currentTier = mappedSubscription.subscription_type || 'free';
+                const defaultUsageData: ExtendedDailyUsageData = {
+                  paths: {
+                    used: 0,
+                    limit: currentTier === 'free' ? 3 : currentTier === 'standard' ? 10 : 100,
+                    remaining: currentTier === 'free' ? 3 : currentTier === 'standard' ? 10 : 100,
+                    limit_reached: false
+                  },
+                  cards: {
+                    used: 0,
+                    limit: currentTier === 'free' ? 20 : currentTier === 'standard' ? 50 : 500,
+                    remaining: currentTier === 'free' ? 20 : currentTier === 'standard' ? 50 : 500,
+                    limit_reached: false
+                  },
+                  subscription_tier: currentTier,
+                  usage_date: new Date().toISOString().split('T')[0]
+                };
+                setDailyUsage(defaultUsageData);
               }
             } catch (usageError) {
               console.error('Error fetching separate daily usage:', usageError);
+              // Create default usage data on error too
+              const currentTier = mappedSubscription.subscription_type || 'free';
+              const fallbackUsageData: ExtendedDailyUsageData = {
+                paths: {
+                  used: 0,
+                  limit: currentTier === 'free' ? 3 : currentTier === 'standard' ? 10 : 100,
+                  remaining: currentTier === 'free' ? 3 : currentTier === 'standard' ? 10 : 100,
+                  limit_reached: false
+                },
+                cards: {
+                  used: 0,
+                  limit: currentTier === 'free' ? 20 : currentTier === 'standard' ? 50 : 500,
+                  remaining: currentTier === 'free' ? 20 : currentTier === 'standard' ? 50 : 500,
+                  limit_reached: false
+                },
+                subscription_tier: currentTier,
+                usage_date: new Date().toISOString().split('T')[0]
+              };
+              setDailyUsage(fallbackUsageData);
             }
           }
         } else {
           console.error('Failed to fetch subscription info: Empty response');
           setError('Failed to load subscription information. Some features may not work correctly.');
+          
+          // Create default usage data in this case too
+          const defaultUsageData: ExtendedDailyUsageData = {
+            paths: {
+              used: 0,
+              limit: 3, // Default to free tier
+              remaining: 3,
+              limit_reached: false
+            },
+            cards: {
+              used: 0,
+              limit: 20, // Default to free tier
+              remaining: 20,
+              limit_reached: false
+            },
+            subscription_tier: 'free',
+            usage_date: new Date().toISOString().split('T')[0]
+          };
+          setDailyUsage(defaultUsageData);
         }
       } catch (err) {
         setError('Failed to load subscription information. Please try again later.');
         console.error('Error fetching subscription data:', err);
+        
+        // Default data on any error
+        const defaultUsageData: ExtendedDailyUsageData = {
+          paths: {
+            used: 0,
+            limit: 3,
+            remaining: 3,
+            limit_reached: false
+          },
+          cards: {
+            used: 0,
+            limit: 20,
+            remaining: 20,
+            limit_reached: false
+          },
+          subscription_tier: 'free',
+          usage_date: new Date().toISOString().split('T')[0]
+        };
+        setDailyUsage(defaultUsageData);
       } finally {
         setSubLoading(false);
       }
@@ -196,6 +345,41 @@ export default function DashboardPage() {
 
     fetchSubscriptionData();
   }, [user]);
+
+  // Add a new useEffect that directly checks Supabase auth state
+  useEffect(() => {
+    const checkSupabaseAuth = async () => {
+      if (typeof window !== 'undefined') {
+        try {
+          // Direct session check with Supabase
+          const { data, error } = await supabase.auth.getSession();
+          console.log('[Dashboard] Direct Supabase session check:', {
+            hasSession: !!data.session,
+            userData: data.session?.user?.id,
+            error: error || 'none'
+          });
+          
+          // If we have a session but AuthContext doesn't reflect it
+          if (data.session && !user && !isLoading) {
+            console.log('[Dashboard] Session exists but user state is null - handling edge case');
+            // Instead of redirecting, try to refresh the page only once
+            if (!window.location.search.includes('attempted_refresh=true')) {
+              console.log('[Dashboard] Attempting page refresh to reconcile auth state');
+              window.location.href = `${window.location.pathname}?attempted_refresh=true`;
+            } else {
+              console.log('[Dashboard] Already attempted refresh, showing dashboard anyway');
+              // If we've already tried refreshing, force the dashboard to load
+              // You could optionally set a local user state here if needed
+            }
+          }
+        } catch (err) {
+          console.error('[Dashboard] Error checking Supabase session:', err);
+        }
+      }
+    };
+    
+    checkSupabaseAuth();
+  }, [user, isLoading]);
 
   const handleLogout = () => {
     contextLogout();
@@ -407,48 +591,52 @@ export default function DashboardPage() {
       return null;
     }
     
-    // CRITICAL CHANGE: Check if limit_reached exists in the data structure
-    // and only use it if it does
+    // Safely access all properties with default values if not present
+    // This ensures the function never breaks, even with incomplete data
+    const pathsUsed = typeof usageData.paths.used === 'number' ? usageData.paths.used : 0;
+    const pathsLimit = typeof usageData.paths.limit === 'number' ? usageData.paths.limit : 3;
+    const pathsRemaining = typeof usageData.paths.remaining === 'number' ? usageData.paths.remaining : 0;
+    
+    const cardsUsed = typeof usageData.cards.used === 'number' ? usageData.cards.used : 0;
+    const cardsLimit = typeof usageData.cards.limit === 'number' ? usageData.cards.limit : 20;
+    const cardsRemaining = typeof usageData.cards.remaining === 'number' ? usageData.cards.remaining : 0;
+    
+    // Check if explicit limit_reached flag exists in the data structure
     const hasPathLimitFlag = 'limit_reached' in usageData.paths;
     const hasCardLimitFlag = 'limit_reached' in usageData.cards;
     
-    console.log('API data structure analysis:', {
+    console.log('Usage data analysis:', {
       hasPathLimitFlag,
       hasCardLimitFlag,
-      pathsRemaining: usageData.paths.remaining,
-      cardsRemaining: usageData.cards.remaining
+      pathsRemaining,
+      cardsRemaining,
+      pathsUsed,
+      pathsLimit,
+      cardsUsed,
+      cardsLimit
     });
     
-    // Check remaining counts instead of relying on limit_reached flag
-    // This will work regardless of whether the API provides the flag
-    const pathsRemaining = typeof usageData.paths.remaining === 'number' ? usageData.paths.remaining : 0;
-    const cardsRemaining = typeof usageData.cards.remaining === 'number' ? usageData.cards.remaining : 0;
-    
-    // Determine limit reached based on remaining counts when flag isn't present
+    // Determine limit reached based on remaining counts or explicit flag
     const pathsLimitReached = hasPathLimitFlag ? 
       usageData.paths.limit_reached === true : pathsRemaining <= 0;
       
     const cardsLimitReached = hasCardLimitFlag ? 
       usageData.cards.limit_reached === true : cardsRemaining <= 0;
     
-    // Check path limits and card limits
-    const pathLimit = typeof usageData.paths.limit === 'number' ? usageData.paths.limit : 1;
-    const cardLimit = typeof usageData.cards.limit === 'number' ? usageData.cards.limit : 1;
-    
     // Only show "approaching limit" warnings if not already at the limit
     // and if remaining is less than 20% of the limit
     const pathsNearLimit = !pathsLimitReached && 
                           pathsRemaining > 0 && 
-                          pathLimit > 0 && 
-                          pathsRemaining <= (pathLimit * 0.2);
+                          pathsLimit > 0 && 
+                          pathsRemaining <= Math.max(1, Math.floor(pathsLimit * 0.2));
                           
     const cardsNearLimit = !cardsLimitReached && 
                           cardsRemaining > 0 && 
-                          cardLimit > 0 && 
-                          cardsRemaining <= (cardLimit * 0.2);
+                          cardsLimit > 0 && 
+                          cardsRemaining <= Math.max(2, Math.floor(cardsLimit * 0.2));
     
     // Debug logs
-    console.log('Warning flags after checking API data:', {
+    console.log('Warning flags:', {
       pathsLimitReached,
       cardsLimitReached,
       pathsNearLimit,
@@ -459,10 +647,18 @@ export default function DashboardPage() {
       return null;
     }
     
+    // Get current subscription tier for upgrade messaging
+    let currentTier = 'free';
+    if (subscriptionInfo) {
+      currentTier = subscriptionInfo.subscription_type || 
+                  (subscriptionInfo.plan && subscriptionInfo.plan.type) || 'free';
+    }
+    
     // Check for query param indicating a redirect from subscription limit error
     const isUpgradeRedirect = typeof window !== 'undefined' && 
       window.location.search.includes('show_upgrade=true');
     
+    // Continue with the existing JSX rendering...
     return (
       <div className={styles.limitWarningsContainer}>
         {pathsLimitReached && (
@@ -476,7 +672,7 @@ export default function DashboardPage() {
                 <li><strong>Standard:</strong> 10 learning paths per day</li>
                 <li><strong>Premium:</strong> Unlimited learning paths</li>
               </ul>
-              {subscriptionInfo?.subscription_type !== 'premium' && (
+              {currentTier !== 'premium' && (
                 <button 
                   className={styles.upgradePromptButton}
                   onClick={() => setShowPromoSection(true)}
@@ -499,7 +695,7 @@ export default function DashboardPage() {
                 <li><strong>Standard:</strong> 50 flashcards per day</li>
                 <li><strong>Premium:</strong> Unlimited flashcards</li>
               </ul>
-              {subscriptionInfo?.subscription_type !== 'premium' && (
+              {currentTier !== 'premium' && (
                 <button 
                   className={styles.upgradePromptButton}
                   onClick={() => setShowPromoSection(true)}
@@ -516,7 +712,7 @@ export default function DashboardPage() {
             <div className={styles.warningIcon}>ℹ️</div>
             <div className={styles.warningText}>
               <strong>Learning Paths Limit Approaching</strong>
-              <p>You have only {usageData.paths.remaining} learning paths remaining today.</p>
+              <p>You have only {pathsRemaining} learning paths remaining today.</p>
             </div>
           </div>
         )}
@@ -526,7 +722,7 @@ export default function DashboardPage() {
             <div className={styles.warningIcon}>ℹ️</div>
             <div className={styles.warningText}>
               <strong>Flashcards Limit Approaching</strong>
-              <p>You have only {usageData.cards.remaining} flashcards remaining today.</p>
+              <p>You have only {cardsRemaining} flashcards remaining today.</p>
             </div>
           </div>
         )}
@@ -698,17 +894,17 @@ export default function DashboardPage() {
 
       <div className={`${styles.userInfoCard} card`}>
         <div className={styles.userProfile}>
-          {user.profile_picture ? (
-            <img src={user.profile_picture} alt={user.username} className={styles.profilePicture} />
+          {user?.profile_picture ? (
+            <img src={user.profile_picture} alt={user.username || 'User'} className={styles.profilePicture} />
           ) : (
             <div className={styles.profilePlaceholder}>
-              {user.username.charAt(0).toUpperCase()}
+              {user?.username?.charAt(0).toUpperCase() || 'U'}
             </div>
           )}
           <div className={styles.userDetails}>
-            <h2 className="heading-lg">{user.full_name || user.username}</h2>
-            <p className={styles.userEmail}>{user.email}</p>
-            {user.oauth_provider && (
+            <h2 className="heading-lg">{user?.full_name || user?.username || 'User'}</h2>
+            <p className={styles.userEmail}>{user?.email || 'No email'}</p>
+            {user?.oauth_provider && (
               <span className={styles.oauthBadge}>{user.oauth_provider}</span>
             )}
           </div>
@@ -717,19 +913,19 @@ export default function DashboardPage() {
         <div className={styles.accountInfo}>
           <div className={styles.infoItem}>
             <span className={styles.infoLabel}>{t('dashboard.username')}</span>
-            <span className={styles.infoValue}>{user.username}</span>
+            <span className={styles.infoValue}>{user?.username || 'Guest'}</span>
           </div>
           <div className={styles.infoItem}>
             <span className={styles.infoLabel}>{t('dashboard.account_id')}</span>
-            <span className={styles.infoValue}>{user.id}</span>
+            <span className={styles.infoValue}>{user?.id || 'N/A'}</span>
           </div>
           <div className={styles.infoItem}>
             <span className={styles.infoLabel}>{t('dashboard.account_status')}</span>
-            <span className={`${styles.infoValue} ${user.is_active ? styles.activeStatus : styles.inactiveStatus}`}>
-              {user.is_active ? t('dashboard.active') : t('dashboard.inactive')}
+            <span className={`${styles.infoValue} ${user?.is_active ? styles.activeStatus : styles.inactiveStatus}`}>
+              {user?.is_active ? t('dashboard.active') : t('dashboard.inactive')}
             </span>
           </div>
-          {user.created_at && (
+          {user?.created_at && (
             <div className={styles.infoItem}>
               <span className={styles.infoLabel}>{t('dashboard.member_since')}</span>
               <span className={styles.infoValue}>{new Date(user.created_at).toLocaleDateString()}</span>
