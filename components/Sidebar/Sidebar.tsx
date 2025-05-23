@@ -69,7 +69,7 @@ export function Sidebar({ isCollapsed, toggleSidebar, locale }: SidebarProps) {
                 <div className={styles.fixedSizeIcon}>
                   <Image 
                     src={isCollapsed ?  "/sidebar_collasp.svg" : "/sidebar_expend.svg"} 
-                    alt={isCollapsed ? "Expand sidebar" : "Collapse sidebar"} 
+                    alt={isCollapsed ? t('sidebar.expand') : t('sidebar.collapse')} 
                     width={24} 
                     height={24}
                     className={styles.sidebarIcon}
@@ -82,16 +82,16 @@ export function Sidebar({ isCollapsed, toggleSidebar, locale }: SidebarProps) {
           {/* Main navigation */}
           <nav className={styles.navigation}>
             <Link href={`/${locale}/home`} className={getNavItemClass(`/${locale}/home`)} title={isCollapsed ? t('sidebar.explore') : undefined}>
-              <Image src="/explore.svg" alt="Explore" width={24} height={24} />
-              <span className={styles.navText}>Explore</span>
+              <Image src="/explore.svg" alt={t('sidebar.explore')} width={24} height={24} />
+              <span className={styles.navText}>{t('sidebar.explore')}</span>
             </Link>
             {/* <Link href="/chat" className={getNavItemClass('/chat')} title={isCollapsed ? 'AI Chat Path' : undefined}>
               <span className={styles.navIcon}>💬</span>
               {!isCollapsed && <span className={styles.navText}>AI Chat Path</span>}
             </Link> */}
             <Link href={`/${locale}/my-paths`} className={getNavItemClass(`/${locale}/my-paths`)} title={isCollapsed ? t('sidebar.my_paths') : undefined}>
-              <Image src="/my_path.svg" alt="My path" width={24} height={24} />
-              <span className={styles.navText}>My Paths</span>
+              <Image src="/my_path.svg" alt={t('sidebar.my_paths')} width={24} height={24} />
+              <span className={styles.navText}>{t('sidebar.my_paths')}</span>
               {/* Show dot if hasNewPaths is true and sidebar is not collapsed */}
               {hasNewPaths && <span className={styles.notificationDot}></span>}
               {/* Optional: Show dot even when collapsed (needs separate styling) */}
@@ -106,12 +106,12 @@ export function Sidebar({ isCollapsed, toggleSidebar, locale }: SidebarProps) {
               {!isCollapsed && <span className={styles.navText}>Course</span>}
             </Link> */}
             <Link href={`/${locale}/knowledge-map`} className={getNavItemClass(`/${locale}/knowledge-map`)} title={isCollapsed ? t('sidebar.knowledge_map') : undefined}>
-              <Image src="/knowledge_map.svg" alt="Knowledge map" width={24} height={24} />
-              <span className={styles.navText}>Knowledge Map</span>
+              <Image src="/knowledge_map.svg" alt={t('sidebar.knowledge_map')} width={24} height={24} />
+              <span className={styles.navText}>{t('sidebar.knowledge_map')}</span>
             </Link>
             <Link href={`/${locale}/calendar`} className={getNavItemClass(`/${locale}/calendar`)} title={isCollapsed ? t('sidebar.calendar') : undefined}>
-              <Image src="/calendar.svg" alt="Calendar" width={24} height={24} />
-              <span className={styles.navText}>Study Calendar</span>
+              <Image src="/calendar.svg" alt={t('sidebar.calendar')} width={24} height={24} />
+              <span className={styles.navText}>{t('sidebar.calendar')}</span>
             </Link>
             
             {/* Utils section - grouped items with separator */}
@@ -120,30 +120,30 @@ export function Sidebar({ isCollapsed, toggleSidebar, locale }: SidebarProps) {
               <button
                 onClick={() => setIsProductInfoOpen(true)}
                 className={`${styles.navItem} ${styles.productInfoButton}`}
-                title={isCollapsed ? "Product Information" : undefined}
+                title={isCollapsed ? t('sidebar.product_info') : undefined}
               >
                 <div className={styles.fixedSizeIcon}>
                   <Image 
                     src="/product-info.svg"
-                    alt="Product Information" 
+                    alt={t('sidebar.product_info')} 
                     width={24} 
                     height={24}
                     className={styles.sidebarIcon}
                   />
                 </div>
-                <span className={styles.navText}>Product Info</span>
+                <span className={styles.navText}>{t('sidebar.product_info')}</span>
               </button>
               
               {/* Feedback button */}
-              <a 
+              <a
                 href={feedbackFormUrl} 
                 target="_blank" 
                 rel="noopener noreferrer" 
                 className={styles.navItem} 
                 title={isCollapsed ? t('sidebar.feedback') : undefined}
               >
-                <Image src="/form.png" alt="Feedback" width={24} height={24} />
-                <span className={styles.navText}>Feedback</span>
+                <Image src="/form.png" alt={t('sidebar.feedback')} width={24} height={24} />
+                <span className={styles.navText}>{t('sidebar.feedback')}</span>
               </a>
             </div>
           </nav>
@@ -169,8 +169,8 @@ export function Sidebar({ isCollapsed, toggleSidebar, locale }: SidebarProps) {
               >
                 <div className={styles.adminAvatar}>{userInitial}</div>
                 <div className={styles.adminInfo}>
-                  <div className={styles.adminTitle}>{userName || 'Unknown'}</div>
-                  <div className={styles.adminEmail}>{user?.email || 'Unknown'}</div>
+                  <div className={styles.adminTitle}>{userName || t('sidebar.unknown')}</div>
+                  <div className={styles.adminEmail}>{user?.email || t('sidebar.unknown')}</div>
                 </div>
                 {!isCollapsed && <div className={styles.adminStatus}></div>}
               </Link>
@@ -192,7 +192,7 @@ export function Sidebar({ isCollapsed, toggleSidebar, locale }: SidebarProps) {
             <button onClick={handleLogout} className={styles.logoutButton}>
               <Image 
                 src="/logout-icon.svg" 
-                alt="Log Out" 
+                alt={t('sidebar.logout')} 
                 width={24} 
                 height={24}
                 className={styles.logoutIcon} 

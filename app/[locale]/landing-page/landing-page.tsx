@@ -6,6 +6,7 @@ import Link from 'next/link'; // Import Link for navigation
 import Image from 'next/image';
 import { useParams } from 'next/navigation'; // Import useParams to get locale
 import { TopNavBar } from '@/components/TopNavBar/top-nav-bar';
+import { useTranslation } from 'react-i18next';
 
 // Custom Hook for Intersection Observer
 interface IntersectionObserverOptions {
@@ -67,6 +68,7 @@ function useIntersectionObserver(
 export default function LandingPage() {
   const params = useParams();
   const locale = params ? (Array.isArray(params.locale) ? params.locale[0] : params.locale) || 'en' : 'en';
+  const { t } = useTranslation('common');
   
   // Refs for elements we want to animate
   const elementsToAnimateRefs = useRef<Array<HTMLElement | null>>([]);
@@ -138,18 +140,18 @@ export default function LandingPage() {
         {/* Hero Section */}
         <section className={styles.heroSection}>
           <div className={styles.heroContent}>
-            <span className={styles.subTitle}>AI Learning Path Builder</span>
+            <span className={styles.subTitle}>{t('landing.hero_subtitle')}</span>
             <h1 className={styles.mainHeading}>
-              Create a personalized<br />
-              learning path in seconds<br />
-              with <span className={styles.accentText}>Zero AI</span>
+              {t('landing.hero_title_1')}<br />
+              {t('landing.hero_title_2')}<br />
+              {t('landing.hero_title_3', { brand: <span className={styles.accentText}>Zero AI</span> })}
             </h1>
             <div className={styles.heroButtons}>
               <Link href={`/${locale}/home`} className={styles.primaryButton}>
-                Get started
+                {t('landing.get_started')}
               </Link>
               <Link href={`/${locale}/about`} className={styles.secondaryButton}>
-                Learn more
+                {t('landing.learn_more')}
               </Link>
             </div>
           </div>
@@ -158,7 +160,7 @@ export default function LandingPage() {
           <div className={styles.heroImageContainer}>
             <Image 
               src="/learning_path_1.png"
-              alt="Learning Path Example"
+              alt={t('landing.hero_image_alt')}
               width={600}
               height={400}
               className={styles.heroImage}
@@ -170,15 +172,15 @@ export default function LandingPage() {
           <div className={styles.featurePills}>
             <div className={styles.featurePill}>
               <Image src="/file.svg" alt="" width={20} height={20} />
-              <span>Personalized learning path</span>
+              <span>{t('landing.pill_personalized')}</span>
             </div>
             <div className={styles.featurePill}>
               <Image src="/globe.svg" alt="" width={20} height={20} />
-              <span>Real-time AI assistant</span>
+              <span>{t('landing.pill_realtime')}</span>
             </div>
             <div className={styles.featurePill}>
               <Image src="/knowledge_map.svg" alt="" width={20} height={20} />
-              <span>Knowledge map</span>
+              <span>{t('landing.pill_knowledge_map')}</span>
             </div>
           </div>
         </section>
@@ -189,10 +191,10 @@ export default function LandingPage() {
           className={`${styles.featuresSection} ${getAnimatedClass(featuresSectionRef.current)}`}
         >
           <div className={styles.sectionHeader}>
-            <span className={styles.sectionTag}>Features</span>
-            <h2 className={styles.sectionHeading}>Build knowledge Step by Step</h2>
+            <span className={styles.sectionTag}>{t('landing.features_tag')}</span>
+            <h2 className={styles.sectionHeading}>{t('landing.features_heading')}</h2>
             <p className={styles.sectionDescription}>
-              Zero AI helps you break barriers and explore new fields with effortless, gamified learning.
+              {t('landing.features_desc')}
             </p>
           </div>
 
@@ -203,9 +205,9 @@ export default function LandingPage() {
               className={`${styles.featureCard} ${getAnimatedClass(featureCard1Ref.current)}`}
             >
               <div className={styles.featureIcon}>📇</div>
-              <h3 className={styles.featureTitle}>Keyword Cards</h3>
+              <h3 className={styles.featureTitle}>{t('landing.feature_card1_title')}</h3>
               <p className={styles.featureDescription}>
-                Atomic knowledge units with clear explanation, examples, and resources to build your foundation.
+                {t('landing.feature_card1_desc')}
               </p>
             </div>
 
@@ -215,9 +217,9 @@ export default function LandingPage() {
               className={`${styles.featureCard} ${getAnimatedClass(featureCard2Ref.current)}`}
             >
               <div className={styles.featureIcon}>🛤️</div>
-              <h3 className={styles.featureTitle}>Learning Paths</h3>
+              <h3 className={styles.featureTitle}>{t('landing.feature_card2_title')}</h3>
               <p className={styles.featureDescription}>
-                Personalized routes based on your interests and goals, generated dynamically by AI Agents.
+                {t('landing.feature_card2_desc')}
               </p>
             </div>
 
@@ -227,9 +229,9 @@ export default function LandingPage() {
               className={`${styles.featureCard} ${getAnimatedClass(featureCard3Ref.current)}`}
             >
               <div className={styles.featureIcon}>🏆</div>
-              <h3 className={styles.featureTitle}>Achievement System</h3>
+              <h3 className={styles.featureTitle}>{t('landing.feature_card3_title')}</h3>
               <p className={styles.featureDescription}>
-                Track your milestones, visualize your growth, and build your structured knowledge map.
+                {t('landing.feature_card3_desc')}
               </p>
             </div>
           </div>
@@ -237,7 +239,7 @@ export default function LandingPage() {
           <div className={styles.featureShowcase}>
             <Image 
               src="/learning_path_1.png"
-              alt="Learning Path Showcase"
+              alt={t('landing.showcase_image_alt')}
               width={400}
               height={300}
               className={styles.showcaseImage}
@@ -251,10 +253,10 @@ export default function LandingPage() {
           className={`${styles.useCasesSection} ${getAnimatedClass(useCasesSectionRef.current)}`}
         >
           <div className={styles.sectionHeader}>
-            <span className={styles.sectionTag}>Use Cases</span>
-            <h2 className={styles.sectionHeading}>Your First Step Into New Knowledge</h2>
+            <span className={styles.sectionTag}>{t('landing.usecases_tag')}</span>
+            <h2 className={styles.sectionHeading}>{t('landing.usecases_heading')}</h2>
             <p className={styles.sectionDescription}>
-              Zero AI empowers you to explore new fields, grow new skills, and nurture your curiosity — one step at a time.
+              {t('landing.usecases_desc')}
             </p>
           </div>
 
@@ -265,9 +267,9 @@ export default function LandingPage() {
               className={`${styles.useCaseCard} ${getAnimatedClass(useCaseCard1Ref.current)}`}
             >
               <div className={styles.useCaseIcon}>💼</div>
-              <h3 className={styles.useCaseTitle}>Switching Careers</h3>
+              <h3 className={styles.useCaseTitle}>{t('landing.usecase1_title')}</h3>
               <p className={styles.useCaseDescription}>
-                Prepare for new professional paths with a structured, beginner-friendly journey.
+                {t('landing.usecase1_desc')}
               </p>
             </div>
 
@@ -277,9 +279,9 @@ export default function LandingPage() {
               className={`${styles.useCaseCard} ${getAnimatedClass(useCaseCard2Ref.current)}`}
             >
               <div className={styles.useCaseIcon}>🎮</div>
-              <h3 className={styles.useCaseTitle}>Exploring New Hobbies</h3>
+              <h3 className={styles.useCaseTitle}>{t('landing.usecase2_title')}</h3>
               <p className={styles.useCaseDescription}>
-                Dive into new interests with lightweight, gamified learning experiences.
+                {t('landing.usecase2_desc')}
               </p>
             </div>
 
@@ -289,9 +291,9 @@ export default function LandingPage() {
               className={`${styles.useCaseCard} ${getAnimatedClass(useCaseCard3Ref.current)}`}
             >
               <div className={styles.useCaseIcon}>🧩</div>
-              <h3 className={styles.useCaseTitle}>Feeding Your Curiosity</h3>
+              <h3 className={styles.useCaseTitle}>{t('landing.usecase3_title')}</h3>
               <p className={styles.useCaseDescription}>
-                Satisfy your thirst for knowledge through modular, bite-sized exploration.
+                {t('landing.usecase3_desc')}
               </p>
             </div>
 
@@ -301,9 +303,9 @@ export default function LandingPage() {
               className={`${styles.useCaseCard} ${getAnimatedClass(useCaseCard4Ref.current)}`}
             >
               <div className={styles.useCaseIcon}>📚</div>
-              <h3 className={styles.useCaseTitle}>Building Lifelong Learning Habits</h3>
+              <h3 className={styles.useCaseTitle}>{t('landing.usecase4_title')}</h3>
               <p className={styles.useCaseDescription}>
-                Stay motivated with milestones and achievement systems tailored to your goals.
+                {t('landing.usecase4_desc')}
               </p>
             </div>
           </div>
@@ -315,13 +317,13 @@ export default function LandingPage() {
           className={`${styles.waitlistSection} ${getAnimatedClass(waitlistSectionRef.current)}`}
         >
           <h2 className={styles.waitlistHeading}>
-            Join the waitlist
+            {t('landing.waitlist_heading')}
           </h2>
           <p className={styles.waitlistText}>
-            Be among the first to experience the future of learning with Zero AI.
+            {t('landing.waitlist_text')}
           </p>
           <Link href={`/${locale}/login`} className={styles.waitlistButton}>
-            🚀 Get Early Access
+            🚀 {t('landing.get_early_access')}
           </Link>
         </section>
       </div>

@@ -16,6 +16,40 @@
     "loading": "加载聊天中..."
   },
   "landing": {
+    "hero_subtitle": "AI 学习路径生成器",
+    "hero_title_1": "几秒钟创建",
+    "hero_title_2": "专属你的学习路径",
+    "hero_title_3": "和 Zero AI 一起开启智能学习",
+    "get_started": "立即开始",
+    "learn_more": "了解更多",
+    "hero_image_alt": "学习路径示例",
+    "pill_personalized": "个性化学习路径",
+    "pill_realtime": "实时 AI 助手",
+    "pill_knowledge_map": "知识地图",
+    "features_tag": "功能亮点",
+    "features_heading": "逐步构建知识体系",
+    "features_desc": "Zero AI 让你轻松打破壁垒，探索新领域，体验游戏化学习。",
+    "feature_card1_title": "关键词卡片",
+    "feature_card1_desc": "原子化知识单元，配有清晰解释、示例和资源，夯实基础。",
+    "feature_card2_title": "学习路径",
+    "feature_card2_desc": "根据兴趣和目标动态生成个性化路线，AI 智能推荐。",
+    "feature_card3_title": "成就系统",
+    "feature_card3_desc": "追踪学习里程碑，直观展示成长，构建结构化知识地图。",
+    "showcase_image_alt": "学习路径展示",
+    "usecases_tag": "应用场景",
+    "usecases_heading": "你的知识探索第一步",
+    "usecases_desc": "Zero AI 助你探索新领域，成长新技能，满足好奇心——一步一个脚印。",
+    "usecase1_title": "职业转型",
+    "usecase1_desc": "结构化、零基础友好的学习旅程，助力新职业准备。",
+    "usecase2_title": "兴趣拓展",
+    "usecase2_desc": "轻量化、游戏化学习体验，轻松开启新兴趣。",
+    "usecase3_title": "满足好奇心",
+    "usecase3_desc": "模块化、碎片化探索，随时随地充实自我。",
+    "usecase4_title": "终身学习习惯",
+    "usecase4_desc": "成就系统与目标激励，持续保持学习动力。",
+    "waitlist_heading": "加入候补名单",
+    "waitlist_text": "抢先体验 Zero AI 智能学习的未来。",
+    "get_early_access": "抢先体验",
     "learn_today": "今天想学什么？",
     "loading_recommendations": "正在加载推荐内容...",
     "recommended_paths": "推荐学习路径",
@@ -28,11 +62,14 @@
     "calendar": "学习日历",
     "dashboard": "仪表盘",
     "login": "登录",
-    "logout": "登出",
+    "logout": "退出",
     "expand": "展开侧边栏",
     "collapse": "收起侧边栏",
     "subscription": "订阅",
-    "feedback": "反馈"
+    "feedback": "反馈",
+    "product_info": "个人概览",
+    "guest": "访客",
+    "unknown": "未知"
   },
   "login": {
     "title": "登录",
@@ -45,7 +82,8 @@
     "logging_in": "正在登录...",
     "no_account": "还没有账户？",
     "register": "注册",
-    "error": "用户名或密码错误，请重试。"
+    "error": "用户名或密码错误，请重试。",
+    "oauth_error": "无法通过此方式登录"
   },
   "oauth": {
     "processing": "正在处理您的登录信息，请稍候……",
@@ -56,8 +94,8 @@
     "try_again": "请尝试重新登录或使用其他登录方式？"
   },
   "dashboard": {
-    "welcome": "欢迎来到你的仪表盘",
-    "loading": "正在加载你的仪表盘...",
+    "welcome": "欢迎来到你的个人概览",
+    "loading": "正在加载你的个人概览...",
     "logout": "登出",
     "username": "用户名",
     "account_id": "账号 ID",
@@ -77,8 +115,27 @@
     "create_learning_path": "创建学习路径",
     "user": "用户",
     "noEmail": "无邮箱",
-    "guest": "访客",
-    "na": "暂无"
+    "na": "暂无",
+    "daily_usage": "每日使用量",
+    "learning_paths": "学习路径",
+    "flashcards": "闪卡",
+    "remaining_today": "今日剩余",
+    "unlimited": "无限制",
+    "daily_limit_info": "每日限制在 UTC 午夜重置。查看或编辑现有内容不计入这些限制。",
+    "limit_reached": "已达到限制",
+    "limit_approaching": "即将达到限制",
+    "upgrade_now": "立即升级",
+    "free_plan": "免费版",
+    "standard_plan": "标准版",
+    "premium_plan": "高级版",
+    "paths_limit_reached": "已达到学习路径限制",
+    "cards_limit_reached": "已达到闪卡限制",
+    "paths_limit_approaching": "学习路径限制即将达到",
+    "cards_limit_approaching": "闪卡限制即将达到",
+    "upgrade_for_higher_limits": "升级你的订阅以获得更高的限制",
+    "free_limit": "免费版：每天 {{count}} 个",
+    "standard_limit": "标准版：每天 {{count}} 个",
+    "premium_limit": "高级版：无限制"
   },
   "learning_path": {
     "my_paths": "我的路径",
@@ -270,6 +327,36 @@
     "loading_more": "正在加载更多...",
     "no_more": "没有更多内容了",
     "prompt_heading": "今天想学习什么？",
-    "recommended_learning_paths": "推荐学习路径"
+    "recommended_learning_paths": "推荐学习路径",
+    "no_more_recommendations": "没有更多推荐内容了",
+    "error_loading_recommendations": "加载推荐内容失败，请稍后重试。"
+  },
+  "setup": {
+    "title": "我们该如何称呼你？",
+    "nickname_placeholder": "输入昵称",
+    "terms_agreement": "我同意服务条款和隐私政策",
+    "terms_link": "服务条款",
+    "privacy_link": "隐私政策",
+    "continue": "继续",
+    "setting_up": "正在设置...",
+    "errors": {
+      "nickname_required": "请输入昵称",
+      "terms_required": "请同意条款和条件",
+      "update_failed": "更新资料失败，请重试。"
+    }
+  },
+  "knowledge_map": {
+    "title": "知识地图（测试版）",
+    "loading": "正在加载知识地图...",
+    "error": "错误：{{error}}",
+    "no_paths": "未找到可用于构建知识地图的学习路径。"
+  },
+  "ai_suggestion": {
+    "quantum_physics": "量子物理",
+    "critical_thinking": "提升批判性思维",
+    "dinosaur_facts": "恐龙冷知识",
+    "public_speaking": "演讲技巧",
+    "machine_learning": "机器学习路线图",
+    "design_thinking": "设计思维"
   }
 }

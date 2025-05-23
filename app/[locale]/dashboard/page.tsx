@@ -515,6 +515,16 @@ export default function DashboardPage() {
     return null;
   }
 
+  // Add debug logging for user information
+  console.log('Dashboard User Info:', {
+    id: user.id,
+    email: user.email,
+    username: user.username,
+    full_name: user.full_name,
+    user_metadata: user.user_metadata,
+    app_metadata: user.app_metadata
+  });
+
   const renderDailyUsageStats = () => {
     if (!subscriptionInfo || subLoading) return null;
     
@@ -543,14 +553,14 @@ export default function DashboardPage() {
 
     return (
       <div className={styles.usageStatsContainer}>
-        <h3 className={styles.usageStatsTitle}>Daily Usage ({new Date(usageDate).toLocaleDateString()})</h3>
+        <h3 className={styles.usageStatsTitle}>{t('dashboard.daily_usage')} ({new Date(usageDate).toLocaleDateString()})</h3>
         
         {/* Add limit warning when close to or at limits (only for non-premium users) */}
         {!isPremium && renderLimitWarnings(usageData)}
         
         <div className={styles.usageStatsGrid}>
           <div className={styles.usageStatItem}>
-            <p className={styles.usageStatLabel}>Learning Paths</p>
+            <p className={styles.usageStatLabel}>{t('dashboard.learning_paths')}</p>
             <div className={styles.progressBarContainer}>
               {!isPremium ? (
                 <>
@@ -567,19 +577,19 @@ export default function DashboardPage() {
                   <span className={styles.progressBarText}>
                     {usageData.paths.used || 0} / {usageData.paths.limit || 0} 
                     <span className={styles.remainingIndicator}>
-                      ({usageData.paths.remaining || 0} remaining today)
+                      ({usageData.paths.remaining || 0} {t('dashboard.remaining_today')})
                     </span>
                   </span>
                 </>
               ) : (
                 <span className={styles.progressBarText}>
-                  <span className={styles.unlimitedBadge}>Unlimited</span>
+                  <span className={styles.unlimitedBadge}>{t('dashboard.unlimited')}</span>
                 </span>
               )}
             </div>
           </div>
           <div className={styles.usageStatItem}>
-            <p className={styles.usageStatLabel}>Flashcards</p>
+            <p className={styles.usageStatLabel}>{t('dashboard.flashcards')}</p>
             <div className={styles.progressBarContainer}>
               {!isPremium ? (
                 <>
@@ -596,20 +606,20 @@ export default function DashboardPage() {
                   <span className={styles.progressBarText}>
                     {usageData.cards.used || 0} / {usageData.cards.limit || 0}
                     <span className={styles.remainingIndicator}>
-                      ({usageData.cards.remaining || 0} remaining today)
+                      ({usageData.cards.remaining || 0} {t('dashboard.remaining_today')})
                     </span>
                   </span>
                 </>
               ) : (
                 <span className={styles.progressBarText}>
-                  <span className={styles.unlimitedBadge}>Unlimited</span>
+                  <span className={styles.unlimitedBadge}>{t('dashboard.unlimited')}</span>
                 </span>
               )}
             </div>
           </div>
         </div>
         <p className={styles.dailyLimitInfo}>
-          Daily limits reset at midnight UTC. Viewing or editing existing content does not count towards these limits.
+          {t('dashboard.daily_limit_info')}
         </p>
       </div>
     );
@@ -622,7 +632,6 @@ export default function DashboardPage() {
     }
     
     // Safely access all properties with default values if not present
-    // This ensures the function never breaks, even with incomplete data
     const pathsUsed = typeof usageData.paths.used === 'number' ? usageData.paths.used : 0;
     const pathsLimit = typeof usageData.paths.limit === 'number' ? usageData.paths.limit : 3;
     const pathsRemaining = typeof usageData.paths.remaining === 'number' ? usageData.paths.remaining : 0;
@@ -634,17 +643,6 @@ export default function DashboardPage() {
     // Check if explicit limit_reached flag exists in the data structure
     const hasPathLimitFlag = 'limit_reached' in usageData.paths;
     const hasCardLimitFlag = 'limit_reached' in usageData.cards;
-    
-    console.log('Usage data analysis:', {
-      hasPathLimitFlag,
-      hasCardLimitFlag,
-      pathsRemaining,
-      cardsRemaining,
-      pathsUsed,
-      pathsLimit,
-      cardsUsed,
-      cardsLimit
-    });
     
     // Determine limit reached based on remaining counts or explicit flag
     const pathsLimitReached = hasPathLimitFlag ? 
@@ -663,51 +661,35 @@ export default function DashboardPage() {
     const cardsNearLimit = !cardsLimitReached && 
                           cardsRemaining > 0 && 
                           cardsLimit > 0 && 
-                          cardsRemaining <= Math.max(2, Math.floor(cardsLimit * 0.2));
-    
-    // Debug logs
-    console.log('Warning flags:', {
-      pathsLimitReached,
-      cardsLimitReached,
-      pathsNearLimit,
-      cardsNearLimit
-    });
-    
-    if (!pathsLimitReached && !cardsLimitReached && !pathsNearLimit && !cardsNearLimit) {
-      return null;
-    }
-    
+                          cardsRemaining <= Math.max(1, Math.floor(cardsLimit * 0.2));
+
     // Get current subscription tier for upgrade messaging
-    let currentTier = 'free';
-    if (subscriptionInfo) {
-      currentTier = subscriptionInfo.subscription_type || 
-                  (subscriptionInfo.plan && subscriptionInfo.plan.type) || 'free';
-    }
+    const currentTier = subscriptionInfo?.subscription_type || 
+                       (subscriptionInfo?.plan?.type) || 'free';
     
     // Check for query param indicating a redirect from subscription limit error
     const isUpgradeRedirect = typeof window !== 'undefined' && 
       window.location.search.includes('show_upgrade=true');
-    
-    // Continue with the existing JSX rendering...
+
     return (
       <div className={styles.limitWarningsContainer}>
         {pathsLimitReached && (
           <div className={`${styles.limitAlert} ${isUpgradeRedirect ? styles.highlightedAlert : ''}`}>
             <div className={styles.alertIcon}>⚠️</div>
             <div className={styles.alertText}>
-              <strong>Learning Paths Limit Reached</strong>
-              <p>You've used all your daily learning paths. Upgrade your subscription for higher limits.</p>
+              <strong>{t('dashboard.paths_limit_reached')}</strong>
+              <p>{t('dashboard.upgrade_for_higher_limits')}</p>
               <ul className={styles.upgradeOptions}>
-                <li><strong>Free:</strong> 3 learning paths per day</li>
-                <li><strong>Standard:</strong> 10 learning paths per day</li>
-                <li><strong>Premium:</strong> Unlimited learning paths</li>
+                <li>{t('dashboard.free_limit', { count: 3 })}</li>
+                <li>{t('dashboard.standard_limit', { count: 10 })}</li>
+                <li>{t('dashboard.premium_limit')}</li>
               </ul>
               {currentTier !== 'premium' && (
                 <button 
                   className={styles.upgradePromptButton}
                   onClick={() => setShowPromoSection(true)}
                 >
-                  Upgrade Now
+                  {t('dashboard.upgrade_now')}
                 </button>
               )}
             </div>
@@ -718,19 +700,19 @@ export default function DashboardPage() {
           <div className={`${styles.limitAlert} ${isUpgradeRedirect ? styles.highlightedAlert : ''}`}>
             <div className={styles.alertIcon}>⚠️</div>
             <div className={styles.alertText}>
-              <strong>Flashcards Limit Reached</strong>
-              <p>You've used all your daily flashcards. Upgrade your subscription for higher limits.</p>
+              <strong>{t('dashboard.cards_limit_reached')}</strong>
+              <p>{t('dashboard.upgrade_for_higher_limits')}</p>
               <ul className={styles.upgradeOptions}>
-                <li><strong>Free:</strong> 20 flashcards per day</li>
-                <li><strong>Standard:</strong> 50 flashcards per day</li>
-                <li><strong>Premium:</strong> Unlimited flashcards</li>
+                <li>{t('dashboard.free_limit', { count: 20 })}</li>
+                <li>{t('dashboard.standard_limit', { count: 50 })}</li>
+                <li>{t('dashboard.premium_limit')}</li>
               </ul>
               {currentTier !== 'premium' && (
                 <button 
                   className={styles.upgradePromptButton}
                   onClick={() => setShowPromoSection(true)}
                 >
-                  Upgrade Now
+                  {t('dashboard.upgrade_now')}
                 </button>
               )}
             </div>
@@ -741,8 +723,8 @@ export default function DashboardPage() {
           <div className={styles.limitWarning}>
             <div className={styles.warningIcon}>ℹ️</div>
             <div className={styles.warningText}>
-              <strong>Learning Paths Limit Approaching</strong>
-              <p>You have only {pathsRemaining} learning paths remaining today.</p>
+              <strong>{t('dashboard.paths_limit_approaching')}</strong>
+              <p>{t('dashboard.remaining_today', { count: pathsRemaining })}</p>
             </div>
           </div>
         )}
@@ -751,8 +733,8 @@ export default function DashboardPage() {
           <div className={styles.limitWarning}>
             <div className={styles.warningIcon}>ℹ️</div>
             <div className={styles.warningText}>
-              <strong>Flashcards Limit Approaching</strong>
-              <p>You have only {cardsRemaining} flashcards remaining today.</p>
+              <strong>{t('dashboard.cards_limit_approaching')}</strong>
+              <p>{t('dashboard.remaining_today', { count: cardsRemaining })}</p>
             </div>
           </div>
         )}

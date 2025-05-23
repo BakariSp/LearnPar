@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
-import { AiDialog } from '../../../components/AiChat/AiDialog';
+import AiDialog from '../../../components/AiChat/AiDialog';
 import { LearningPathCard } from '../../../components/Course/LearningPathCard';
 import styles from './home.module.css';
 import { apiGetRecommendationsByInterests, RecommendationsByInterestsResponse } from '../../../services/api';
@@ -338,7 +338,7 @@ export function ZeroLandingPageContent(props: ZeroLandingPageProps) {
   if (error) {
     return (
       <div className={styles.errorContainer}>
-        <p>{error}</p>
+        <p>{t('home.error_loading_recommendations')}</p>
       </div>
     );
   }
@@ -348,7 +348,7 @@ export function ZeroLandingPageContent(props: ZeroLandingPageProps) {
     <div className={`${styles.container} ${isNavigating ? styles.fadeOut : styles.fadeIn}`}>
       <div className={styles.content}>
         <div className={styles.aiSection}>
-          <h2 className={styles.heading}>{t('home.prompt_heading', 'What are you looking to learn today?')}</h2>
+          <h2 className={styles.heading}>{t('home.prompt_heading')}</h2>
           <AiDialog
             query={query}
             setQuery={setQuery}
@@ -358,9 +358,7 @@ export function ZeroLandingPageContent(props: ZeroLandingPageProps) {
         
         {displayPaths && displayPaths.length > 0 && (
           <div className={styles.learningPathsSection}>
-            <h3 className={styles.sectionTitle}>
-              {t('home.recommended_learning_paths', 'Recommended Learning Paths')}
-            </h3>
+            <h3 className={styles.sectionTitle}>{t('home.recommended_learning_paths')}</h3>
             <div className={styles.learningPathGrid}>
               {displayPaths.map((path) => (
                 <LearningPathCard
@@ -379,7 +377,7 @@ export function ZeroLandingPageContent(props: ZeroLandingPageProps) {
                   onClick={handleLoadMore}
                   disabled={isLoadingMore}
                 >
-                  {isLoadingMore ? t('common.loading') : t('home.load_more', 'Load More')}
+                  {isLoadingMore ? t('common.loading') : t('home.load_more')}
                 </button>
               </div>
             )}
@@ -387,7 +385,7 @@ export function ZeroLandingPageContent(props: ZeroLandingPageProps) {
             {/* No more recommendations message */}
             {noMoreRecommendations && (
               <div className={styles.noMoreMessage}>
-                {t('home.no_more_recommendations', 'No more recommendations available.')}
+                {t('home.no_more_recommendations')}
               </div>
             )}
           </div>

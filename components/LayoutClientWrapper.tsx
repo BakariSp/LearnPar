@@ -29,14 +29,17 @@ export function LayoutClientWrapper({ children }: LayoutClientWrapperProps) {
     // Check if the screen width is below the threshold (e.g., 1400px)
     const isSmallScreen = window.innerWidth < 1400;
     
-    // Auto-collapse sidebar if on learning path detail page or screen is small
-    if (isLearningPathDetailPage || isSmallScreen) {
+    // Check if the current path is /{locale}
+    const isLocaleHomePage = pathname?.match(/^\/[a-z]{2}$/);
+    
+    // Auto-collapse sidebar if on learning path detail page, screen is small, or on locale home page
+    if (isLearningPathDetailPage || isSmallScreen || isLocaleHomePage) {
       setIsSidebarCollapsed(true);
     }
     
     // Add window resize listener to collapse/expand based on screen size
     const handleResize = () => {
-      if (window.innerWidth < 1400) {
+      if (window.innerWidth < 1400 || isLocaleHomePage) {
         setIsSidebarCollapsed(true);
       }
     };
@@ -78,12 +81,12 @@ export function LayoutClientWrapper({ children }: LayoutClientWrapperProps) {
 
   return (
     <>
-      {user && <Sidebar isCollapsed={isSidebarCollapsed} toggleSidebar={toggleSidebar} locale={locale as string} />}
+      {user && !pathname?.match(/^\/[a-z]{2}$/) && <Sidebar isCollapsed={isSidebarCollapsed} toggleSidebar={toggleSidebar} locale={locale as string} />}
 
       <div
         className="flex flex-1 flex-col overflow-hidden transition-all duration-300 ease-in-out"
         style={{ 
-          marginLeft: getMarginLeft(),
+          marginLeft: pathname?.match(/^\/[a-z]{2}$/) ? '0px' : getMarginLeft(),
           backgroundColor: '#f5f5f5' 
         }}
       >

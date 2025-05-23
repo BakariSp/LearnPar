@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import styles from './AiDialog.module.css';
 import formStyles from '../Shared/InputForm.module.css';
+import { useTranslation } from 'react-i18next';
 
 interface AiDialogProps {
   query: string;
@@ -11,16 +12,8 @@ interface AiDialogProps {
 }
 
 // Define suggestion keywords with a mix of short and longer options
-const suggestions = [
-  { text: 'quantum physics', icon: '⚛️' },
-  { text: 'improve critical thinking', icon: '🧠' },
-  { text: 'dinosaur facts', icon: '🦖' },
-  { text: 'public speaking tips', icon: '🎤' },
-  { text: 'machine learning roadmap', icon: '🤖' },
-  { text: 'design thinking', icon: '💡' },
-];
-
-export function AiDialog({ query, setQuery, onQuerySubmit }: AiDialogProps) {
+const AiDialog = ({ query, setQuery, onQuerySubmit }: AiDialogProps) => {
+  const { t } = useTranslation('common');
   // Keep local loading state for button feedback if needed,
   // but the parent page (landing/chat) usually handles the main loading state.
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -101,6 +94,15 @@ export function AiDialog({ query, setQuery, onQuerySubmit }: AiDialogProps) {
     }
   };
 
+  const suggestions = [
+    { text: t('ai_suggestion.quantum_physics'), icon: '⚛️' },
+    { text: t('ai_suggestion.critical_thinking'), icon: '🧠' },
+    { text: t('ai_suggestion.dinosaur_facts'), icon: '🦖' },
+    { text: t('ai_suggestion.public_speaking'), icon: '🎤' },
+    { text: t('ai_suggestion.machine_learning'), icon: '🤖' },
+    { text: t('ai_suggestion.design_thinking'), icon: '💡' },
+  ];
+
   return (
     // The main div now just acts as a positioning container
     <div className={styles.aiDialog}>
@@ -151,4 +153,6 @@ export function AiDialog({ query, setQuery, onQuerySubmit }: AiDialogProps) {
       </div>
     </div>
   );
-} 
+}
+
+export default AiDialog; 

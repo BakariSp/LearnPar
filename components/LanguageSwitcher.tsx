@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 
 export function LanguageSwitcher() {
   const { i18n } = useTranslation();
   const pathname = usePathname();
+  const router = useRouter();
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -19,14 +20,13 @@ export function LanguageSwitcher() {
   const newLocale = currentLocale === 'en' ? 'zh' : 'en';
 
   const handleClick = () => {
-    const segments = pathname?.replace(/^\/+/, '').split('/');
-    if (segments) {
-      segments[0] = newLocale;
-      const newPath = '/' + segments.join('/');
-
-      i18n.changeLanguage(newLocale);
-      window.location.replace(newPath);
-    }
+    if (!pathname) return;
+    // 拆分路径并替换 locale
+    const segments = pathname.replace(/^\/+/, '').split('/');
+    segments[0] = newLocale;
+    const newPath = '/' + segments.join('/');
+    i18n.changeLanguage(newLocale);
+    router.push(newPath);
   };
 
   return (
