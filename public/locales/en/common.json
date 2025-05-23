@@ -166,7 +166,8 @@
     "add_to_google_calendar": "Add to Google Calendar",
     "download_ical": "Download Calendar File (.ics)",
     "cancel": "Cancel",
-    "reminder_added": "Reminder has been set!"
+    "reminder_added": "Reminder has been set!",
+    "start_learning": "Start learning"
   },
   "my_paths": {
     "my_learning_paths": "Learning Adventures",
@@ -329,5 +330,9 @@
     "public_speaking": "public speaking tips",
     "machine_learning": "machine learning roadmap",
     "design_thinking": "design thinking"
+  },
+  "mock_path": {
+    "ai_title": "Understanding of Artificial Intelligence",
+    "ai_desc": "Foundations of Artificial Intelligence."
   }
 }

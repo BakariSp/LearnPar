@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
-import { isAuthenticated } from '@/services/auth';
 import LearningPathLayout from '../../components/LearningPathLayout';
 import { useLearningPath } from '../../hooks/useLearningPath';
 import { apiAddToMyLearningPaths } from '@/services/api';
@@ -68,8 +67,6 @@ export default function LearningPathRecommendationPage() {
     calculateCourseProgress,
     calculateLearningPathProgress,
   } = useLearningPath({ id });
-
-  const isLoggedIn = isAuthenticated();
 
   // Handle success after adding to my paths
   const handleAddSuccess = () => {

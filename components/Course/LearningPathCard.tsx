@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import styles from './LearningPathCard.module.css';
 import { useRouter } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
 
 interface RecommendationMetadata {
   interest_id: string;
@@ -26,6 +27,7 @@ interface LearningPathCardProps {
 
 export function LearningPathCard({ path, locale }: LearningPathCardProps) {
   const router = useRouter();
+  const { t } = useTranslation('common');
   const difficultyLevel = path.difficulty.toLowerCase();
   const hasMetadata = path.metadata !== undefined;
 
@@ -75,7 +77,7 @@ export function LearningPathCard({ path, locale }: LearningPathCardProps) {
         </div>
       )}
       
-      <button className={styles.startButton}>Start learning</button>
+      <button className={styles.startButton}>{t('learning_path.start_learning')}</button>
     </div>
   );
 } 

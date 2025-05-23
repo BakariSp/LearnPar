@@ -229,27 +229,30 @@ export function ZeroLandingPageContent(props: ZeroLandingPageProps) {
   const mockLearningPaths = [
     {
       id: 1,
-      title: 'Understanding of Artificial Intelligence',
-      description: 'Foundations of Artificial Intelligence.',
-      category: 'AI',
-      difficulty: 'Intermediate',
-      days: 8
+      title: locale === 'zh' ? '人工智能基础认知' : 'Understanding of Artificial Intelligence',
+      description: locale === 'zh' ? '人工智能的基础知识。' : 'Foundations of Artificial Intelligence.',
+      category: locale === 'zh' ? '人工智能' : 'AI',
+      difficulty: locale === 'zh' ? '中级' : 'Intermediate',
+      days: 8,
+      icon: '🤖'
     },
     {
       id: 2,
-      title: 'Understanding of Artificial Intelligence',
-      description: 'Foundations of Artificial Intelligence.',
-      category: 'AI',
-      difficulty: 'Beginner',
-      days: 8
+      title: locale === 'zh' ? '人工智能基础认知' : 'Understanding of Artificial Intelligence',
+      description: locale === 'zh' ? '人工智能的基础知识。' : 'Foundations of Artificial Intelligence.',
+      category: locale === 'zh' ? '人工智能' : 'AI',
+      difficulty: locale === 'zh' ? '初级' : 'Beginner',
+      days: 8,
+      icon: '🧠'
     },
     {
       id: 3,
-      title: 'Understanding of Artificial Intelligence',
-      description: 'Foundations of Artificial Intelligence.',
-      category: 'AI',
-      difficulty: 'Advanced',
-      days: 8
+      title: locale === 'zh' ? '人工智能基础认知' : 'Understanding of Artificial Intelligence',
+      description: locale === 'zh' ? '人工智能的基础知识。' : 'Foundations of Artificial Intelligence.',
+      category: locale === 'zh' ? '人工智能' : 'AI',
+      difficulty: locale === 'zh' ? '高级' : 'Advanced',
+      days: 8,
+      icon: '⚛️'
     }
   ];
 

@@ -180,7 +180,8 @@
     "add_to_google_calendar": "添加到谷歌日历",
     "download_ical": "下载日历文件 (.ics)",
     "cancel": "取消",
-    "reminder_added": "提醒已设置！"
+    "reminder_added": "提醒已设置！",
+    "start_learning": "开始学习"
   },
   "my_paths": {
     "title": "我的路径",
@@ -358,5 +359,9 @@
     "public_speaking": "演讲技巧",
     "machine_learning": "机器学习路线图",
     "design_thinking": "设计思维"
+  },
+  "mock_path": {
+    "ai_title": "人工智能基础认知",
+    "ai_desc": "人工智能的基础知识。"
   }
 }
