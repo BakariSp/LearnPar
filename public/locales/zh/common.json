@@ -181,7 +181,12 @@
     "download_ical": "下载日历文件 (.ics)",
     "cancel": "取消",
     "reminder_added": "提醒已设置！",
-    "start_learning": "开始学习"
+    "start_learning": "开始学习",
+    "difficulty": {
+      "beginner": "初级",
+      "intermediate": "中级",
+      "advanced": "高级"
+    }
   },
   "my_paths": {
     "title": "我的路径",
@@ -363,5 +368,8 @@
   "mock_path": {
     "ai_title": "人工智能基础认知",
     "ai_desc": "人工智能的基础知识。"
+  },
+  "ai_dialog": {
+    "placeholder": "随便问我任何问题..."
   }
 }

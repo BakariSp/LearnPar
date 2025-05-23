@@ -1,12 +1,23 @@
 'use client';
 import { useEffect } from 'react';
 import i18n from '../i18n/client';
+import { useParams } from 'next/navigation';
 
 export default function I18nInitializer() {
+  const params = useParams();
+  const locale = params ? (Array.isArray(params.locale) ? params.locale[0] : params.locale) || 'en' : 'en';
+
   useEffect(() => {
     // 确保 i18n 已经初始化
     if (!i18n.isInitialized) {
       i18n.init();
+    }
+
+    // 设置语言
+    if (i18n.language !== locale) {
+      i18n.changeLanguage(locale);
+      // 同时更新 cookie
+      document.cookie = `NEXT_LOCALE=${locale};path=/;max-age=31536000`;
     }
 
     // 添加事件监听器用于调试
@@ -37,7 +48,7 @@ export default function I18nInitializer() {
         i18n.off('loaded');
       }
     };
-  }, []);
+  }, [locale]);
   
   return null;
 }

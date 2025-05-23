@@ -115,10 +115,10 @@ const AiDialog = ({ query, setQuery, onQuerySubmit }: AiDialogProps) => {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Ask anything..." // Updated placeholder
+          placeholder={t('ai_dialog.placeholder')}
           className={formStyles.input}
-          disabled={isSubmitting} // Disable based on local submitting state
-          rows={1} // Start with one row
+          disabled={isSubmitting}
+          rows={1}
         />
         {/* Add other icons/buttons here if needed, like the microphone */}
         {/* Example: <button type="button" className={formStyles.iconButton}>🎤</button> */}

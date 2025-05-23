@@ -167,7 +167,12 @@
     "download_ical": "Download Calendar File (.ics)",
     "cancel": "Cancel",
     "reminder_added": "Reminder has been set!",
-    "start_learning": "Start learning"
+    "start_learning": "Start learning",
+    "difficulty": {
+      "beginner": "Beginner",
+      "intermediate": "Intermediate",
+      "advanced": "Advanced"
+    }
   },
   "my_paths": {
     "my_learning_paths": "Learning Adventures",
@@ -334,5 +339,8 @@
   "mock_path": {
     "ai_title": "Understanding of Artificial Intelligence",
     "ai_desc": "Foundations of Artificial Intelligence."
+  },
+  "ai_dialog": {
+    "placeholder": "Ask anything..."
   }
 }

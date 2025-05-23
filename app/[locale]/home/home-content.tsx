@@ -232,27 +232,24 @@ export function ZeroLandingPageContent(props: ZeroLandingPageProps) {
       title: locale === 'zh' ? '人工智能基础认知' : 'Understanding of Artificial Intelligence',
       description: locale === 'zh' ? '人工智能的基础知识。' : 'Foundations of Artificial Intelligence.',
       category: locale === 'zh' ? '人工智能' : 'AI',
-      difficulty: locale === 'zh' ? '中级' : 'Intermediate',
-      days: 8,
-      icon: '🤖'
+      difficulty: 'intermediate',
+      days: 8
     },
     {
       id: 2,
       title: locale === 'zh' ? '人工智能基础认知' : 'Understanding of Artificial Intelligence',
       description: locale === 'zh' ? '人工智能的基础知识。' : 'Foundations of Artificial Intelligence.',
       category: locale === 'zh' ? '人工智能' : 'AI',
-      difficulty: locale === 'zh' ? '初级' : 'Beginner',
-      days: 8,
-      icon: '🧠'
+      difficulty: 'beginner',
+      days: 8
     },
     {
       id: 3,
       title: locale === 'zh' ? '人工智能基础认知' : 'Understanding of Artificial Intelligence',
       description: locale === 'zh' ? '人工智能的基础知识。' : 'Foundations of Artificial Intelligence.',
       category: locale === 'zh' ? '人工智能' : 'AI',
-      difficulty: locale === 'zh' ? '高级' : 'Advanced',
-      days: 8,
-      icon: '⚛️'
+      difficulty: 'advanced',
+      days: 8
     }
   ];
 

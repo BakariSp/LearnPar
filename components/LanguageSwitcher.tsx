@@ -25,6 +25,10 @@ export function LanguageSwitcher() {
     const segments = pathname.replace(/^\/+/, '').split('/');
     segments[0] = newLocale;
     const newPath = '/' + segments.join('/');
+    
+    // Set the cookie before changing language
+    document.cookie = `NEXT_LOCALE=${newLocale};path=/;max-age=31536000`;
+    
     i18n.changeLanguage(newLocale);
     router.push(newPath);
   };

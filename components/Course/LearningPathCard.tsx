@@ -60,7 +60,7 @@ export function LearningPathCard({ path, locale }: LearningPathCardProps) {
       <div className={styles.pathMeta}>
         <div className={styles.metaItem}>
           <span className={styles.difficultyBadge} data-difficulty={difficultyLevel}>
-            {difficultyLevel.charAt(0).toUpperCase() + difficultyLevel.slice(1)}
+            {t(`learning_path.difficulty.${difficultyLevel}`)}
           </span>
           <span className={styles.daysCounter}>{path.days}/30 Days</span>
         </div>
