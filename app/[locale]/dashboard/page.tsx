@@ -401,7 +401,7 @@ export default function DashboardPage() {
 
   const handleLogout = () => {
     contextLogout();
-    router.push(`/${locale}/logged-out`);
+    router.push(`/${locale}`);
   };
 
   const handleUpgradeSubscription = async () => {

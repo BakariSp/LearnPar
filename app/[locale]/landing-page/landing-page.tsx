@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { useParams } from 'next/navigation'; // Import useParams to get locale
 import { TopNavBar } from '@/components/TopNavBar/top-nav-bar';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../../../context/AuthContext';
 
 // Custom Hook for Intersection Observer
 interface IntersectionObserverOptions {
@@ -69,6 +70,8 @@ export default function LandingPage() {
   const params = useParams();
   const locale = params ? (Array.isArray(params.locale) ? params.locale[0] : params.locale) || 'en' : 'en';
   const { t } = useTranslation('common');
+  const { loginAnonymously } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
   
   // Refs for elements we want to animate
   const elementsToAnimateRefs = useRef<Array<HTMLElement | null>>([]);
@@ -131,6 +134,17 @@ export default function LandingPage() {
     setElementNodes(elementsToAnimateRefs.current as HTMLElement[]);
   }, []); // This effect runs once on mount
 
+  const handleGetStarted = async () => {
+    setIsLoading(true);
+    try {
+      await loginAnonymously();
+    } catch (error) {
+      console.error('Anonymous login failed:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className={`${styles.pageContainer} ${styles.root}`}>
       {/* Header with Logo and Login */}
@@ -147,9 +161,13 @@ export default function LandingPage() {
               {t('landing.hero_title_3', { brand: <span className={styles.accentText}>Zero AI</span> })}
             </h1>
             <div className={styles.heroButtons}>
-              <Link href={`/${locale}/home`} className={styles.primaryButton}>
-                {t('landing.get_started')}
-              </Link>
+              <button 
+                onClick={handleGetStarted}
+                disabled={isLoading}
+                className={styles.primaryButton}
+              >
+                {isLoading ? t('Common.loading') : t('landing.get_started')}
+              </button>
               <Link href={`/${locale}/about`} className={styles.secondaryButton}>
                 {t('landing.learn_more')}
               </Link>

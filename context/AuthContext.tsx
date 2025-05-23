@@ -54,6 +54,7 @@ interface AuthContextType {
   authReady: boolean;
   login: (credentials: LoginCredentials) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
+  loginAnonymously: () => Promise<void>;
   logout: () => void;
   setUser: (user: UserProfile | null) => void;
   handleOAuthCallback: (token: string) => Promise<void>;
@@ -224,6 +225,116 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
+  // Add anonymous login function
+  const loginAnonymously = useCallback(async () => {
+    console.log('AuthContext: Initiating anonymous login');
+    try {
+      // ✅ 1.2 调用匿名登录 - 使用 supabase.auth.signInAnonymously()
+      const { data, error } = await supabase.auth.signInAnonymously();
+      
+      if (error) {
+        throw new Error(error.message || 'Anonymous login failed');
+      }
+
+      if (!data.user) {
+        throw new Error('No user data received');
+      }
+
+      console.log('AuthContext: Supabase anonymous login successful:', {
+        userId: data.user.id,
+        hasSession: !!data.session,
+        accessToken: data.session?.access_token ? 'exists' : 'missing'
+      });
+
+      // 拿到返回的 user.id（即 auth 的 UUID）
+      const authId = data.user.id;
+      console.log('AuthContext: Anonymous user created with auth_id:', authId);
+
+      // 立即更新前端状态
+      setUser({
+        id: data.user.id,
+        email: data.user.email,
+        username: data.user.user_metadata?.username,
+        is_active: true,
+        is_guest: true,
+        created_at: data.user.created_at,
+        user_metadata: data.user.user_metadata,
+        app_metadata: data.user.app_metadata
+      });
+
+      // ✅ 1.3 调用后端 API 同步用户 - 等待API请求完成
+      console.log('AuthContext: About to call sync API with auth_id:', authId);
+      console.log('AuthContext: Session data:', {
+        user_id: data.user.id,
+        email: data.user.email,
+        has_session: !!data.session,
+        access_token_length: data.session?.access_token?.length || 0
+      });
+      
+      let syncSuccess = false;
+      try {
+        const requestPayload = { auth_id: authId };
+        console.log('AuthContext: Making fetch request to FastAPI backend');
+        console.log('AuthContext: Request payload:', requestPayload);
+        console.log('AuthContext: Access token exists:', !!data.session?.access_token);
+        
+        // 调用 FastAPI 后端 - 正确的端点路径
+        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const apiUrl = `${apiBaseUrl}/api/auth/sync-anonymous-user`;
+        
+        console.log('🚀 AuthContext: ABOUT TO MAKE API CALL');
+        console.log('🚀 AuthContext: URL:', apiUrl);
+        console.log('🚀 AuthContext: Payload:', JSON.stringify(requestPayload));
+        console.log('🚀 AuthContext: Headers will include Authorization');
+        
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            // 传递 Supabase access_token 给 FastAPI 验证
+            'Authorization': `Bearer ${data.session?.access_token || ''}`
+          },
+          body: JSON.stringify(requestPayload)
+        });
+
+        console.log('🎯 AuthContext: API CALL COMPLETED');
+        console.log('🎯 AuthContext: Response status:', response.status);
+        console.log('🎯 AuthContext: Response ok:', response.ok);
+        console.log('🎯 AuthContext: Response headers:', Object.fromEntries(response.headers.entries()));
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('❌ AuthContext: API call failed:', {
+            status: response.status,
+            statusText: response.statusText,
+            error: errorText,
+            url: apiUrl
+          });
+        } else {
+          const result = await response.json();
+          console.log('✅ AuthContext: API call successful:', result);
+          syncSuccess = true;
+        }
+      } catch (syncError: any) {
+        console.error('💥 AuthContext: EXCEPTION during API call:', {
+          error: syncError,
+          message: syncError?.message,
+          stack: syncError?.stack
+        });
+        // 不抛出错误，因为用户已经登录成功了
+      }
+
+      console.log('AuthContext: Sync completed, success:', syncSuccess);
+      console.log('AuthContext: About to redirect to home');
+      
+      // 重定向到首页（API请求已完成）
+      redirectBasedOnAuth('home');
+    } catch (error) {
+      console.error('AuthContext: Anonymous login failed:', error);
+      throw error;
+    }
+  }, [redirectBasedOnAuth]);
+
   // Memoize logout function
   const logout = useCallback(async () => {
     console.log('AuthContext: Logging out user');
@@ -288,6 +399,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     authReady,
     login,
     loginWithGoogle,
+    loginAnonymously,
     logout,
     setUser,
     handleOAuthCallback

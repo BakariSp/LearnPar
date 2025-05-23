@@ -8,8 +8,7 @@ import { LearningPathCard } from '../../../components/Course/LearningPathCard';
 import styles from './home.module.css';
 import { apiGetRecommendationsByInterests, RecommendationsByInterestsResponse } from '../../../services/api';
 import { getUserProfile } from '../../../services/user';
-import axios from 'axios';
-import { useGuestAuth } from '@/hooks/useGuestAuth'; 
+import axios from 'axios'; 
 import { useAuth } from '@/context/AuthContext'; 
 // Define interfaces for the API response datas
 interface Resource {

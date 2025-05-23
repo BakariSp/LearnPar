@@ -156,19 +156,30 @@
 }
 
 .primaryButton {
-  background-color: #F5A623;
-  color: white;
   padding: 12px 24px;
+  background-color: #ff9c38;
+  color: white;
   border: none;
   border-radius: 8px;
+  font-size: 1rem;
   font-weight: 500;
-  font-size: 16px;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 120px;
 }
 
 .primaryButton:hover {
-  background-color: #E8902D;
+  background-color: #f08c28;
+}
+
+.primaryButton:disabled {
+  background-color: #ffc38e;
+  cursor: not-allowed;
+  opacity: 0.8;
 }
 
 .secondaryButton {

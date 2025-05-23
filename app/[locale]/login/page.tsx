@@ -19,7 +19,7 @@ export default function LoginPage() {
   const [signUpData, setSignUpData] = useState({ email: '', password: '', confirmPassword: '' });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { login, loginWithGoogle, isAuthenticated, authReady } = useAuth();
+  const { login, loginWithGoogle, loginAnonymously, isAuthenticated, authReady } = useAuth();
   const searchParams = useSearchParams();
 
   // Add effect to redirect if already authenticated
@@ -232,7 +232,6 @@ export default function LoginPage() {
               <p>New users will be automatically registered when using Google login</p>
             )}
           </div>
-
           <div className={styles.passwordLoginLink}>
             <button onClick={openPasswordLogin}>
               {isClient && "Sign in with email and password"}
