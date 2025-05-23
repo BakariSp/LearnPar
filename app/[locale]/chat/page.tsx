@@ -177,13 +177,19 @@ function ChatPageContent() {
     // Add this right before your fetch call
     console.log('Sending to:', `/api/planner/dialogue`);
     console.log('Payload:', JSON.stringify(payload));
+    console.log('Request timestamp:', new Date().toISOString());
 
     try {
       // Get auth headers with token            
-      const authHeaders = await getAuthHeaders();            
+      const authHeaders = await getAuthHeaders();
+      
+      // Log auth headers status after they're available
+      console.log('Auth headers retrieved:', !!authHeaders && Object.keys(authHeaders).length > 0);            
       // Use Next.js proxy instead of direct backend call      
+      
+      // Create an AbortController for timeout handling
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000); // Increase timeout to 60 seconds
+      const timeoutId = setTimeout(() => controller.abort(), 180000); // Increase to 3 minutes (180 seconds)
       
       const response = await fetch(`/api/planner/dialogue`, {                        
         method: 'POST',                        
@@ -191,10 +197,11 @@ function ChatPageContent() {
           ...authHeaders,                    
           'Content-Type': 'application/json'                
         },                        
-        body: JSON.stringify(payload),        
-        signal: controller.signal
+        body: JSON.stringify(payload),
+        signal: controller.signal        
       });
 
+      // Clear the timeout if request completes
       clearTimeout(timeoutId);
 
       console.log('Response received:', response.status);
@@ -232,6 +239,31 @@ function ChatPageContent() {
       // If response.ok is true, read the JSON body from the original response
       const data: DialogueResponseData = await response.json();
 
+      // Validate response structure before processing
+      if (!data || typeof data !== 'object') {
+        throw new Error('Invalid response format: Response is not an object');
+      }
+
+      if (!data.ai_reply || typeof data.ai_reply !== 'string') {
+        console.warn('Missing or invalid ai_reply in response');
+        data.ai_reply = 'I processed your request successfully.';
+      }
+
+      if (!data.status || typeof data.status !== 'object') {
+        console.warn('Missing or invalid status in response');
+        data.status = {
+          has_learning_path: false,
+          has_courses: false,
+          has_sections: false,
+          has_cards: false
+        };
+      }
+
+      if (!data.result || typeof data.result !== 'object') {
+        console.warn('Missing or invalid result in response');
+        data.result = {};
+      }
+
       // Add AI reply to messages
       if (data.ai_reply) {
           setMessages(prev => [...prev, { role: 'ai', content: data.ai_reply }]);
@@ -243,46 +275,90 @@ function ChatPageContent() {
 
       // Check for learning path top-level updates (title, difficulty etc.)
       if (data.status.has_learning_path && data.result.learning_path) {
-          planUpdates = { ...planUpdates, ...data.result.learning_path };
-          planChanged = true;
+          try {
+            // Validate learning_path structure
+            const learningPath = data.result.learning_path;
+            if (learningPath && typeof learningPath === 'object') {
+              planUpdates = { ...planUpdates, ...learningPath };
+              planChanged = true;
+            }
+          } catch (error) {
+            console.error('Error processing learning_path:', error);
+          }
       }
-      // Check for course list updates
-      if (data.status.has_courses && data.result.courses) {
-          // Ensure courses have a structure compatible with LearningPlan (CourseResponse[])
-          const formattedCourses: CourseResponse[] = data.result.courses.map((course, index) => ({
-              // --- CourseResponse Fields ---
-              id: course.id, // Rely on API ID
-              title: course.title || `${t('default_course_title')} ${index + 1}`,
-              description: course.description || "", // Default description
-              estimated_days: course.estimated_days || 0, // Default estimated_days
-              created_at: course.created_at, // Rely on API timestamp
-              updated_at: course.updated_at, // Rely on API timestamp
-              // --- Map Sections to SectionResponse ---
-              sections: course.sections?.map((section: any, sIndex: number): SectionResponse => ({
-                  id: section.id, // Rely on API ID
-                  title: section.title || `${t('default_section_title')} ${sIndex + 1}`,
-                  description: section.description || "", // Default description
-                  order_index: section.order_index ?? sIndex, // Keep order_index for sections
-                  estimated_days: section.estimated_days || 0, // Default estimated_days
-                  cards: section.cards || [], // Default to empty cards array
-                  created_at: section.created_at, // Rely on API timestamp
-                  updated_at: section.updated_at, // Rely on API timestamp
-              })) || [],
-          }));
-          planUpdates = { ...planUpdates, courses: formattedCourses };
-          planChanged = true;
+      
+      // Check for course list updates with more defensive handling
+      if (data.status.has_courses && data.result.courses && Array.isArray(data.result.courses)) {
+          try {
+            // Ensure courses have a structure compatible with LearningPlan (CourseResponse[])
+            const formattedCourses: CourseResponse[] = data.result.courses.map((course, index) => {
+              // Provide safe defaults for all required fields
+              const safeCourse = {
+                // Generate a temporary ID if not provided
+                id: course.id || `temp_course_${Date.now()}_${index}`,
+                title: course.title || `${t('default_course_title')} ${index + 1}`,
+                description: course.description || "",
+                estimated_days: parseInt(course.estimated_days) || 0,
+                // Use current timestamp as fallback for missing timestamps
+                created_at: course.created_at || new Date().toISOString(),
+                updated_at: course.updated_at || new Date().toISOString(),
+                // --- Map Sections to SectionResponse with safe defaults ---
+                sections: Array.isArray(course.sections) ? course.sections.map((section: any, sIndex: number): SectionResponse => ({
+                    id: section.id || `temp_section_${Date.now()}_${sIndex}`,
+                    title: section.title || `${t('default_section_title')} ${sIndex + 1}`,
+                    description: section.description || "",
+                    order_index: typeof section.order_index === 'number' ? section.order_index : sIndex,
+                    estimated_days: parseInt(section.estimated_days) || 0,
+                    cards: Array.isArray(section.cards) ? section.cards : [],
+                    created_at: section.created_at || new Date().toISOString(),
+                    updated_at: section.updated_at || new Date().toISOString(),
+                })) : [],
+              };
+              
+              return safeCourse;
+            });
+            
+            planUpdates = { ...planUpdates, courses: formattedCourses };
+            planChanged = true;
+          } catch (error) {
+            console.error('Error processing courses:', error);
+            // Don't update courses if there's an error processing them
+          }
       }
+      
       // Add logic for sections/cards if the API provides them separately and needs merging
 
       // If the plan structure was updated, call the state update handler
       if (planChanged && planUpdates && Object.keys(planUpdates).length > 0) {
-          handlePlanUpdateFromAI(planUpdates);
+          try {
+            handlePlanUpdateFromAI(planUpdates);
+          } catch (error) {
+            console.error('Error updating plan state:', error);
+            // Show error message to user
+            setMessages(prev => [...prev, { 
+              role: 'error', 
+              content: 'Successfully received response but encountered an issue updating the learning plan. Please try again.' 
+            }]);
+          }
       }
       // --- End notification logic ---
 
     } catch (err: any) {
       console.error('Dialogue API error:', err);
-      const errorMessage = err.message || t('error_default');
+      
+      let errorMessage: string;
+      
+      // Handle specific error types
+      if (err.name === 'AbortError') {
+        errorMessage = 'The AI request took longer than expected (over 3 minutes). This can happen with complex topics. Please try again with a simpler or more specific request.';
+      } else if (err.message && err.message.includes('Failed to fetch')) {
+        errorMessage = 'Network error. Please check your internet connection and try again.';
+      } else if (err.message && err.message.includes('API Error')) {
+        errorMessage = err.message; // Use the detailed API error message
+      } else {
+        errorMessage = err.message || t('error_default');
+      }
+      
       setError(errorMessage); // Set chat error state
       // Add an error message to the chat display
       setMessages(prev => [...prev, { role: 'error', content: errorMessage }]);
@@ -872,7 +948,13 @@ function ChatPageContent() {
               {isLoading && (
                   <div className={`${styles.chatMessage} ${styles.ai}`}>
                     <span className={styles.chatRole}>AI</span>
-                    <p className={styles.chatContent}><i>{t('chat.thinking')} <span className={styles.smallSpinner}></span></i></p>
+                    <p className={styles.chatContent}>
+                      <i>{t('chat.thinking')} <span className={styles.smallSpinner}></span></i>
+                      <br />
+                      <small style={{ opacity: 0.7 }}>
+                        AI is analyzing your request and generating a comprehensive learning path. This may take up to 2-3 minutes for complex topics.
+                      </small>
+                    </p>
                   </div>
               )}
               {/* Scroll anchor */}

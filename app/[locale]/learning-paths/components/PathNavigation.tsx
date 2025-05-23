@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FullLearningPathResponse, CourseResponse, SectionResponse, CardResponse } from '@/services/api';
-import { isAuthenticated } from '@/services/auth';
+import { getCurrentUser } from '@/services/supabase';
 import styles from '../styles';
 import localStyles from './PathNavigation.module.css';
 
@@ -41,7 +41,21 @@ export default function PathNavigation({
   calculateCourseProgress,
   calculateLearningPathProgress
 }: PathNavigationProps) {
-  const isLoggedIn = isAuthenticated();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const user = await getCurrentUser();
+        setIsLoggedIn(!!user);
+      } catch (error) {
+        console.error('Error checking authentication:', error);
+        setIsLoggedIn(false);
+      }
+    };
+    
+    checkAuth();
+  }, []);
 
   // Calculate the overall learning path progress
   const pathProgress = learningPathData.progress !== undefined 

@@ -593,8 +593,8 @@ export const apiGetTaskStatus = async (taskId: string): Promise<TaskStatusRespon
 // Function to get the *latest* task status associated with a Learning Path ID
 export const apiGetLatestTaskForLearningPath = async (learningPathId: number): Promise<TaskStatusResponse | null> => {
   try {
-    // Path needs to be updated to match the API documentation
-    const response = await apiClient(`/api/tasks/learning-paths/${learningPathId}`);
+    // Fixed: Use the correct backend-tasks endpoint instead of tasks
+    const response = await apiClient(`/api/backend-tasks/learning-paths/${learningPathId}`);
 
     if (!response || !response.ok) {
        // Handle 404 specifically - it might mean no task exists yet, which isn't necessarily an error here

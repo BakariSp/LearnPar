@@ -14,13 +14,27 @@ const nextConfig: NextConfig = {
           }
         ],
       },
+      {
+        // Add longer timeout headers for API routes
+        source: '/api/:path*',
+        headers: [
+          {
+            key: 'Keep-Alive',
+            value: 'timeout=300, max=1000'
+          },
+          {
+            key: 'Connection',
+            value: 'keep-alive'
+          }
+        ],
+      },
     ];
   },
 
   async rewrites(): Promise<Rewrite[]> {
     // Use the environment variable directly for the destination
     // Fallback to localhost:8000 only if the env var is not set
-    const apiDestination = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/:path*`;
+    const apiDestination = `${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'}/api/:path*`;
 
     // Log API destination configuration for better debugging
     console.log(`[next.config.ts] Rewriting /api/:path* to ${apiDestination}`);
@@ -31,8 +45,8 @@ const nextConfig: NextConfig = {
 
     return [
       {
-        source: '/api/:path*',
-        destination: apiDestination,
+        source: '/api/((?!planner).*)',
+        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'}/api/$1`,
       },
     ];
   },

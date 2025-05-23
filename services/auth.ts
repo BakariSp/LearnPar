@@ -94,16 +94,42 @@ export const apiClient = async (endpoint: string, options: RequestInit = {}): Pr
   
   let url;
   if (endpoint.startsWith('http')) {
+    // Full URL provided
     url = endpoint;
   } else {
-    // Use relative URLs to leverage Next.js proxy
-    let cleanEndpoint = endpoint;
-    if (!cleanEndpoint.startsWith('/api')) {
-      cleanEndpoint = cleanEndpoint.startsWith('/') 
-        ? `/api${cleanEndpoint}` 
-        : `/api/${cleanEndpoint}`;
+    // Determine if this should go to backend or stay as Next.js route
+    const backendEndpoints = [
+      '/api/learning-paths',
+      '/api/tasks',
+      '/api/users',
+      '/api/subscription',
+      '/api/recommendations',
+      '/api/achievements',
+      '/api/cards',
+      '/api/courses',
+      '/api/sections',
+      '/api/learning-assistant',
+      '/api/calendar',
+      '/api/daily-usage'
+    ];
+    
+    // Check if this endpoint should go to the backend
+    const shouldGoToBackend = backendEndpoints.some(prefix => endpoint.startsWith(prefix));
+    
+    if (shouldGoToBackend) {
+      // Call backend directly
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+      url = `${backendUrl}${endpoint}`;
+    } else {
+      // Keep as Next.js route (for things like /api/planner/dialogue)
+      let cleanEndpoint = endpoint;
+      if (!cleanEndpoint.startsWith('/api')) {
+        cleanEndpoint = cleanEndpoint.startsWith('/') 
+          ? `/api${cleanEndpoint}` 
+          : `/api/${cleanEndpoint}`;
+      }
+      url = cleanEndpoint;
     }
-    url = cleanEndpoint;
   }
   
   console.log(`🔗 API request to: ${url}`);
@@ -204,7 +230,7 @@ export const getCurrentUser = async (): Promise<UserProfile | null> => {
 
     // If you still need to fetch additional profile data from your own backend
     // using the Supabase token:
-    const profileApiUrl = `/api/users/me`; // Use relative URL for Next.js proxy
+    const profileApiUrl = `/api/users/me`; // This will now go directly to backend via apiClient
 
     const supabaseToken = (await supabase.auth.getSession()).data.session?.access_token;
 
@@ -215,26 +241,24 @@ export const getCurrentUser = async (): Promise<UserProfile | null> => {
     }
     
     console.log(`🔍 DEBUG USER - Attempting to fetch extended profile from: ${profileApiUrl}`);
-    const response = await fetch(profileApiUrl, {
+    // Use apiClient instead of direct fetch to leverage the backend routing logic
+    const response = await apiClient(profileApiUrl, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${supabaseToken}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      mode: 'cors',
-      credentials: 'include'
+      }
     });
 
     let extendedProfileData = {};
-    if (response.ok) {
+    if (response && response.ok) {
       extendedProfileData = await response.json();
       console.log('🔍 DEBUG USER - Successfully retrieved extended user profile data.');
       if (extendedProfileData && (extendedProfileData as any).id) {
          if (typeof window !== 'undefined') localStorage.setItem(USER_ID_KEY, (extendedProfileData as any).id.toString());
       }
     } else {
-      console.warn(`🔍 DEBUG USER - Failed to fetch extended profile. Status: ${response.status}. Supabase user data will be primary.`);
+      const statusText = response ? `Status: ${response.status}` : 'No response received';
+      console.warn(`🔍 DEBUG USER - Failed to fetch extended profile. ${statusText}. Supabase user data will be primary.`);
       // If the /api/users/me call fails, we can decide if we want to clear USER_ID_KEY
       // or just proceed with Supabase data. For now, let's not clear it,
       // as it might hold a valid ID from a previous successful fetch.
