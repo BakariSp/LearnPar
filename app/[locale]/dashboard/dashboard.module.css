@@ -16,6 +16,28 @@
   color: var(--heading-color);
 }
 
+.headerActions {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.languageButton {
+  background-color: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.languageButton:hover {
+  background-color: var(--background-color);
+  color: var(--text-color);
+}
+
 .logoutButton {
   background-color: transparent;
   border: 1px solid var(--border-color);
@@ -24,6 +46,7 @@
   border-radius: 8px;
   font-size: 0.9rem;
   transition: all 0.2s;
+  cursor: pointer;
 }
 
 .logoutButton:hover {

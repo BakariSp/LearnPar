@@ -40,7 +40,7 @@ export default function MyLearningPathsPage() {
   const { t } = useTranslation('common');
   const params = useParams();
   const searchParams = useSearchParams();
-  const locale = params ? (Array.isArray(params.locale) ? params.locale[0] : params.locale) : 'en';
+  const locale = params ? (Array.isArray(params.locale) ? params.locale[0] : params.locale) || 'en' : 'en';
 
   const router = useRouter(); // Initialize router
   const [userPaths, setUserPaths] = useState<LearningPathBasicInfo[]>([]);
@@ -767,12 +767,12 @@ export default function MyLearningPathsPage() {
       {/* Left Pane: Path List */}
       <aside className={`${styles.pathListPane} ${styles.fadeIn}`}>
         <h1 className={styles.listTitle}>
-          {isClient && t('My Paths')} {userPaths.length > 0 && `(${userPaths.length})`}
+          {isClient && t('my_paths.title')} {userPaths.length > 0 && `(${userPaths.length})`}
         </h1>
         {isLoadingList && (
           <div className={styles.listLoading}>
             <div className={styles.spinner}></div>
-            <p>{isClient && t('my_paths.loading')}</p>
+            <p>{isClient && t('Common.loading')}</p>
             <div className={`${styles.progressBar} ${styles.active}`}></div>
           </div>
         )}
@@ -784,7 +784,7 @@ export default function MyLearningPathsPage() {
         )}
         {!isLoadingList && !listError && userPaths.length === 0 && (
           <div className={styles.emptyState}>
-            <p>{isClient && t('You have no learning paths yet. Create one to get started.')}</p>
+            <p>{isClient && t('my_paths.no_paths_message')}</p>
           </div>
         )}
         {!isLoadingList && !listError && userPaths.length > 0 && (

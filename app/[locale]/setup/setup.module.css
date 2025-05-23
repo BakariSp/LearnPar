@@ -405,4 +405,38 @@
   .modalHeader, .modalContent, .modalFooter {
     padding: 15px;
   }
+}
+
+.verificationMessage {
+  margin: 1rem 0;
+  padding: 1rem;
+  background-color: #fff3cd;
+  border: 1px solid #ffeeba;
+  border-radius: 4px;
+  color: #856404;
+  text-align: center;
+}
+
+.verificationMessage p {
+  margin-bottom: 1rem;
+}
+
+.resendButton {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s;
+}
+
+.resendButton:hover {
+  background-color: #0056b3;
+}
+
+.resendButton:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
 } 

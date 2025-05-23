@@ -4,7 +4,7 @@ import { ReactNode, useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { redirect } from 'next/navigation';
 import { useParams } from 'next/navigation';
-import { getSetupCompleteStatus } from '@/services/auth';
+import { getSetupCompleteStatus, getCurrentUser } from '@/services/auth';
 
 interface SetupLayoutProps {
   children: ReactNode;
@@ -19,15 +19,33 @@ export default function SetupLayout({ children }: Omit<SetupLayoutProps, 'params
   const locale = params ? (Array.isArray(params.locale) ? params.locale[0] : params.locale) || 'en' : 'en';
   const [isSetupComplete, setIsSetupComplete] = useState(false);
   
-  // Check both the user object and the setup complete cookie status
   useEffect(() => {
-    // Get the setup complete status from cookies
-    const setupComplete = getSetupCompleteStatus();
-    setIsSetupComplete(setupComplete);
+    const checkSetupStatus = async () => {
+      try {
+        // 1. 检查 setup_complete cookie
+        const setupComplete = getSetupCompleteStatus();
+        if (setupComplete) {
+          setIsSetupComplete(true);
+          return;
+        }
+
+        // 2. 检查数据库中的用户信息
+        const currentUser = await getCurrentUser();
+        if (currentUser && currentUser.username) {
+          // 如果用户已经设置了用户名，说明已经完成设置
+          setIsSetupComplete(true);
+          return;
+        }
+      } catch (error) {
+        console.error('Error checking setup status:', error);
+      }
+    };
+
+    checkSetupStatus();
   }, []);
 
-  // If user has completed setup (either via user object or cookie), redirect them to home
-  if (!isLoading && user && user.interests && user.interests.length > 0) {
+  // 如果设置已完成，重定向到首页
+  if (!isLoading && isSetupComplete) {
     redirect(`/${locale}/home`);
   }
 

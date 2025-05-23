@@ -329,7 +329,7 @@ export function ZeroLandingPageContent(props: ZeroLandingPageProps) {
     return (
       <div className={styles.loadingContainer}>
         <div className={styles.loadingSpinner}></div>
-        <p>{t('common.loading')}</p>
+        <p>{t('Common.loading')}</p>
       </div>
     );
   }

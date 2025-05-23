@@ -22,6 +22,17 @@ i18n
       lookupCookie: 'NEXT_LOCALE',
       lookupFromPathIndex: 0,
     },
+    react: {
+      useSuspense: false,
+    },
+    load: 'languageOnly',
+    fallbackLng: 'en',
+    supportedLngs: ['en', 'zh'],
+    ns: ['common'],
+    defaultNS: 'common',
+    interpolation: {
+      escapeValue: false,
+    },
   });
 
 export default i18n;

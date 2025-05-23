@@ -5,6 +5,7 @@ import styles from './landing-page.module.css'; // Import the CSS module
 import Link from 'next/link'; // Import Link for navigation
 import Image from 'next/image';
 import { useParams } from 'next/navigation'; // Import useParams to get locale
+import { TopNavBar } from '@/components/TopNavBar/top-nav-bar';
 
 // Custom Hook for Intersection Observer
 interface IntersectionObserverOptions {
@@ -65,7 +66,7 @@ function useIntersectionObserver(
 
 export default function LandingPage() {
   const params = useParams();
-  const locale = params.locale || 'en';
+  const locale = params ? (Array.isArray(params.locale) ? params.locale[0] : params.locale) || 'en' : 'en';
   
   // Refs for elements we want to animate
   const elementsToAnimateRefs = useRef<Array<HTMLElement | null>>([]);
@@ -131,18 +132,7 @@ export default function LandingPage() {
   return (
     <div className={`${styles.pageContainer} ${styles.root}`}>
       {/* Header with Logo and Login */}
-      <nav className={styles.navbar}>
-        <div className={styles.navbarBrand}>
-          <Link href={`/${locale}`} className={styles.logoLink}>
-            <span className={styles.logoText}>Zero AI</span>
-          </Link>
-        </div>
-        <div className={styles.navbarActions}>
-          <Link href={`/${locale}/login`} className={styles.loginButton}>
-            Login
-          </Link>
-        </div>
-      </nav>
+      <TopNavBar locale={locale} />
 
       <div className={styles.contentWrapper}>
         {/* Hero Section */}

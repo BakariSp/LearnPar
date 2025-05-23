@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { getCurrentUser } from '../services/auth'; // 你已有的函数
 import { useAuth } from '../context/AuthContext';
-
+import { useTranslation } from 'react-i18next';
 
 export async function ensureGuestToken(
   onUserLoaded?: (user: any) => void // 👈 增加这个参数
@@ -86,6 +86,7 @@ export async function ensureGuestToken(
 export function useGuestAuth() {
   const [isReady, setReady] = useState(false);
   const { setUser } = useAuth(); // 👈 从 AuthContext 拿到 setUser
+  const { t } = useTranslation('common'); // 将 useTranslation 移到这里
 
   useEffect(() => {
     async function init() {

@@ -31,7 +31,8 @@
     "logout": "Log Out",
     "expand": "Show More",
     "collapse": "Show Less",
-    "subscription": "Membership"
+    "subscription": "Membership",
+    "feedback": "Feedback"
   },
   "login": {
     "title": "Welcome Back",
@@ -73,7 +74,12 @@
     "learning_progress": "Progress",
     "start_course": "Pick a module to begin tracking growth.",
     "no_progress": "No progress yet. Start learning!",
-    "learning_resources": "Learning Resources"
+    "learning_resources": "Learning Resources",
+    "create_learning_path": "Create Learning Path",
+    "user": "User",
+    "noEmail": "No email",
+    "guest": "Guest",
+    "na": "N/A"
   },
   "learning_path": {
     "my_paths": "My Learning Journeys",
@@ -130,7 +136,9 @@
     "in_progress": "In Progress",
     "ready_to_start": "Ready to Start",
     "delete_path_confirm": "Are you sure you want to remove this learning journey? It can't be recovered.",
-    "error_deleting_path": "Couldn't remove this journey right now. Try again?"
+    "error_deleting_path": "Couldn't remove this journey right now. Try again?",
+    "title": "My Paths",
+    "no_paths_message": "You have no learning paths yet. Create one to get started."
   },
   "calendar": {
     "title": "Study Schedule",
@@ -193,7 +201,19 @@
     "promoCodeInfo": "Achiever plan code: zeroai#0430. Master plan code: zeroultra#2025",
     "needHelp": "Questions?",
     "contactSupport": "We're here to help",
-    "loading": "Getting membership details..."
+    "loading": "Getting membership details...",
+    "hideUpgrade": "Hide Upgrade Options",
+    "showDetails": "Show Plan Details",
+    "hideDetails": "Hide Details",
+    "planComparison": "Plan Comparison",
+    "feature": "Feature",
+    "dailyLearningPaths": "Daily Learning Paths",
+    "dailyFlashcards": "Daily Flashcards",
+    "unlimited": "Unlimited",
+    "limited": "Limited",
+    "subscription": "Subscription",
+    "refreshForDetails": "Refresh page for detailed usage statistics",
+    "perDay": "per day"
   },
   "Common": {
     "loading": "Loading..."
@@ -232,5 +252,35 @@
     "errorGeneratingCards": "Failed to generate cards: {{error}}",
     "unknownError": "Unknown error",
     "explainSection": "Explain this section"
+  },
+  "knowledge_map": {
+    "title": "Knowledge Map (Beta)",
+    "loading": "Loading knowledge map...",
+    "error": "Error: {{error}}",
+    "no_paths": "No learning paths found to build the map."
+  },
+  "setup": {
+    "title": "How should we call you by?",
+    "nickname_placeholder": "Enter nickname",
+    "terms_agreement": "I agree to the Terms of Service and Privacy Policy",
+    "terms_link": "Terms of Service",
+    "privacy_link": "Privacy Policy",
+    "continue": "Continue",
+    "setting_up": "Setting up...",
+    "errors": {
+      "nickname_required": "Please enter a nickname",
+      "terms_required": "Please agree to the terms and conditions",
+      "update_failed": "Failed to update profile. Please try again."
+    }
+  },
+  "home": {
+    "loading": "Loading...",
+    "error": "Failed to load recommendations. Please try again later.",
+    "no_recommendations": "No recommendations available at the moment.",
+    "load_more": "Load More",
+    "loading_more": "Loading more...",
+    "no_more": "No more recommendations to load",
+    "prompt_heading": "What are you looking to learn today?",
+    "recommended_learning_paths": "Recommended Learning Paths"
   }
 }

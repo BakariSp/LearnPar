@@ -31,7 +31,8 @@
     "logout": "登出",
     "expand": "展开侧边栏",
     "collapse": "收起侧边栏",
-    "subscription": "订阅"
+    "subscription": "订阅",
+    "feedback": "反馈"
   },
   "login": {
     "title": "登录",
@@ -47,7 +48,12 @@
     "error": "用户名或密码错误，请重试。"
   },
   "oauth": {
-    "processing": "正在处理您的登录信息，请稍候……"
+    "processing": "正在处理您的登录信息，请稍候……",
+    "error_title": "登录遇到问题",
+    "csrf_error": "登录过程中出现错误，请重新开始。",
+    "unknown_error": "登录过程中发生意外错误。",
+    "redirect_message": "稍后将带您返回登录页面。",
+    "try_again": "请尝试重新登录或使用其他登录方式？"
   },
   "dashboard": {
     "welcome": "欢迎来到你的仪表盘",
@@ -65,7 +71,14 @@
     "no_courses": "你还没有报名任何课程",
     "browse_courses": "浏览课程",
     "learning_progress": "学习进度",
-    "start_course": "开始一门课程以追踪你的进度"
+    "start_course": "开始一门课程以追踪你的进度",
+    "no_progress": "暂无进度，开始学习吧！",
+    "learning_resources": "学习资源",
+    "create_learning_path": "创建学习路径",
+    "user": "用户",
+    "noEmail": "无邮箱",
+    "guest": "访客",
+    "na": "暂无"
   },
   "learning_path": {
     "my_paths": "我的路径",
@@ -113,7 +126,7 @@
     "reminder_added": "提醒已设置！"
   },
   "my_paths": {
-    "title": "我的学习路径",
+    "title": "我的路径",
     "loading": "加载路径中...",
     "error_loading": "加载你的学习路径时出错，请重试。",
     "retry": "重试",
@@ -124,7 +137,17 @@
     "ready": "已就绪",
     "checking_status": "检查状态中...",
     "expand_to_load_cards": "展开章节以加载卡片。",
-    "loading_cards": "加载卡片中..."
+    "loading_cards": "加载卡片中...",
+    "my_learning_paths": "学习之旅",
+    "loading_paths": "正在查找学习路径...",
+    "error_loading_paths": "暂时无法加载学习路径。",
+    "no_learning_paths": "开始你的第一个学习之旅吧！",
+    "completed": "已完成",
+    "in_progress": "进行中",
+    "ready_to_start": "准备开始",
+    "delete_path_confirm": "确定要删除这个学习路径吗？此操作无法撤销。",
+    "error_deleting_path": "暂时无法删除此学习路径，请稍后重试？",
+    "no_paths_message": "你还没有创建任何学习路径。创建一个开始学习吧。"
   },
   "calendar": {
     "title": "学习日历",
@@ -164,7 +187,7 @@
     "mark_incomplete": "标记为未完成"
   },
   "Subscription": {
-    "subscriptionPlans": "订阅计划",
+    "subscriptionPlans": "订阅信息",
     "currentUsage": "当前使用情况",
     "freeTier": "免费套餐",
     "standardTier": "标准套餐",
@@ -187,6 +210,66 @@
     "promoCodeInfo": "标准套餐促销码：zeroai#0430。高级套餐促销码：zeroultra#2025",
     "needHelp": "需要帮助？",
     "contactSupport": "联系支持",
-    "loading": "正在加载订阅信息..."
+    "loading": "正在加载订阅信息...",
+    "hideUpgrade": "隐藏升级选项",
+    "showDetails": "显示计划详情",
+    "hideDetails": "隐藏详情",
+    "planComparison": "计划对比",
+    "feature": "功能",
+    "dailyLearningPaths": "每日学习路径",
+    "dailyFlashcards": "每日闪卡",
+    "unlimited": "无限制",
+    "limited": "有限",
+    "subscription": "订阅",
+    "refreshForDetails": "刷新页面以查看详细使用统计",
+    "perDay": "每天"
+  },
+  "Common": {
+    "loading": "加载中..."
+  },
+  "learnAssistant": {
+    "title": "学习助手",
+    "clearChat": "清空聊天",
+    "chatTab": "聊天",
+    "cardsTab": "生成的卡片",
+    "tellMeMore": "告诉我更多关于这张卡片的信息",
+    "learningPathContext": "学习路径上下文",
+    "generateExamples": "生成示例卡片",
+    "inputPlaceholder": "询问关于这个内容的问题...",
+    "welcome": "你好！我可以帮你更好地理解这张卡片和学习路径。我了解当前内容的信息，可以提供更深入的解释。你可以问我任何问题，使用下面的快捷操作按钮，或者尝试\\\"生成关于[主题]的卡片\\\"来创建学习材料！",
+    "error": "抱歉，我遇到了一个错误。请稍后再试。",
+    "authRequired": "需要登录才能执行此操作。请尝试刷新页面或重新登录。",
+    "cardUnsaved": "卡片已从你的收藏中移除",
+    "errorUnsavingCard": "无法从你的收藏中移除卡片",
+    "cardDeleted": "卡片已从系统中永久删除",
+    "relatedCard": "相关卡片",
+    "unsaveCard": "从收藏中移除",
+    "deleteCard": "从系统中删除",
+    "answer": "答案",
+    "showLess": "显示更少",
+    "showMore": "显示更多",
+    "addToStudyMaterials": "添加到学习材料",
+    "generatedCards": "生成的卡片",
+    "viewDetails": "查看详情",
+    "confirmDelete": "确认删除",
+    "confirmDeleteMessage": "确定要永久删除这张卡片吗？",
+    "confirmButton": "删除",
+    "cancelButton": "取消",
+    "generatingCards": "正在生成 {{count}} 张关于\\\"{{topic}}\\\"的卡片...",
+    "cardsGenerated": "我已生成 {{count}} 张关于\\\"{{topic}}\\\"的卡片。你可以在\\\"生成的卡片\\\"标签页中查看。",
+    "noCardsGenerated": "无法为此主题生成卡片。",
+    "errorGeneratingCards": "生成卡片失败：{{error}}",
+    "unknownError": "未知错误",
+    "explainSection": "解释这个章节"
+  },
+  "home": {
+    "loading": "加载中...",
+    "error": "加载推荐内容失败，请稍后重试。",
+    "no_recommendations": "暂无推荐内容。",
+    "load_more": "加载更多",
+    "loading_more": "正在加载更多...",
+    "no_more": "没有更多内容了",
+    "prompt_heading": "今天想学习什么？",
+    "recommended_learning_paths": "推荐学习路径"
   }
 }

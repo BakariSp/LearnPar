@@ -5,7 +5,7 @@ import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../../context/AuthContext';
 import { getUserSubscription, getDailyUsage, applyPromotionCode, checkDailyLimits, SubscriptionData, DailyUsageData } from '@/services/api/subscription';
-import { getSetupCompleteStatus } from '@/services/auth';
+import { getSetupCompleteStatus, getCurrentUser } from '@/services/auth';
 import styles from './dashboard.module.css';
 import { logAuthState, validateAuthState } from '@/utils/auth-debug';
 import { supabase } from '@/services/supabase';
@@ -47,7 +47,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const params = useParams();
   const locale = params ? (Array.isArray(params.locale) ? params.locale[0] : params.locale) || 'en' : 'en';
-  const { t } = useTranslation('common');
+  const { t, i18n } = useTranslation('common');
   const searchParams = useSearchParams();
   const [isSetupComplete, setIsSetupComplete] = useState(false);
 
@@ -65,9 +65,33 @@ export default function DashboardPage() {
 
   // Check if setup is complete based on cookie status
   useEffect(() => {
-    const setupComplete = getSetupCompleteStatus();
-    setIsSetupComplete(setupComplete);
-  }, []);
+    const checkSetupStatus = async () => {
+      try {
+        // 1. 检查 setup_complete cookie
+        const setupComplete = getSetupCompleteStatus();
+        if (setupComplete) {
+          setIsSetupComplete(true);
+          return;
+        }
+
+        // 2. 检查数据库中的用户信息
+        const currentUser = await getCurrentUser();
+        if (currentUser && currentUser.username) {
+          // 如果用户已经设置了用户名，说明已经完成设置
+          setIsSetupComplete(true);
+          return;
+        }
+
+        // 如果设置未完成，重定向到设置页面
+        console.log('[Dashboard Debug] Setup not complete, redirecting to setup...');
+        router.push(`/${locale}/setup`);
+      } catch (error) {
+        console.error('[Dashboard Debug] Error checking setup status:', error);
+      }
+    };
+
+    checkSetupStatus();
+  }, [router, locale]);
 
   // Check for show_upgrade query parameter and auto-expand upgrade section
   useEffect(() => {
@@ -118,8 +142,6 @@ export default function DashboardPage() {
           if (!user && !hasSupabaseSession) {
             console.log('[Dashboard Debug] No authentication found, redirecting to login...');
             
-            // No need to clear legacy tokens - they're not used anymore
-            
             // Add a query parameter to show a message about being logged out
             router.push(`/${locale}/login?error=session_expired`);
             return;
@@ -133,27 +155,17 @@ export default function DashboardPage() {
             window.location.href = `/${locale}/dashboard?refreshed=true`;
             return;
           }
+
+          // 如果用户已认证，确保保持在 dashboard
+          if (user) {
+            console.log('[Dashboard Debug] User authenticated, showing dashboard');
+            localStorage.setItem('last_authenticated_route', `/${locale}/dashboard`);
+          }
         } catch (error) {
           console.error('[Dashboard Debug] Error checking auth state:', error);
           // If we can't verify the auth state, redirect to login to be safe
           router.push(`/${locale}/login?error=auth_check_failed`);
           return;
-        }
-
-        // Only check interests if we have a user (restore interests check)
-        if (user) {
-          // Check if interests property exists and is accessible
-          console.log('[Dashboard Debug] User authenticated, checking interests:', user.interests);
-          
-          if (!user.interests || user.interests.length === 0) {
-            console.log('[Dashboard Debug] User missing interests, redirecting to setup...');
-            router.push(`/${locale}/setup`);
-          } else {
-            console.log('[Dashboard Debug] User has interests, showing dashboard');
-            // User is fully authenticated with interests, so ensure we stay on dashboard
-            // This prevents unwanted redirects to login
-            localStorage.setItem('last_authenticated_route', `/${locale}/dashboard`);
-          }
         }
       }
     }, 500); // Short delay to ensure auth state is properly synchronized
@@ -381,6 +393,12 @@ export default function DashboardPage() {
     checkSupabaseAuth();
   }, [user, isLoading]);
 
+  useEffect(() => {
+    if (i18n.language !== locale) {
+      i18n.changeLanguage(locale);
+    }
+  }, [locale, i18n]);
+
   const handleLogout = () => {
     contextLogout();
     router.push(`/${locale}/logged-out`);
@@ -470,6 +488,18 @@ export default function DashboardPage() {
       console.error('Error checking limits:', err);
       setError('Unable to check your usage limits. Please try again.');
     }
+  };
+
+  const handleLanguageSwitch = () => {
+    const segments = window.location.pathname.replace(/^\/+/, '').split('/');
+    const currentLocale = segments[0];
+    const newLocale = currentLocale === 'en' ? 'zh' : 'en';
+    segments[0] = newLocale;
+    const newPath = '/' + segments.join('/');
+    // 设置 cookie
+    document.cookie = `NEXT_LOCALE=${newLocale}; path=/`;
+    // 跳转
+    window.location.replace(newPath);
   };
 
   if (isLoading) {
@@ -740,11 +770,11 @@ export default function DashboardPage() {
     return (
       <div className={`${styles.subscriptionSection} card`}>
         <div className={styles.subscriptionHeader}>
-          <h3 className="heading-md">Your Subscription</h3>
+          <h3 className="heading-md">{t('Subscription.subscriptionPlans')}</h3>
           <div className={styles.currentSubscriptionBadge} style={{ backgroundColor: 'var(--primary-accent)' }}>
-            {currentPlan === 'free' ? 'Basic Tier' : 
-             currentPlan === 'standard' ? 'Standard Tier' : 
-             'Premium Tier'}
+            {currentPlan === 'free' ? t('Subscription.freeTier') : 
+             currentPlan === 'standard' ? t('Subscription.standardTier') : 
+             t('Subscription.premiumTier')}
           </div>
         </div>
         
@@ -754,15 +784,15 @@ export default function DashboardPage() {
         {/* Fallback information if stats can't be loaded */}
         {(!subscriptionInfo?.usage || !dailyUsage) && (
           <div className={styles.fallbackSubscriptionInfo}>
-            <h4 className="heading-md">Your Current Plan: {currentPlan === 'free' ? 'Basic Tier' : 
-             currentPlan === 'standard' ? 'Standard Tier' : 
-             'Premium Tier'}</h4>
-            <p className="text-regular">Daily limits based on your current plan:</p>
+            <h4 className="heading-md">{t('Subscription.currentPlan')}: {currentPlan === 'free' ? t('Subscription.freeTier') : 
+             currentPlan === 'standard' ? t('Subscription.standardTier') : 
+             t('Subscription.premiumTier')}</h4>
+            <p className="text-regular">{t('Subscription.currentUsage')}:</p>
             <ul>
-              <li>Learning Paths: {currentPlan === 'free' ? '3' : currentPlan === 'standard' ? '10' : 'Unlimited'} per day</li>
-              <li>Flashcards: {currentPlan === 'free' ? '20' : currentPlan === 'standard' ? '50' : 'Unlimited'} per day</li>
+              <li>{t('Subscription.learningPaths')}: {currentPlan === 'free' ? '3' : currentPlan === 'standard' ? '10' : t('Subscription.unlimited')} {t('Subscription.perDay')}</li>
+              <li>{t('Subscription.flashcards')}: {currentPlan === 'free' ? '20' : currentPlan === 'standard' ? '50' : t('Subscription.unlimited')} {t('Subscription.perDay')}</li>
             </ul>
-            <p className="text-small">For more detailed usage statistics, please refresh the page.</p>
+            <p className="text-small">{t('Subscription.refreshForDetails')}</p>
           </div>
         )}
         
@@ -787,27 +817,27 @@ export default function DashboardPage() {
               onClick={() => setShowPromoSection(!showPromoSection)}
               style={{ marginRight: '1rem' }}
             >
-              {showPromoSection ? 'Hide Upgrade Options' : 'Upgrade Your Plan'}
+              {showPromoSection ? t('Subscription.hideUpgrade') : t('Subscription.upgrade')}
             </button>
           )}
           <button 
             className={styles.logoutButton}
             onClick={() => setShowSubscriptionTable(!showSubscriptionTable)}
           >
-            {showSubscriptionTable ? 'Hide Details' : 'Show Plan Details'}
+            {showSubscriptionTable ? t('Subscription.hideDetails') : t('Subscription.showDetails')}
           </button>
         </div>
         
         {showPromoSection && (
           <div className={styles.upgradeContainer}>
             <div className={styles.promoCodeContainer}>
-              <h4 className="heading-md">Enter your special code to upgrade</h4>
+              <h4 className="heading-md">{t('Subscription.enterPromoCode')}</h4>
               <div className={styles.promoCodeForm}>
                 <input
                   type="text"
                   value={promoCode}
                   onChange={(e) => setPromoCode(e.target.value)}
-                  placeholder="Enter your special code"
+                  placeholder={t('Subscription.enterPromoCode')}
                   className={styles.promoCodeInput}
                 />
                 <button
@@ -815,11 +845,11 @@ export default function DashboardPage() {
                   disabled={submitting}
                   className="button-primary"
                 >
-                  {submitting ? 'Processing...' : 'Apply Code'}
+                  {submitting ? t('Subscription.processing') : t('Subscription.applyCode')}
                 </button>
               </div>
               <p className={styles.promoInfo}>
-                Use your special code to instantly upgrade your subscription tier and unlock more features.
+                {t('Subscription.promoCodeInfo')}
               </p>
             </div>
           </div>
@@ -828,49 +858,49 @@ export default function DashboardPage() {
         {/* Feature comparison table - now collapsible */}
         {showSubscriptionTable && (
           <div className={styles.featureTable}>
-            <h3 className="heading-md">Plan Comparison</h3>
+            <h3 className="heading-md">{t('Subscription.planComparison')}</h3>
             <table className={styles.subscriptionTable}>
               <thead>
                 <tr>
-                  <th>Feature</th>
-                  <th>Basic</th>
-                  <th>Standard</th>
-                  <th>Premium</th>
+                  <th>{t('Subscription.feature')}</th>
+                  <th>{t('Subscription.freeTier')}</th>
+                  <th>{t('Subscription.standardTier')}</th>
+                  <th>{t('Subscription.premiumTier')}</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td>Daily Learning Paths</td>
+                  <td>{t('Subscription.dailyLearningPaths')}</td>
                   <td>3</td>
                   <td>10</td>
-                  <td>Unlimited</td>
+                  <td>{t('Subscription.unlimited')}</td>
                 </tr>
                 <tr>
-                  <td>Daily Flashcards</td>
+                  <td>{t('Subscription.dailyFlashcards')}</td>
                   <td>20</td>
                   <td>50</td>
-                  <td>Unlimited</td>
+                  <td>{t('Subscription.unlimited')}</td>
                 </tr>
                 <tr>
-                  <td>Custom Sections</td>
+                  <td>{t('Subscription.customSections')}</td>
                   <td>✓</td>
-                  <td>✓</td>
-                  <td>✓</td>
-                </tr>
-                <tr>
-                  <td>AI Learning Assistant</td>
-                  <td>Limited</td>
                   <td>✓</td>
                   <td>✓</td>
                 </tr>
                 <tr>
-                  <td>Priority Support</td>
+                  <td>{t('Subscription.aiAssistant')}</td>
+                  <td>{t('Subscription.limited')}</td>
+                  <td>✓</td>
+                  <td>✓</td>
+                </tr>
+                <tr>
+                  <td>{t('Subscription.prioritySupport')}</td>
                   <td>✗</td>
                   <td>✓</td>
                   <td>✓</td>
                 </tr>
                 <tr>
-                  <td>Advanced Analytics</td>
+                  <td>{t('Subscription.advancedAnalytics')}</td>
                   <td>✗</td>
                   <td>✗</td>
                   <td>✓</td>
@@ -887,23 +917,28 @@ export default function DashboardPage() {
     <div className={styles.dashboardContainer}>
       <div className={styles.dashboardHeader}>
         <h1 className="heading-xl">{t('dashboard.welcome')}</h1>
-        <button onClick={handleLogout} className={styles.logoutButton}>
-          {t('sidebar.logout')}
-        </button>
+        <div className={styles.headerActions}>
+          <button onClick={handleLanguageSwitch} className={styles.languageButton}>
+            {locale === 'en' ? '中文' : 'English'}
+          </button>
+          <button onClick={handleLogout} className={styles.logoutButton}>
+            {t('sidebar.logout')}
+          </button>
+        </div>
       </div>
 
       <div className={`${styles.userInfoCard} card`}>
         <div className={styles.userProfile}>
           {user?.profile_picture ? (
-            <img src={user.profile_picture} alt={user.username || 'User'} className={styles.profilePicture} />
+            <img src={user.profile_picture} alt={user.username || t('dashboard.user')} className={styles.profilePicture} />
           ) : (
             <div className={styles.profilePlaceholder}>
               {user?.username?.charAt(0).toUpperCase() || 'U'}
             </div>
           )}
           <div className={styles.userDetails}>
-            <h2 className="heading-lg">{user?.full_name || user?.username || 'User'}</h2>
-            <p className={styles.userEmail}>{user?.email || 'No email'}</p>
+            <h2 className="heading-lg">{user?.full_name || user?.username || t('dashboard.user')}</h2>
+            <p className={styles.userEmail}>{user?.email || t('dashboard.noEmail')}</p>
             {user?.oauth_provider && (
               <span className={styles.oauthBadge}>{user.oauth_provider}</span>
             )}
@@ -913,11 +948,11 @@ export default function DashboardPage() {
         <div className={styles.accountInfo}>
           <div className={styles.infoItem}>
             <span className={styles.infoLabel}>{t('dashboard.username')}</span>
-            <span className={styles.infoValue}>{user?.username || 'Guest'}</span>
+            <span className={styles.infoValue}>{user?.username || t('dashboard.guest')}</span>
           </div>
           <div className={styles.infoItem}>
             <span className={styles.infoLabel}>{t('dashboard.account_id')}</span>
-            <span className={styles.infoValue}>{user?.id || 'N/A'}</span>
+            <span className={styles.infoValue}>{user?.id || t('dashboard.na')}</span>
           </div>
           <div className={styles.infoItem}>
             <span className={styles.infoLabel}>{t('dashboard.account_status')}</span>
@@ -932,12 +967,12 @@ export default function DashboardPage() {
             </div>
           )}
           <div className={styles.infoItem}>
-            <span className={styles.infoLabel}>Subscription</span>
+            <span className={styles.infoLabel}>{t('Subscription.subscription')}</span>
             <span className={styles.infoValue}>
-              {(subscriptionInfo?.subscription_type === 'free' || subscriptionInfo?.plan?.type === 'free') && 'Basic Tier'}
-              {(subscriptionInfo?.subscription_type === 'standard' || subscriptionInfo?.plan?.type === 'standard') && 'Standard Tier'}
-              {(subscriptionInfo?.subscription_type === 'premium' || subscriptionInfo?.plan?.type === 'premium') && 'Premium Tier'}
-              {(!subscriptionInfo?.subscription_type && !subscriptionInfo?.plan?.type) && 'Basic Tier'}
+              {(subscriptionInfo?.subscription_type === 'free' || subscriptionInfo?.plan?.type === 'free') && t('Subscription.freeTier')}
+              {(subscriptionInfo?.subscription_type === 'standard' || subscriptionInfo?.plan?.type === 'standard') && t('Subscription.standardTier')}
+              {(subscriptionInfo?.subscription_type === 'premium' || subscriptionInfo?.plan?.type === 'premium') && t('Subscription.premiumTier')}
+              {(!subscriptionInfo?.subscription_type && !subscriptionInfo?.plan?.type) && t('Subscription.freeTier')}
             </span>
           </div>
         </div>
@@ -960,7 +995,7 @@ export default function DashboardPage() {
               className="button-primary"
               onClick={() => handleCreateNew('path')}
             >
-              Create Learning Path
+              {t('dashboard.create_learning_path')}
             </button>
           </div>
         </div>

@@ -4,7 +4,12 @@ import i18n from '../i18n/client';
 
 export default function I18nInitializer() {
   useEffect(() => {
-    // Add event listeners for debugging
+    // 确保 i18n 已经初始化
+    if (!i18n.isInitialized) {
+      i18n.init();
+    }
+
+    // 添加事件监听器用于调试
     if (process.env.NODE_ENV === 'development') {
       i18n.on('initialized', () => {
         console.log('i18n initialized successfully');
@@ -22,6 +27,16 @@ export default function I18nInitializer() {
         console.log(`i18n resources loaded:`, loaded);
       });
     }
+
+    // 清理函数
+    return () => {
+      if (process.env.NODE_ENV === 'development') {
+        i18n.off('initialized');
+        i18n.off('languageChanged');
+        i18n.off('failedLoading');
+        i18n.off('loaded');
+      }
+    };
   }, []);
   
   return null;
