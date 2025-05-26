@@ -192,18 +192,30 @@ export const apiClient = async (endpoint: string, options: RequestInit = {}): Pr
 };
 
 export interface UserProfile {
-  id: number; // This might need to be string if Supabase ID is UUID
+  id: string; // Changed from number to string to match Supabase UUID
   email?: string; // Supabase provides email
   username?: string; // Typically from user_metadata in Supabase
   full_name?: string; // Typically from user_metadata
   profile_picture?: string; // Typically from user_metadata (avatar_url)
   is_active?: boolean; // Determine based on Supabase user status or your app logic
-  oauth_provider?: string; // Available in Supabase user.app_metadata.provider
+  oauth_provider?: string; // From Supabase app_metadata
   created_at?: string; // Supabase provides this
   interests?: string[]; // Typically from user_metadata or a separate profiles table
   is_superuser?: boolean; // Custom field, manage in your DB
   is_guest?: boolean; // Custom field, manage in your DB or app_metadata
   subscription_type?: 'free' | 'standard' | 'premium'; // Custom, manage in app_metadata or DB
+  user_metadata?: {
+    full_name?: string;
+    username?: string;
+    avatar_url?: string;
+    interests?: string[];
+  };
+  app_metadata?: {
+    provider?: string;
+    role?: string;
+    is_guest?: boolean;
+    subscription_type?: 'free' | 'standard' | 'premium';
+  };
 }
 
 // Refactored getCurrentUser to primarily use Supabase
@@ -278,6 +290,8 @@ export const getCurrentUser = async (): Promise<UserProfile | null> => {
       is_superuser: (extendedProfileData as any)?.is_superuser,
       is_guest: (extendedProfileData as any)?.is_guest !== undefined ? (extendedProfileData as any).is_guest : supabaseUser.app_metadata?.is_guest,
       subscription_type: (extendedProfileData as any)?.subscription_type || supabaseUser.app_metadata?.subscription_type,
+      user_metadata: supabaseUser.user_metadata,
+      app_metadata: supabaseUser.app_metadata,
       // Include other fields from extendedProfileData or supabaseUser.user_metadata as needed
     };
     
