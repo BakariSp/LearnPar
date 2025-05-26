@@ -25,8 +25,9 @@ export default function LoginPage() {
   // Add effect to redirect if already authenticated
   useEffect(() => {
     if (isClient && authReady && isAuthenticated) {
-      console.log('Login Page: User already authenticated, redirecting to home');
-      router.push(`/${locale}/home`);
+      console.log('[Login Page Debug] User already authenticated');
+      // 移除自动重定向到 home 的逻辑
+      // 让 AuthContext 处理重定向
     }
   }, [isClient, authReady, isAuthenticated, router, locale]);
 

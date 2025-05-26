@@ -328,7 +328,7 @@ export function ZeroLandingPageContent(props: ZeroLandingPageProps) {
     return (
       <div className={styles.loadingContainer}>
         <div className={styles.loadingSpinner}></div>
-        <p>{t('common.loading')}</p>
+        <p>{t('loading')}</p>
       </div>
     );
   }
@@ -376,7 +376,7 @@ export function ZeroLandingPageContent(props: ZeroLandingPageProps) {
                   onClick={handleLoadMore}
                   disabled={isLoadingMore}
                 >
-                  {isLoadingMore ? t('common.loading') : t('home.load_more')}
+                  {isLoadingMore ? t('loading') : t('home.load_more')}
                 </button>
               </div>
             )}

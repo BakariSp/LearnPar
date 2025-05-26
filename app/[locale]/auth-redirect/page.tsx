@@ -9,26 +9,46 @@ export default function AuthRedirectPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const locale = params?.locale as string || 'en';
-  const { isAuthenticated, authReady } = useAuth();
+  const { isAuthenticated, authReady, user } = useAuth();
   
   // Target page from query params or default to home
   const targetPage = searchParams?.get('target') || 'home';
 
   useEffect(() => {
-    console.log('Auth Redirect: Page loaded, checking auth state');
+    console.log('[Auth Redirect Debug] Page loaded, checking auth state');
 
     if (authReady) {
       if (isAuthenticated) {
-        console.log(`Auth Redirect: User is authenticated, redirecting to ${targetPage}`);
+        console.log(`[Auth Redirect Debug] User is authenticated, redirecting to ${targetPage}`);
         
-        // Use direct window location change for maximum reliability
-        window.location.href = `/${locale}/${targetPage}`;
+        // 检查是否是游客账号
+        const isGuest = user?.app_metadata?.is_guest || user?.user_metadata?.is_guest;
+        
+        if (isGuest) {
+          console.log('[Auth Redirect Debug] Guest account detected, staying on current page');
+          return;
+        }
+        
+        // 检查用户是否完成设置
+        const hasUsername = !!user?.username;
+        const hasInterests = user?.interests && user.interests.length > 0;
+        
+        if (!hasUsername) {
+          console.log('[Auth Redirect Debug] User needs setup, redirecting to setup page');
+          window.location.href = `/${locale}/setup`;
+        } else if (hasInterests) {
+          console.log('[Auth Redirect Debug] User has interests, redirecting to dashboard');
+          window.location.href = `/${locale}/dashboard`;
+        } else {
+          console.log('[Auth Redirect Debug] User needs to set interests, redirecting to home');
+          window.location.href = `/${locale}/home`;
+        }
       } else {
-        console.log('Auth Redirect: User is not authenticated, redirecting to login');
+        console.log('[Auth Redirect Debug] User is not authenticated, redirecting to login');
         router.replace(`/${locale}/login`);
       }
     }
-  }, [authReady, isAuthenticated, router, locale, targetPage]);
+  }, [authReady, isAuthenticated, router, locale, targetPage, user]);
 
   return (
     <div style={{ 

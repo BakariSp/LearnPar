@@ -15,6 +15,7 @@
     "send_message": "发送",
     "loading": "加载聊天中..."
   },
+  "loading": "加载中...",
   "landing": {
     "hero_subtitle": "AI 学习路径生成器",
     "hero_title_1": "几秒钟创建",

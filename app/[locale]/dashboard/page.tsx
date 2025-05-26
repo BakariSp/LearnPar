@@ -9,6 +9,7 @@ import { getSetupCompleteStatus, getCurrentUser } from '@/services/auth';
 import styles from './dashboard.module.css';
 import { logAuthState, validateAuthState } from '@/utils/auth-debug';
 import { supabase } from '@/services/supabase';
+import Link from 'next/link';
 
 // Extend the API interface to include the limit_reached property we're using
 interface ExtendedDailyUsageData extends DailyUsageData {
@@ -141,34 +142,29 @@ export default function DashboardPage() {
           // If we don't have a user in context or a valid Supabase session, redirect to login
           if (!user && !hasSupabaseSession) {
             console.log('[Dashboard Debug] No authentication found, redirecting to login...');
-            
-            // Add a query parameter to show a message about being logged out
             router.push(`/${locale}/login?error=session_expired`);
             return;
           }
           
           // If we have a Supabase session but no user in context, refresh the page
-          // This handles edge cases where the auth state isn't properly synchronized
           if (hasSupabaseSession && !user && !window.location.search.includes('refreshed=true')) {
             console.log('[Dashboard Debug] Session exists but user state is null - refreshing page');
-            // Add a query param to prevent infinite refresh loops
             window.location.href = `/${locale}/dashboard?refreshed=true`;
             return;
           }
 
-          // 如果用户已认证，确保保持在 dashboard
+          // 如果用户已认证（包括游客账号），确保保持在 dashboard
           if (user) {
             console.log('[Dashboard Debug] User authenticated, showing dashboard');
             localStorage.setItem('last_authenticated_route', `/${locale}/dashboard`);
           }
         } catch (error) {
           console.error('[Dashboard Debug] Error checking auth state:', error);
-          // If we can't verify the auth state, redirect to login to be safe
           router.push(`/${locale}/login?error=auth_check_failed`);
           return;
         }
       }
-    }, 500); // Short delay to ensure auth state is properly synchronized
+    }, 500);
 
     return () => clearTimeout(checkAuthState);
   }, [isLoading, user, router, locale]);
@@ -399,9 +395,17 @@ export default function DashboardPage() {
     }
   }, [locale, i18n]);
 
-  const handleLogout = () => {
-    contextLogout();
-    router.push(`/${locale}`);
+  const handleLogout = async () => {
+    try {
+      console.log('[Dashboard Debug] Logging out user');
+      await contextLogout();
+      // 使用 window.location.href 确保重定向到首页
+      window.location.href = `/${locale}`;
+    } catch (error) {
+      console.error('[Dashboard Debug] Error during logout:', error);
+      // 即使出错也尝试重定向到首页
+      window.location.href = `/${locale}`;
+    }
   };
 
   const handleUpgradeSubscription = async () => {
@@ -903,9 +907,49 @@ export default function DashboardPage() {
           <button onClick={handleLanguageSwitch} className={styles.languageButton}>
             {locale === 'en' ? '中文' : 'English'}
           </button>
-          <button onClick={handleLogout} className={styles.logoutButton}>
-            {t('sidebar.logout')}
-          </button>
+          {(!user || 
+            user.app_metadata?.is_guest || 
+            user.user_metadata?.is_guest || 
+            (!user.username && !user.user_metadata?.full_name) || 
+            !user.email) ? (
+            <button 
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                console.log('[Dashboard Debug] ===== Login Button Click =====');
+                console.log('[Dashboard Debug] User state:', {
+                  exists: !!user,
+                  id: user?.id,
+                  username: user?.username,
+                  fullName: user?.user_metadata?.full_name,
+                  email: user?.email,
+                  isGuest: user?.app_metadata?.is_guest || user?.user_metadata?.is_guest,
+                  hasUsername: !!user?.username,
+                  hasFullName: !!user?.user_metadata?.full_name,
+                  hasEmail: !!user?.email,
+                  provider: user?.app_metadata?.provider,
+                  metadata: {
+                    app: user?.app_metadata,
+                    user: user?.user_metadata
+                  }
+                });
+                
+                // 直接使用 window.location.href
+                const loginUrl = `/${locale}/login`;
+                console.log('[Dashboard Debug] Navigating to:', loginUrl);
+                window.location.href = loginUrl;
+              }} 
+              className={styles.logoutButton}
+            >
+              {t('login.button')}
+            </button>
+          ) : (
+            <button onClick={handleLogout} className={styles.logoutButton}>
+              {t('sidebar.logout')}
+            </button>
+          )}
         </div>
       </div>
 

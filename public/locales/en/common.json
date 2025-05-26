@@ -15,6 +15,7 @@
     "send_message": "Send",
     "loading": "Getting chat ready..."
   },
+  "loading": "Loading...",
   "landing": {
     "hero_subtitle": "AI Learning Path Builder",
     "hero_title_1": "Create a personalized",

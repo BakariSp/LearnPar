@@ -21,10 +21,11 @@ interface UserProfile {
   username?: string;
   full_name?: string;
   profile_picture?: string;
-  interests?: string[];
   is_active?: boolean;
   oauth_provider?: string;
   created_at?: string;
+  interests?: string[];
+  is_superuser?: boolean;
   is_guest?: boolean;
   subscription_type?: 'free' | 'standard' | 'premium';
   user_metadata?: {
@@ -32,6 +33,7 @@ interface UserProfile {
     username?: string;
     avatar_url?: string;
     interests?: string[];
+    is_guest?: boolean;
   };
   app_metadata?: {
     provider?: string;
@@ -166,7 +168,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = useCallback(async (credentials: LoginCredentials) => {
     setIsLoading(true);
-    console.log('AuthContext: Login started with email');
+    console.log('[AuthContext Debug] Login started with email');
     
     try {
       const { user: authUser, session } = await signInWithEmail(credentials.username, credentials.password);
@@ -175,7 +177,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw new Error('Login failed: No user data returned');
       }
       
-      console.log('AuthContext: Login successful, session established');
+      console.log('[AuthContext Debug] Login successful, session established');
       
       setUser({
         id: authUser.id,
@@ -193,21 +195,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         app_metadata: authUser.app_metadata
       });
       
-      // Redirect to dashboard directly if user has interests set up
-      if (authUser.user_metadata?.interests && authUser.user_metadata.interests.length > 0) {
-        console.log('AuthContext: User has interests, redirecting to dashboard');
-        // Use our helper function for consistent redirection
+      // 检查是否是游客账号
+      const isGuest = authUser.app_metadata?.is_guest || authUser.user_metadata?.is_guest;
+      
+      if (isGuest) {
+        console.log('[AuthContext Debug] Guest account detected, staying on login page');
+        return;
+      }
+      
+      // 检查用户是否完成设置
+      const hasUsername = !!authUser.user_metadata?.username;
+      const hasInterests = authUser.user_metadata?.interests && authUser.user_metadata.interests.length > 0;
+      
+      if (!hasUsername) {
+        console.log('[AuthContext Debug] User needs setup, redirecting to setup page');
+        redirectBasedOnAuth('setup');
+      } else if (hasInterests) {
+        console.log('[AuthContext Debug] User has interests, redirecting to dashboard');
         redirectBasedOnAuth('dashboard');
       } else {
-        // Redirect to auth-redirect page which will handle setup flow if needed
-        console.log('AuthContext: Redirecting to auth-redirect page');
-        // Use our helper function for consistent redirection
-        redirectBasedOnAuth('auth-redirect?target=home');
+        console.log('[AuthContext Debug] User needs to set interests, redirecting to home');
+        redirectBasedOnAuth('home');
       }
     } catch (error) {
-      console.error("AuthContext: Login failed:", error);
-      setUser(null);
-      throw error; // Re-throw for the login page to handle
+      console.error("[AuthContext Debug] Login failed:", error);
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -229,7 +241,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const loginAnonymously = useCallback(async () => {
     console.log('AuthContext: Initiating anonymous login');
     try {
-      // ✅ 1.2 调用匿名登录 - 使用 supabase.auth.signInAnonymously()
+      // 1. 调用匿名登录
       const { data, error } = await supabase.auth.signInAnonymously();
       
       if (error) {
@@ -240,100 +252,39 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw new Error('No user data received');
       }
 
-      console.log('AuthContext: Supabase anonymous login successful:', {
+      console.log('AuthContext: Anonymous login successful:', {
         userId: data.user.id,
-        hasSession: !!data.session,
-        accessToken: data.session?.access_token ? 'exists' : 'missing'
+        hasSession: !!data.session
       });
 
-      // 拿到返回的 user.id（即 auth 的 UUID）
-      const authId = data.user.id;
-      console.log('AuthContext: Anonymous user created with auth_id:', authId);
-
-      // 立即更新前端状态
-      setUser({
+      // 2. 更新用户状态，明确标记为游客
+      const guestUser = {
         id: data.user.id,
         email: data.user.email,
         username: data.user.user_metadata?.username,
         is_active: true,
         is_guest: true,
         created_at: data.user.created_at,
-        user_metadata: data.user.user_metadata,
-        app_metadata: data.user.app_metadata
-      });
-
-      // ✅ 1.3 调用后端 API 同步用户 - 等待API请求完成
-      console.log('AuthContext: About to call sync API with auth_id:', authId);
-      console.log('AuthContext: Session data:', {
-        user_id: data.user.id,
-        email: data.user.email,
-        has_session: !!data.session,
-        access_token_length: data.session?.access_token?.length || 0
-      });
-      
-      let syncSuccess = false;
-      try {
-        const requestPayload = { auth_id: authId };
-        console.log('AuthContext: Making fetch request to FastAPI backend');
-        console.log('AuthContext: Request payload:', requestPayload);
-        console.log('AuthContext: Access token exists:', !!data.session?.access_token);
-        
-        // 调用 FastAPI 后端 - 正确的端点路径
-        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-        const apiUrl = `${apiBaseUrl}/api/auth/sync-anonymous-user`;
-        
-        console.log('🚀 AuthContext: ABOUT TO MAKE API CALL');
-        console.log('🚀 AuthContext: URL:', apiUrl);
-        console.log('🚀 AuthContext: Payload:', JSON.stringify(requestPayload));
-        console.log('🚀 AuthContext: Headers will include Authorization');
-        
-        const response = await fetch(apiUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            // 传递 Supabase access_token 给 FastAPI 验证
-            'Authorization': `Bearer ${data.session?.access_token || ''}`
-          },
-          body: JSON.stringify(requestPayload)
-        });
-
-        console.log('🎯 AuthContext: API CALL COMPLETED');
-        console.log('🎯 AuthContext: Response status:', response.status);
-        console.log('🎯 AuthContext: Response ok:', response.ok);
-        console.log('🎯 AuthContext: Response headers:', Object.fromEntries(response.headers.entries()));
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('❌ AuthContext: API call failed:', {
-            status: response.status,
-            statusText: response.statusText,
-            error: errorText,
-            url: apiUrl
-          });
-        } else {
-          const result = await response.json();
-          console.log('✅ AuthContext: API call successful:', result);
-          syncSuccess = true;
+        user_metadata: {
+          ...data.user.user_metadata,
+          is_guest: true
+        },
+        app_metadata: {
+          ...data.user.app_metadata,
+          is_guest: true
         }
-      } catch (syncError: any) {
-        console.error('💥 AuthContext: EXCEPTION during API call:', {
-          error: syncError,
-          message: syncError?.message,
-          stack: syncError?.stack
-        });
-        // 不抛出错误，因为用户已经登录成功了
-      }
+      };
 
-      console.log('AuthContext: Sync completed, success:', syncSuccess);
-      console.log('AuthContext: About to redirect to home');
-      
-      // 重定向到首页（API请求已完成）
-      redirectBasedOnAuth('home');
+      setUser(guestUser);
+
+      // 3. 重定向到首页
+      const locale = getCurrentLocale();
+      window.location.href = `/${locale}/home`;
     } catch (error) {
       console.error('AuthContext: Anonymous login failed:', error);
       throw error;
     }
-  }, [redirectBasedOnAuth]);
+  }, []);
 
   // Memoize logout function
   const logout = useCallback(async () => {

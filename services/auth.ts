@@ -192,23 +192,24 @@ export const apiClient = async (endpoint: string, options: RequestInit = {}): Pr
 };
 
 export interface UserProfile {
-  id: string; // Changed from number to string to match Supabase UUID
-  email?: string; // Supabase provides email
-  username?: string; // Typically from user_metadata in Supabase
-  full_name?: string; // Typically from user_metadata
-  profile_picture?: string; // Typically from user_metadata (avatar_url)
-  is_active?: boolean; // Determine based on Supabase user status or your app logic
-  oauth_provider?: string; // From Supabase app_metadata
-  created_at?: string; // Supabase provides this
-  interests?: string[]; // Typically from user_metadata or a separate profiles table
-  is_superuser?: boolean; // Custom field, manage in your DB
-  is_guest?: boolean; // Custom field, manage in your DB or app_metadata
-  subscription_type?: 'free' | 'standard' | 'premium'; // Custom, manage in app_metadata or DB
+  id: string;
+  email?: string;
+  username?: string;
+  full_name?: string;
+  profile_picture?: string;
+  is_active?: boolean;
+  oauth_provider?: string;
+  created_at?: string;
+  interests?: string[];
+  is_superuser?: boolean;
+  is_guest?: boolean;
+  subscription_type?: 'free' | 'standard' | 'premium';
   user_metadata?: {
     full_name?: string;
     username?: string;
     avatar_url?: string;
     interests?: string[];
+    is_guest?: boolean;
   };
   app_metadata?: {
     provider?: string;

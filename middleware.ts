@@ -103,6 +103,8 @@ export async function middleware(req: NextRequest) {
   });
 
   // Debug output
+  console.log("[Middleware Debug] ===== Request Details =====");
+  console.log("[Middleware Debug] Full URL:", req.url);
   console.log("[Middleware Debug] Path:", pathname);
   console.log("[Middleware Debug] Protected Path:", isProtectedPath);
   console.log("[Middleware Debug] Is Auth Path:", pathname.includes('/login'));
@@ -120,6 +122,7 @@ export async function middleware(req: NextRequest) {
   
   // For protected paths, check for authentication via Supabase session or auth header
   if (isProtectedPath) {
+    console.log("[Middleware Debug] ===== Protected Path Check =====");
     console.log("[Middleware Debug] Protected path check - hasSession:", !!session);
     console.log("[Middleware Debug] Protected path check - hasAuthHeader:", hasAuthHeader);
     console.log("[Middleware Debug] Protected path check - hasSupabaseAuthCookie:", supabaseAuthCookie);
@@ -145,12 +148,46 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
   
-  // Redirect authenticated users from login to dashboard
-  if (isAuthPath && (session || hasAuthHeader || supabaseAuthCookie)) {
-    console.log("[Middleware Debug] Redirecting to dashboard: Auth path with active authentication");
-    const locale = req.cookies.get('NEXT_LOCALE')?.value || fallbackLng;
-    const dashboardUrl = new URL(`/${locale}/dashboard`, req.url);
-    return NextResponse.redirect(dashboardUrl);
+  // Handle login page access
+  if (isAuthPath) {
+    console.log("[Middleware Debug] ===== Login Page Access Check =====");
+    console.log("[Middleware Debug] Session:", {
+      exists: !!session,
+      userId: session?.user?.id,
+      email: session?.user?.email,
+      metadata: {
+        app: session?.user?.app_metadata,
+        user: session?.user?.user_metadata
+      }
+    });
+    
+    // 检查是否是游客账号
+    const isGuest = session?.user?.app_metadata?.is_guest || 
+                   session?.user?.user_metadata?.is_guest;
+    
+    console.log("[Middleware Debug] Guest check:", {
+      isGuest,
+      appMetadata: session?.user?.app_metadata,
+      userMetadata: session?.user?.user_metadata
+    });
+    
+    // 如果是游客账号，允许访问登录页面
+    if (isGuest) {
+      console.log("[Middleware Debug] Guest account detected - allowing access to login page");
+      return response;
+    }
+    
+    // 如果是完全认证的用户，重定向到 dashboard
+    if (session?.user?.email && session?.user?.user_metadata?.username) {
+      console.log("[Middleware Debug] Fully authenticated user detected - redirecting to dashboard");
+      const locale = req.cookies.get('NEXT_LOCALE')?.value || fallbackLng;
+      const dashboardUrl = new URL(`/${locale}/dashboard`, req.url);
+      return NextResponse.redirect(dashboardUrl);
+    }
+    
+    // 其他情况允许访问登录页面
+    console.log("[Middleware Debug] Allowing access to login page");
+    return response;
   }
   
   // Logic to determine if a request is for a static asset

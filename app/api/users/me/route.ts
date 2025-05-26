@@ -30,8 +30,16 @@ export async function GET() {
       created_at: user.created_at,
       interests: user.user_metadata?.interests || [],
       is_superuser: false,
-      is_guest: user.app_metadata?.is_guest || true,
-      subscription_type: user.app_metadata?.subscription_type || 'free'
+      is_guest: user.app_metadata?.is_guest || user.user_metadata?.is_guest || false,
+      subscription_type: user.app_metadata?.subscription_type || 'free',
+      user_metadata: {
+        ...user.user_metadata,
+        is_guest: user.app_metadata?.is_guest || user.user_metadata?.is_guest || false
+      },
+      app_metadata: {
+        ...user.app_metadata,
+        is_guest: user.app_metadata?.is_guest || user.user_metadata?.is_guest || false
+      }
     });
   } catch (error) {
     console.error('Error in /api/users/me:', error);
