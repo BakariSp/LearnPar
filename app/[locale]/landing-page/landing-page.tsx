@@ -166,7 +166,7 @@ export default function LandingPage() {
                 disabled={isLoading}
                 className={styles.primaryButton}
               >
-                {isLoading ? t('Common.loading') : t('landing.get_started')}
+                {isLoading ? t('common.loading') : t('landing.get_started')}
               </button>
               <Link href={`/${locale}/about`} className={styles.secondaryButton}>
                 {t('landing.learn_more')}

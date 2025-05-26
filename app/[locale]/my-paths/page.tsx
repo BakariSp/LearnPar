@@ -772,7 +772,7 @@ export default function MyLearningPathsPage() {
         {isLoadingList && (
           <div className={styles.listLoading}>
             <div className={styles.spinner}></div>
-            <p>{isClient && t('Common.loading')}</p>
+            <p>{isClient && t('common.loading')}</p>
             <div className={`${styles.progressBar} ${styles.active}`}></div>
           </div>
         )}

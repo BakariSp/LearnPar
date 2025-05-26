@@ -263,7 +263,7 @@
     "refreshForDetails": "Refresh page for detailed usage statistics",
     "perDay": "per day"
   },
-  "Common": {
+  "common": {
     "loading": "Loading..."
   },
   "learnAssistant": {
