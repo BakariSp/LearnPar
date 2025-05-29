@@ -17,7 +17,7 @@ import {
   NextItemInfo,
   CompletionInfo,
 } from '@/services/api'; // Adjust path as needed
-import styles from '../styles';
+import styles from './learning-path-detail.module.css';
 import LearningPathLayout from '../components/LearningPathLayout';
 import { useLearningPath } from '../hooks/useLearningPath';
 // Optional: Import an icon library if you want icons for status

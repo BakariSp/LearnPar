@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { apiGetFullLearningPath, apiAddToMyLearningPaths, FullLearningPathResponse } from '@/services/api';
+import { apiGetLearningPathById, apiAddToMyLearningPaths, LearningPath } from '@/services/api';
 import { isAuthenticated } from '@/services/auth';
 import CustomPreviewCardSection from '@/components/learning-path/CustomPreviewCardSection';
 import styles from './page.module.css';
@@ -20,7 +20,7 @@ export default function RecommendedLearningPathPage({ params }: RecommendedLearn
   const router = useRouter();
   const [pathId, setPathId] = useState<string | undefined>();
   const [locale, setLocale] = useState<string>('en');
-  const [learningPath, setLearningPath] = useState<FullLearningPathResponse | null>(null);
+  const [learningPath, setLearningPath] = useState<LearningPath | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const isLoggedIn = isAuthenticated();
@@ -53,8 +53,8 @@ export default function RecommendedLearningPathPage({ params }: RecommendedLearn
 
       try {
         setLoading(true);
-        // API call - don't need to check for task status for recommendation viewing
-        const data = await apiGetFullLearningPath(Number(pathId));
+        // Use apiGetLearningPathById instead of apiGetFullLearningPath
+        const data = await apiGetLearningPathById(Number(pathId));
         
         if (data) {
           setLearningPath(data);

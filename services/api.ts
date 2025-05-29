@@ -253,7 +253,7 @@ export interface LearningPathBasicInfo {
 
 // Fetch details for a single learning path (Basic)
 export const apiGetLearningPathById = async (id: number): Promise<LearningPath | null> => {
-  const response = await apiClient(`/api/users/me/learning-paths/${id}`);
+  const response = await apiClient(`/api/learning-paths/${id}`);
   if (response && response.ok) {
     return response.json();
   }
@@ -283,7 +283,7 @@ export const apiGetCourseById = async (id: number): Promise<Course | null> => {
 
 // Fetch the FULL learning path structure (Used after polling completes)
 export const apiGetFullLearningPath = async (id: number): Promise<FullLearningPathResponse | null> => {
-  const response = await apiClient(`/api/users/me/learning-paths/${id}`);
+  const response = await apiClient(`/api/learning-paths/${id}`);
   if (response && response.ok) {
     return response.json();
   }
