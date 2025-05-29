@@ -187,7 +187,8 @@
     "delete_path_confirm": "Are you sure you want to remove this learning journey? It can't be recovered.",
     "error_deleting_path": "Couldn't remove this journey right now. Try again?",
     "title": "My Paths",
-    "no_paths_message": "You have no learning paths yet. Create one to get started."
+    "no_paths_message": "You have no learning paths yet. Create one to get started.",
+    "error": "Something went wrong. Please try again."
   },
   "calendar": {
     "title": "Study Schedule",
@@ -265,7 +266,8 @@
     "perDay": "per day"
   },
   "common": {
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "retry": "Try Again"
   },
   "learnAssistant": {
     "title": "Learning Assistant",

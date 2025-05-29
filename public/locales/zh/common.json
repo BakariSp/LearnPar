@@ -213,7 +213,8 @@
     "ready_to_start": "准备开始",
     "delete_path_confirm": "确定要删除这个学习路径吗？此操作无法撤销。",
     "error_deleting_path": "暂时无法删除此学习路径，请稍后重试？",
-    "no_paths_message": "你还没有创建任何学习路径。创建一个开始学习吧。"
+    "no_paths_message": "你还没有创建任何学习路径。创建一个开始学习吧。",
+    "error": "出错了，请重试。"
   },
   "calendar": {
     "title": "学习日历",
@@ -291,7 +292,8 @@
     "perDay": "每天"
   },
   "common": {
-    "loading": "加载中..."
+    "loading": "加载中...",
+    "retry": "重试"
   },
   "learnAssistant": {
     "title": "学习助手",
